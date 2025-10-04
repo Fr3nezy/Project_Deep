@@ -134,30 +134,38 @@ protected virtual void OnDrawGizmos()
 {
     if (!Application.isPlaying || !showDebugInfo) return;
     
-    Vector3 labelPos = transform.position + Vector3.up * 3f;
-    
     #if UNITY_EDITOR
-    string info = $"{entityName} ({entityType})";
+    
+    // === MAIN INFO LABEL (TOP) ===
+    Vector3 mainLabelPos = transform.position + Vector3.up * 4.5f;
+    
+    string mainInfo = $"<b>{entityName}</b> ({entityType})";
     
     if (health != null)
-        info += $"\nHP: {health.GetCurrentHealth():F0}/{health.GetMaxHealth():F0}";
+        mainInfo += $"\nHP: {health.GetCurrentHealth():F0}/{health.GetMaxHealth():F0}";
     
     if (stamina != null)
     {
-        info += $"\nStamina: {stamina.GetCurrentStamina():F0}/{stamina.GetMaxStamina():F0}";
-        info += $"\nState: {stamina.GetCurrentState()}";
-        info += $"\nSpeed: x{stamina.GetSpeedMultiplier():F2}";
+        mainInfo += $"\nStamina: {stamina.GetCurrentStamina():F0}";
+        mainInfo += $" | State: {stamina.GetCurrentState()}";
+        mainInfo += $"\nSpeed: x{stamina.GetSpeedMultiplier():F2}";
     }
     
     if (hunger != null)
-        info += $"\nHunger: {hunger.GetCurrentHunger():F0}/100";
+    {
+        mainInfo += $"\nHunger: {hunger.GetCurrentHunger():F0}";
+        mainInfo += $" | {hunger.GetCurrentState()}";
+    }
     
-    UnityEditor.Handles.Label(labelPos, info);
+    UnityEditor.Handles.Label(mainLabelPos, mainInfo);
+    
     #endif
 }
-    
+
+
     #endregion
 }
+
 
 
 /// <summary>

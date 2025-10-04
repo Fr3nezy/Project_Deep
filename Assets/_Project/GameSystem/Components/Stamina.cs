@@ -252,33 +252,32 @@ public class StaminaComponent : MonoBehaviour
     
     #region Debug Visualization
     
-    void OnDrawGizmos()
+ void OnDrawGizmos()
+{
+    if (!Application.isPlaying) return;
+    
+    Vector3 pos = transform.position + Vector3.up * 2.2f; // ← CAMBIATO da 1.5f
+    float barWidth = 1f;
+    float barHeight = 0.1f;
+    
+    // Background (grigio)
+    Gizmos.color = Color.gray;
+    Gizmos.DrawCube(pos, new Vector3(barWidth, barHeight, 0.01f));
+    
+    // Foreground (colore basato su stato)
+    Color staminaColor = currentState switch
     {
-        if (!Application.isPlaying) return;
-        
-        // Barra stamina sotto HP bar
-        Vector3 pos = transform.position + Vector3.up * 1.5f;
-        float barWidth = 1f;
-        float barHeight = 0.08f;
-        
-        // Background (grigio)
-        Gizmos.color = Color.gray;
-        Gizmos.DrawCube(pos, new Vector3(barWidth, barHeight, 0.01f));
-        
-        // Foreground (colore basato su stato)
-        Color staminaColor = currentState switch
-        {
-            StaminaState.Normal => Color.cyan,
-            StaminaState.Exhausted => Color.red,
-            StaminaState.Recovering => Color.yellow,
-            _ => Color.white
-        };
-        
-        Gizmos.color = staminaColor;
-        float staminaPercent = currentStamina / maxStamina;
-        Vector3 staminaBarPos = pos - new Vector3(barWidth * (1 - staminaPercent) * 0.5f, 0, 0);
-        Gizmos.DrawCube(staminaBarPos, new Vector3(barWidth * staminaPercent, barHeight, 0.02f));
-    }
+        StaminaState.Normal => Color.cyan,
+        StaminaState.Exhausted => Color.red,
+        StaminaState.Recovering => Color.yellow,
+        _ => Color.white
+    };
+    
+    Gizmos.color = staminaColor;
+    float staminaPercent = currentStamina / maxStamina;
+    Vector3 staminaBarPos = pos - new Vector3(barWidth * (1 - staminaPercent) * 0.5f, 0, 0);
+    Gizmos.DrawCube(staminaBarPos, new Vector3(barWidth * staminaPercent, barHeight, 0.02f));
+}
     
     #endregion
 }

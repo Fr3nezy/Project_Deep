@@ -118,20 +118,22 @@ public class HealthComponent : MonoBehaviour
     public bool IsFullHealth() => currentHealth >= maxHealth;
     
     // Debug Gizmo
-    void OnDrawGizmos()
-    {
-        if (!Application.isPlaying) return;
-        
-        Vector3 pos = transform.position + Vector3.up * 2f;
-        float barWidth = 1f;
-        float barHeight = 0.1f;
-        
-        Gizmos.color = Color.red;
-        Gizmos.DrawCube(pos, new Vector3(barWidth, barHeight, 0.01f));
-        
-        Gizmos.color = Color.green;
-        float healthPercent = currentHealth / maxHealth;
-        Vector3 healthBarPos = pos - new Vector3(barWidth * (1 - healthPercent) * 0.5f, 0, 0);
-        Gizmos.DrawCube(healthBarPos, new Vector3(barWidth * healthPercent, barHeight, 0.02f));
-    }
+ void OnDrawGizmos()
+{
+    if (!Application.isPlaying) return;
+    
+    Vector3 pos = transform.position + Vector3.up * 2.5f; // ← CAMBIATO da 2.0f
+    float barWidth = 1f;
+    float barHeight = 0.1f;
+    
+    // Background (rosso)
+    Gizmos.color = Color.red;
+    Gizmos.DrawCube(pos, new Vector3(barWidth, barHeight, 0.01f));
+    
+    // Foreground (verde)
+    Gizmos.color = Color.green;
+    float healthPercent = currentHealth / maxHealth;
+    Vector3 healthBarPos = pos - new Vector3(barWidth * (1 - healthPercent) * 0.5f, 0, 0);
+    Gizmos.DrawCube(healthBarPos, new Vector3(barWidth * healthPercent, barHeight, 0.02f));
+}
 }
