@@ -14,20 +14,20 @@ public class MovementController : MonoBehaviour
     [SerializeField] private float deceleration = 3f;
     
     [Header("Rotation Settings")]
-    [SerializeField] private float rotationSpeed = 60f; // Gradi per secondo (2-3 sec per 180°)
+    [SerializeField] private float rotationSpeed = 60f;
     [SerializeField] private bool smoothRotation = true;
     
     [Header("Wander Settings")]
     [SerializeField] private float wanderRadius = 10f;
     [SerializeField] private float wanderChangeInterval = 4f;
-    [SerializeField] private float wanderSpeed = 0.8f; // Slow drift
+    [SerializeField] private float wanderSpeed = 0.8f;
     
     [Header("Obstacle Avoidance")]
     [SerializeField] private bool enableObstacleAvoidance = true;
     [SerializeField] private float obstacleDetectionRange = 3f;
     [SerializeField] private float avoidanceForce = 5f;
     [SerializeField] private LayerMask obstacleLayers = -1;
-    [SerializeField] private int raycastCount = 5; // Multiple raycast per FOV
+    [SerializeField] private int raycastCount = 5;
     
     [Header("Boundaries (Optional)")]
     [SerializeField] private bool useBoundaries = false;
@@ -39,9 +39,8 @@ public class MovementController : MonoBehaviour
     [SerializeField] private bool showDebugLogs = false;
 
     [Header("Animation Integration")]
-[SerializeField] private Animator fishAnimator;
-[SerializeField] private float animSpeedMultiplier = 0.5f;
-
+    [SerializeField] private Animator fishAnimator;
+    [SerializeField] private float animSpeedMultiplier = 0.5f;
     
     // Component references
     private Rigidbody rb;
@@ -68,10 +67,10 @@ public class MovementController : MonoBehaviour
         hunger = GetComponent<HungerComponent>();
         
         // Rigidbody setup
-        rb.useGravity = false; // Pesci non cadono
-        rb.linearDamping = 2f; // Resistenza acqua
+        rb.useGravity = false;
+        rb.linearDamping = 2f;
         rb.angularDamping = 3f;
-        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ; // Solo Y rotation
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
     }
     
     void Start()
@@ -88,6 +87,11 @@ public class MovementController : MonoBehaviour
         UpdateAnimator();
     }
     
+    // Setters per EntityConfig
+    public void SetBaseSpeed(float speed) => baseSpeed = speed;
+    public void SetWanderSpeed(float speed) => wanderSpeed = speed;
+    public void SetWanderRadius(float radius) => wanderRadius = radius;
+    
     /// <summary>
     /// Priority-based behavior decision.
     /// </summary>
@@ -96,12 +100,12 @@ public class MovementController : MonoBehaviour
         Vector3 desiredDirection = Vector3.zero;
         float desiredSpeed = baseSpeed;
         
-        // PRIORITY 1: FEAR (massima priorità)
+        // PRIORITY 1: FEAR
         if (fear != null && fear.IsFleeing())
         {
             currentState = MovementState.Fleeing;
             desiredDirection = fear.GetFleeDirection();
-            desiredSpeed = baseSpeed * 1.75f; // Panic speed boost
+            desiredSpeed = baseSpeed * 1.75f;
             currentTarget = transform.position + desiredDirection * 10f;
             
             if (showDebugLogs)
@@ -117,7 +121,6 @@ public class MovementController : MonoBehaviour
                 currentTarget = target.transform.position;
                 desiredDirection = (currentTarget - transform.position).normalized;
                 
-                // Speed varia con hunt state
                 if (hunt.GetHuntState() == HuntState.Chasing)
                 {
                     currentState = MovementState.Chasing;
@@ -131,7 +134,7 @@ public class MovementController : MonoBehaviour
                 else if (hunt.GetHuntState() == HuntState.Attacking)
                 {
                     currentState = MovementState.Attacking;
-                    desiredSpeed = baseSpeed * 0.5f; // Rallenta per attaccare
+                    desiredSpeed = baseSpeed * 0.5f;
                 }
                 else
                 {
@@ -141,13 +144,12 @@ public class MovementController : MonoBehaviour
             }
             else
             {
-                // Hunt ha target null/morto → fallback wander
                 currentState = MovementState.Wandering;
                 desiredDirection = GetWanderDirection();
                 desiredSpeed = wanderSpeed;
             }
         }
-        // PRIORITY 3: WANDER (default behavior)
+        // PRIORITY 3: WANDER
         else
         {
             currentState = MovementState.Wandering;
@@ -161,7 +163,7 @@ public class MovementController : MonoBehaviour
         // Apply steering force
         ApplySteering(desiredDirection, finalSpeed);
         
-        // Obstacle avoidance (sempre attivo)
+        // Obstacle avoidance
         if (enableObstacleAvoidance)
         {
             ApplyObstacleAvoidance();
@@ -178,7 +180,6 @@ public class MovementController : MonoBehaviour
         Vector3 desiredVelocity = direction.normalized * speed;
         Vector3 steering = desiredVelocity - rb.linearVelocity;
         
-        // Limita steering force per movimento smooth
         steering = Vector3.ClampMagnitude(steering, acceleration);
         
         rb.AddForce(steering, ForceMode.Acceleration);
@@ -197,13 +198,12 @@ public class MovementController : MonoBehaviour
             speed *= stamina.GetSpeedMultiplier();
         }
         
-        // Hunger penalty (se starving, più lento)
+        // Hunger penalty
         if (hunger != null && hunger.IsStarving())
         {
-            speed *= 0.7f; // -30% quando affamato
+            speed *= 0.7f;
         }
         
-        // Clamp a max speed
         speed = Mathf.Min(speed, maxSpeed);
         
         return speed;
@@ -214,7 +214,6 @@ public class MovementController : MonoBehaviour
     /// </summary>
     private Vector3 GetWanderDirection()
     {
-        // Check se serve nuovo target
         if (Time.time >= nextWanderChangeTime || Vector3.Distance(transform.position, wanderTarget) < 2f)
         {
             PickNewWanderTarget();
@@ -229,11 +228,9 @@ public class MovementController : MonoBehaviour
     /// </summary>
     private void PickNewWanderTarget()
     {
-        // Random point in sphere attorno posizione corrente
         Vector3 randomOffset = Random.insideUnitSphere * wanderRadius;
         wanderTarget = transform.position + randomOffset;
         
-        // Clamp dentro boundaries se attive
         if (useBoundaries)
         {
             wanderTarget = ClampToBoundaries(wanderTarget);
@@ -246,23 +243,21 @@ public class MovementController : MonoBehaviour
     }
     
     /// <summary>
-    /// Obstacle avoidance con multiple raycast (FOV-based).
+    /// Obstacle avoidance con multiple raycast.
     /// </summary>
     private void ApplyObstacleAvoidance()
     {
         Vector3 avoidanceDirection = Vector3.zero;
         int hitCount = 0;
         
-        // Cast multiple rays in forward FOV
         for (int i = 0; i < raycastCount; i++)
         {
-            float angle = -30f + (60f * i / (raycastCount - 1)); // -30° to +30°
+            float angle = -30f + (60f * i / (raycastCount - 1));
             Vector3 direction = Quaternion.Euler(0, angle, 0) * transform.forward;
             
             RaycastHit hit;
             if (Physics.Raycast(transform.position, direction, out hit, obstacleDetectionRange, obstacleLayers))
             {
-                // Calcola direzione evasione (opposta alla normale del hit)
                 Vector3 avoidDir = Vector3.Reflect(direction, hit.normal);
                 avoidanceDirection += avoidDir;
                 hitCount++;
@@ -276,7 +271,6 @@ public class MovementController : MonoBehaviour
             }
         }
         
-        // Apply avoidance force se ha rilevato ostacoli
         if (hitCount > 0)
         {
             avoidanceDirection = avoidanceDirection.normalized;
@@ -299,35 +293,44 @@ public class MovementController : MonoBehaviour
         }
         
         currentSpeed = rb.linearVelocity.magnitude;
+        
+        // ========== STAMINA CONSUMPTION (AGGIUNTO) ==========
+        // Consuma stamina se sta sprintando (chase/flee)
+        if (stamina != null)
+        {
+            // Se velocità corrente > base speed = sta sprintando
+            if (currentSpeed > baseSpeed * 1.1f) // 10% tolleranza
+            {
+                float staminaCost = 15f * Time.fixedDeltaTime; // ~15 stamina/sec
+                stamina.ConsumeStamina(staminaCost);
+            }
+        }
+        // ====================================================
     }
     
     /// <summary>
-    /// Ruota entità verso direzione movimento (smooth).
+    /// Ruota entità verso direzione movimento.
     /// </summary>
     private void ApplyRotation()
     {
-        // Se non si sta muovendo, non ruotare
         if (rb.linearVelocity.magnitude < 0.1f) return;
         
-        // Target rotation basato su velocity direction
         Vector3 lookDirection = rb.linearVelocity.normalized;
         Quaternion targetRotation = Quaternion.LookRotation(lookDirection);
         
         if (smoothRotation)
         {
-            // Smooth rotation con rotationSpeed (gradi/sec)
             float step = rotationSpeed * Time.fixedDeltaTime;
             transform.rotation = Quaternion.RotateTowards(transform.rotation, targetRotation, step);
         }
         else
         {
-            // Instant rotation
             transform.rotation = targetRotation;
         }
     }
     
     /// <summary>
-    /// Forza entità dentro boundaries (se attive).
+    /// Forza entità dentro boundaries.
     /// </summary>
     private void EnforceBoundaries()
     {
@@ -337,8 +340,7 @@ public class MovementController : MonoBehaviour
         Vector3 min = boundaryCenter - boundarySize / 2f;
         Vector3 max = boundaryCenter + boundarySize / 2f;
         
-        // Soft boundary: push force verso centro se vicino ai bordi
-        float pushDistance = 5f; // Distanza dal bordo per iniziare push
+        float pushDistance = 5f;
         float pushStrength = 3f;
         
         if (pos.x < min.x + pushDistance)
@@ -356,7 +358,7 @@ public class MovementController : MonoBehaviour
         else if (pos.z > max.z - pushDistance)
             rb.AddForce(Vector3.back * pushStrength, ForceMode.Acceleration);
         
-        // Hard clamp (safety)
+        // Hard clamp
         pos.x = Mathf.Clamp(pos.x, min.x, max.x);
         pos.y = Mathf.Clamp(pos.y, min.y, max.y);
         pos.z = Mathf.Clamp(pos.z, min.z, max.z);
@@ -375,15 +377,25 @@ public class MovementController : MonoBehaviour
         return position;
     }
     
+    /// <summary>
+    /// Update animator speed based on movement.
+    /// </summary>
+    private void UpdateAnimator()
+    {
+        if (fishAnimator == null) return;
+        
+        float animSpeed = currentSpeed * animSpeedMultiplier;
+        animSpeed = Mathf.Max(animSpeed, 0.3f);
+        
+        fishAnimator.SetFloat("Speed", animSpeed);
+    }
+    
     #region Public API
     
     public MovementState GetCurrentState() => currentState;
     public float GetCurrentSpeed() => currentSpeed;
     public Vector3 GetCurrentTarget() => currentTarget;
     
-    /// <summary>
-    /// Force movimento verso posizione (override comportamento).
-    /// </summary>
     public void MoveToPosition(Vector3 position, float speed)
     {
         currentTarget = position;
@@ -391,26 +403,10 @@ public class MovementController : MonoBehaviour
         ApplySteering(direction, speed);
     }
     
-    /// <summary>
-    /// Stop completo movimento.
-    /// </summary>
     public void Stop()
     {
         rb.linearVelocity = Vector3.Lerp(rb.linearVelocity, Vector3.zero, deceleration * Time.fixedDeltaTime);
     }
-
-    /// <summary>
-/// Update animator speed based on movement.
-/// </summary>
-private void UpdateAnimator()
-{
-    if (fishAnimator == null) return;
-    
-    float animSpeed = currentSpeed * animSpeedMultiplier;
-    animSpeed = Mathf.Max(animSpeed, 0.3f); // Min speed per idle
-    
-    fishAnimator.SetFloat("Speed", animSpeed);
-}
     
     #endregion
     
@@ -421,7 +417,7 @@ private void UpdateAnimator()
         if (!showDebugGizmos) return;
         if (!Application.isPlaying) return;
         
-        // Current target (sphere)
+        // Current target
         if (currentTarget != Vector3.zero)
         {
             Gizmos.color = currentState switch

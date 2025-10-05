@@ -2,7 +2,7 @@ using UnityEngine;
 using UnityEngine.Events;
 
 /// <summary>
-/// Gestisce la salute di un'entità.
+/// Gestisce HP, damage, morte, regen.
 /// </summary>
 public class HealthComponent : MonoBehaviour
 {
@@ -11,129 +11,160 @@ public class HealthComponent : MonoBehaviour
     [SerializeField] private float currentHealth;
     [SerializeField] private bool canRegenerate = false;
     [SerializeField] private float regenRate = 5f;
-    [SerializeField] private float invulnerabilityTime = 0.5f;
+    [SerializeField] private float regenDelay = 3f;
+    
+    [Header("Invulnerability")]
+    [SerializeField] private bool useInvulnerabilityFrames = false;
+    [SerializeField] private float invulnerabilityDuration = 0.5f;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = false;
     
+    // Events
+    public UnityEvent OnDeath;
     public UnityEvent<float> OnHealthChanged;
-    public UnityEvent<Entity> OnDeath;
-    public UnityEvent<float, Entity> OnDamageTaken;
+    public UnityEvent<float> OnDamageTaken;
+    public UnityEvent<float> OnHealed;
     
-    private float lastDamageTime = -999f;
+    // State
     private bool isDead = false;
+    private bool isInvulnerable = false;
+    private float lastDamageTime = 0f;
+    private float invulnerabilityEndTime = 0f;
+    
+    // Component cache
+    private Entity entity;
     
     void Awake()
     {
+        entity = GetComponent<Entity>();
         currentHealth = maxHealth;
     }
     
     void Update()
     {
-        if (canRegenerate && currentHealth < maxHealth && !isDead)
+        if (isDead) return;
+        
+        UpdateInvulnerability();
+        
+        if (canRegenerate)
         {
-            Regenerate(regenRate * Time.deltaTime);
+            UpdateRegeneration();
         }
     }
     
-    public void TakeDamage(float damage, Entity attacker = null)
+    private void UpdateInvulnerability()
+    {
+        if (isInvulnerable && Time.time >= invulnerabilityEndTime)
+        {
+            isInvulnerable = false;
+        }
+    }
+    
+    private void UpdateRegeneration()
+    {
+        if (currentHealth >= maxHealth) return;
+        if (Time.time - lastDamageTime < regenDelay) return;
+        
+        Heal(regenRate * Time.deltaTime);
+    }
+    
+    public void TakeDamage(float damage)
     {
         if (isDead) return;
+        if (isInvulnerable) return;
+        if (damage <= 0f) return;
         
-        if (Time.time - lastDamageTime < invulnerabilityTime)
-        {
-            if (showDebugLogs)
-                Debug.Log($"{gameObject.name} è invulnerabile");
-            return;
-        }
+        currentHealth -= damage;
+        currentHealth = Mathf.Max(currentHealth, 0f);
         
         lastDamageTime = Time.time;
-        currentHealth -= damage;
-        currentHealth = Mathf.Max(currentHealth, 0);
         
         if (showDebugLogs)
-            Debug.Log($"{gameObject.name} -{damage} HP → {currentHealth}/{maxHealth}");
+            Debug.Log($"[Health] {gameObject.name} took {damage} damage! HP: {currentHealth}/{maxHealth}");
         
+        OnDamageTaken?.Invoke(damage);
         OnHealthChanged?.Invoke(currentHealth);
-        OnDamageTaken?.Invoke(damage, attacker);
         
-        if (currentHealth <= 0)
+        if (useInvulnerabilityFrames)
         {
-            Die(attacker);
+            isInvulnerable = true;
+            invulnerabilityEndTime = Time.time + invulnerabilityDuration;
+        }
+        
+        if (currentHealth <= 0f && !isDead)
+        {
+            Die();
         }
     }
     
     public void Heal(float amount)
     {
         if (isDead) return;
+        if (amount <= 0f) return;
         
+        float oldHealth = currentHealth;
         currentHealth += amount;
         currentHealth = Mathf.Min(currentHealth, maxHealth);
         
-        if (showDebugLogs)
-            Debug.Log($"{gameObject.name} +{amount} HP → {currentHealth}/{maxHealth}");
+        float actualHealed = currentHealth - oldHealth;
         
-        OnHealthChanged?.Invoke(currentHealth);
+        if (actualHealed > 0f)
+        {
+            if (showDebugLogs)
+                Debug.Log($"[Health] {gameObject.name} healed {actualHealed}! HP: {currentHealth}/{maxHealth}");
+            
+            OnHealed?.Invoke(actualHealed);
+            OnHealthChanged?.Invoke(currentHealth);
+        }
     }
     
-    private void Regenerate(float amount)
+    private void Die()
     {
-        Heal(amount);
-    }
-    
-    private void Die(Entity killer)
-    {
-        if (isDead) return;
-        
         isDead = true;
         
         if (showDebugLogs)
-            Debug.Log($"💀 {gameObject.name} è morto! Killer: {(killer != null ? killer.GetEntityName() : "Unknown")}");
+            Debug.Log($"💀 [Health] {gameObject.name} died!");
         
-        OnDeath?.Invoke(killer);
+        OnDeath?.Invoke();
         
-        // Notifica la propria Entity
-        Entity selfEntity = GetComponent<Entity>();
-        if (selfEntity != null)
-        {
-            selfEntity.OnEntityDeath(killer);
-        }
-        
-        // Notifica killer per Hunger
-        if (killer != null && killer.HasHunger())
-        {
-            FoodValue foodValue = GetComponent<FoodValue>();
-            float nutritionValue = foodValue != null ? foodValue.GetValue() : 20f;
-            killer.GetHunger().Feed(nutritionValue);
-        }
-        
-        Destroy(gameObject, 0.1f);
+        // ========== DESTROY ENTITY (FIXED) ==========
+        // Delay per permettere death events/animation
+        Destroy(gameObject, 0.5f);
+        // ============================================
+    }
+    
+    public void FullHeal()
+    {
+        Heal(maxHealth);
+    }
+    
+    public void Revive()
+    {
+        isDead = false;
+        currentHealth = maxHealth;
+        OnHealthChanged?.Invoke(currentHealth);
+    }
+    
+    // Setters per EntityConfig
+    public void SetMaxHealth(float max)
+    {
+        maxHealth = max;
+        currentHealth = Mathf.Min(currentHealth, maxHealth);
+    }
+    
+    public void SetCurrentHealth(float health)
+    {
+        currentHealth = Mathf.Clamp(health, 0f, maxHealth);
+        OnHealthChanged?.Invoke(currentHealth);
     }
     
     // Getters
     public float GetCurrentHealth() => currentHealth;
     public float GetMaxHealth() => maxHealth;
-    public float GetHealthPercentage() => currentHealth / maxHealth;
+    public float GetHealthPercent() => currentHealth / maxHealth;
     public bool IsDead() => isDead;
+    public bool IsAlive() => !isDead;
+    public bool IsInvulnerable() => isInvulnerable;
     public bool IsFullHealth() => currentHealth >= maxHealth;
-    
-    // Debug Gizmo
- void OnDrawGizmos()
-{
-    if (!Application.isPlaying) return;
-    
-    Vector3 pos = transform.position + Vector3.up * 2.5f; // ← CAMBIATO da 2.0f
-    float barWidth = 1f;
-    float barHeight = 0.1f;
-    
-    // Background (rosso)
-    Gizmos.color = Color.red;
-    Gizmos.DrawCube(pos, new Vector3(barWidth, barHeight, 0.01f));
-    
-    // Foreground (verde)
-    Gizmos.color = Color.green;
-    float healthPercent = currentHealth / maxHealth;
-    Vector3 healthBarPos = pos - new Vector3(barWidth * (1 - healthPercent) * 0.5f, 0, 0);
-    Gizmos.DrawCube(healthBarPos, new Vector3(barWidth * healthPercent, barHeight, 0.02f));
-}
 }

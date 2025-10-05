@@ -2,58 +2,64 @@ using UnityEngine;
 using UnityEngine.Events;
 using System.Collections.Generic;
 
+public enum HuntState
+{
+    Idle,
+    Spotting,
+    Stalking,
+    Chasing,
+    Attacking
+}
+
 /// <summary>
-/// Gestisce comportamento caccia con FOV detection, spotting buildup e chase.
+/// Hunt behavior per entity AI. Diet-based invece di tag-based.
 /// </summary>
 public class HuntComponent : MonoBehaviour
 {
-    [Header("Prey Settings")]
-    [SerializeField] private string[] preyTags = { "Fish", "Plankton" };
-    [SerializeField] private LayerMask preyLayers = -1;
-    
-    [Header("Detection FOV (Outer)")]
+    [Header("Detection FOV")]
     [SerializeField] private float detectionRange = 10f;
-    [SerializeField] private float detectionAngle = 120f; // Gradi
-    [SerializeField] private float spottingDuration = 3f; // Tempo per "lock" preda
+    [SerializeField] private float detectionAngle = 120f;
     
-    [Header("Chase FOV (Inner)")]
+    [Header("Chase FOV")]
     [SerializeField] private float chaseRange = 6f;
     [SerializeField] private float chaseAngle = 90f;
     
-    [Header("Hunt Behavior")]
-    [SerializeField] private float stalkSpeed = 1.5f;      // Velocità durante stalk
-    [SerializeField] private float chaseSpeed = 3f;        // Velocità durante chase
-    [SerializeField] private float loseTargetTime = 5f;    // Tempo prima di perdere target
-    [SerializeField] private bool useStaminaWhenChasing = true;
+    [Header("Spotting")]
+    [SerializeField] private float spottingDuration = 3f;
+    [SerializeField] private float loseTargetTime = 5f;
     
-    [Header("Hunger Integration")]
+    [Header("Speed Settings")]
+    [SerializeField] private float stalkSpeed = 1.5f;
+    [SerializeField] private float chaseSpeed = 3.0f;
+    
+    [Header("Hunt Requirements")]
     [SerializeField] private bool requireHungerToHunt = true;
-    [SerializeField] private float minHungerToHunt = 40f; // Hunger threshold per iniziare caccia
+    [SerializeField] private float minHungerToHunt = 40f;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = false;
     [SerializeField] private bool showDebugGizmos = true;
     
-    // Events
-    public UnityEvent<Entity> OnPreySpotted;      // Preda vista (inizio spotting)
-    public UnityEvent<Entity> OnPreyLocked;       // Preda locked (fine spotting)
-    public UnityEvent<Entity> OnStartStalking;    // Inizia avvicinamento cauto
-    public UnityEvent<Entity> OnStartChasing;     // Inizia inseguimento sprint
-    public UnityEvent<Entity> OnLostTarget;       // Perso target
-    public UnityEvent<Entity> OnTargetInRange;    // Target in attack range
-    
     // State
     private HuntState currentState = HuntState.Idle;
     private Entity currentTarget = null;
-    private float spottingStartTime = 0f;
+    private float spottingProgress = 0f;
     private float lastTargetSeenTime = 0f;
-    private float spottingProgress = 0f; // 0-1 per barra buildup
+    private float scanInterval = 0.5f;
+    private float nextScanTime = 0f;
     
-    // Component references
+    // Events
+    public UnityEvent<Entity> OnTargetSpotted;
+    public UnityEvent<Entity> OnTargetLocked;
+    public UnityEvent<Entity> OnTargetLost;
+    public UnityEvent<Entity> OnTargetKilled;
+    
+    // Component cache
     private Entity selfEntity;
     private HungerComponent hunger;
     private StaminaComponent stamina;
     private AttackComponent attack;
+    private DietComponent diet;
     
     void Awake()
     {
@@ -61,56 +67,82 @@ public class HuntComponent : MonoBehaviour
         hunger = GetComponent<HungerComponent>();
         stamina = GetComponent<StaminaComponent>();
         attack = GetComponent<AttackComponent>();
+        diet = GetComponent<DietComponent>();
+    }
+    
+    void Start()
+    {
+        Entity.OnAnyEntityDied += OnEntityDied;
+    }
+    
+    void OnDestroy()
+    {
+        Entity.OnAnyEntityDied -= OnEntityDied;
     }
     
     void Update()
     {
-        // Check se può cacciare (hunger requirement)
-        if (requireHungerToHunt && hunger != null && !hunger.IsHungry())
+        UpdateHuntBehavior();
+    }
+    
+    private void UpdateHuntBehavior()
+    {
+        // ========== HUNGER CHECK (FIXED) ==========
+        if (requireHungerToHunt && hunger != null)
         {
-            if (currentState != HuntState.Idle)
+            float currentHunger = hunger.GetCurrentHunger();
+            
+            // Se hunger è TROPPO ALTA (ben nutrito), NON cacciare!
+            if (currentHunger > minHungerToHunt)
             {
-                ResetHunt();
+                if (showDebugLogs && currentState != HuntState.Idle)
+                    Debug.Log($"[Hunt] {gameObject.name} not hungry! Hunger: {currentHunger}/{minHungerToHunt}");
+                
+                if (currentState != HuntState.Idle)
+                {
+                    StopHunting();
+                }
+                return;
             }
+        }
+        // ==========================================
+        
+        // Check se DietComponent presente
+        if (diet == null)
+        {
+            if (showDebugLogs)
+                Debug.LogWarning($"[Hunt] {gameObject.name}: No DietComponent! Cannot hunt.");
             return;
         }
         
-        UpdateHuntStateMachine();
-        UpdateStaminaUsage();
-    }
-    
-    /// <summary>
-    /// State machine principale caccia.
-    /// </summary>
-    private void UpdateHuntStateMachine()
-    {
         switch (currentState)
         {
             case HuntState.Idle:
-                ScanForPrey();
+                UpdateIdle();
                 break;
-                
             case HuntState.Spotting:
                 UpdateSpotting();
                 break;
-                
             case HuntState.Stalking:
                 UpdateStalking();
                 break;
-                
             case HuntState.Chasing:
                 UpdateChasing();
                 break;
-                
             case HuntState.Attacking:
                 UpdateAttacking();
                 break;
         }
     }
     
-    /// <summary>
-    /// IDLE: Scansiona detection FOV per prede.
-    /// </summary>
+    private void UpdateIdle()
+    {
+        if (Time.time < nextScanTime) return;
+        nextScanTime = Time.time + scanInterval;
+        
+        ScanForPrey();
+    }
+    
     private void ScanForPrey()
     {
         Entity nearestPrey = FindNearestPreyInDetectionFOV();
@@ -121,212 +153,196 @@ public class HuntComponent : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// SPOTTING: Buildup 3 secondi per "lock" preda.
-    /// </summary>
+    private Entity FindNearestPreyInDetectionFOV()
+    {
+        if (diet == null) return null;
+        
+        Entity nearestPrey = null;
+        float minDistance = detectionRange;
+        int highestPriority = -1;
+        
+        // Trova TUTTE le entity nella scena
+        Entity[] allEntities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
+        
+        foreach (Entity potentialPrey in allEntities)
+        {
+            if (potentialPrey == selfEntity) continue;
+            if (potentialPrey.IsDead()) continue;
+            
+            // USA DIET COMPONENT per validare prey
+            if (!diet.IsValidPrey(potentialPrey)) continue;
+            
+            // Check FOV
+            if (!IsInDetectionFOV(potentialPrey)) continue;
+            
+            float distance = Vector3.Distance(transform.position, potentialPrey.transform.position);
+            
+            // Get priority da diet
+            int priority = diet.GetPreyPriority(potentialPrey.GetEntityType());
+            
+            if (priority > highestPriority || (priority == highestPriority && distance < minDistance))
+            {
+                minDistance = distance;
+                highestPriority = priority;
+                nearestPrey = potentialPrey;
+            }
+        }
+        
+        return nearestPrey;
+    }
+    
+    private void EnterSpotting(Entity target)
+    {
+        currentState = HuntState.Spotting;
+        currentTarget = target;
+        spottingProgress = 0f;
+        lastTargetSeenTime = Time.time;
+        
+        if (showDebugLogs)
+            Debug.Log($"👁️ {gameObject.name} SPOTTING {target.GetEntityName()}");
+        
+        OnTargetSpotted?.Invoke(target);
+    }
+    
     private void UpdateSpotting()
     {
         if (currentTarget == null || currentTarget.IsDead())
         {
-            ResetHunt();
+            StopHunting();
             return;
         }
         
-        // Check se ancora in FOV
-        if (!IsInDetectionFOV(currentTarget))
+        if (IsInDetectionFOV(currentTarget))
         {
-            if (showDebugLogs)
-                Debug.Log($"🔍 {gameObject.name}: Lost sight of {currentTarget.GetEntityName()} during spotting");
+            lastTargetSeenTime = Time.time;
+            spottingProgress += Time.deltaTime / spottingDuration;
             
-            ResetHunt();
-            return;
+            if (spottingProgress >= 1f)
+            {
+                EnterStalking();
+            }
         }
-        
-        // Buildup progress
-        float elapsed = Time.time - spottingStartTime;
-        spottingProgress = Mathf.Clamp01(elapsed / spottingDuration);
-        
-        // Spotting completo → Stalk
-        if (spottingProgress >= 1f)
+        else
         {
-            EnterStalking();
-        }
-    }
-    
-    /// <summary>
-    /// STALKING: Avvicinamento cauto verso preda.
-    /// </summary>
-    private void UpdateStalking()
-    {
-        if (currentTarget == null || currentTarget.IsDead())
-        {
-            ResetHunt();
-            return;
-        }
-        
-        // Check se entra in chase FOV → Chase
-        if (IsInChaseFOV(currentTarget))
-        {
-            EnterChasing();
-            return;
-        }
-        
-        // Check se esce da detection FOV → perde target
-        if (!IsInDetectionFOV(currentTarget))
-        {
-            float timeSinceLastSeen = Time.time - lastTargetSeenTime;
-            if (timeSinceLastSeen > loseTargetTime)
+            if (Time.time - lastTargetSeenTime > loseTargetTime)
             {
                 LoseTarget();
             }
-            return;
         }
-        
-        lastTargetSeenTime = Time.time;
-        
-        // Movimento verso target gestito da movimento system (prossimo step)
-    }
-    
-    /// <summary>
-    /// CHASING: Inseguimento sprint.
-    /// </summary>
-    private void UpdateChasing()
-    {
-        if (currentTarget == null || currentTarget.IsDead())
-        {
-            ResetHunt();
-            return;
-        }
-        
-        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
-        
-        // Check se in attack range → Attack
-        if (attack != null && distance <= attack.GetAttackRange())
-        {
-            EnterAttacking();
-            return;
-        }
-        
-        // Check se esce da chase FOV → torna a Stalk
-        if (!IsInChaseFOV(currentTarget))
-        {
-            if (IsInDetectionFOV(currentTarget))
-            {
-                // Ancora visibile ma fuori chase range → torna a stalk
-                EnterStalking();
-            }
-            else
-            {
-                // Completamente fuori vista
-                float timeSinceLastSeen = Time.time - lastTargetSeenTime;
-                if (timeSinceLastSeen > loseTargetTime)
-                {
-                    LoseTarget();
-                }
-            }
-            return;
-        }
-        
-        lastTargetSeenTime = Time.time;
-    }
-    
-    /// <summary>
-    /// ATTACKING: In range, attacca.
-    /// </summary>
-    private void UpdateAttacking()
-    {
-        if (currentTarget == null || currentTarget.IsDead())
-        {
-            ResetHunt();
-            return;
-        }
-        
-        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
-        
-        // Troppo lontano → torna a chase
-        if (attack != null && distance > attack.GetAttackRange() * 1.2f)
-        {
-            EnterChasing();
-            return;
-        }
-        
-        // Esegui attacco tramite AttackComponent
-        if (attack != null && attack.IsAttackReady())
-        {
-            bool killed = attack.TryAttack(currentTarget);
-            
-            if (currentTarget.IsDead())
-            {
-                if (showDebugLogs)
-                    Debug.Log($"🍖 {gameObject.name} killed and will eat {currentTarget.GetEntityName()}");
-                
-                ResetHunt();
-            }
-        }
-    }
-    
-    /// <summary>
-    /// Consuma stamina durante chase.
-    /// </summary>
-    private void UpdateStaminaUsage()
-    {
-        if (currentState != HuntState.Chasing || !useStaminaWhenChasing || stamina == null)
-        {
-            // Stop usando stamina se non in chase
-            if (stamina != null && currentState != HuntState.Chasing)
-                stamina.StopUsingStamina();
-            return;
-        }
-        
-        stamina.UseSprint(Time.deltaTime);
-    }
-    
-    #region State Transitions
-    
-    private void EnterSpotting(Entity prey)
-    {
-        currentState = HuntState.Spotting;
-        currentTarget = prey;
-        spottingStartTime = Time.time;
-        spottingProgress = 0f;
-        lastTargetSeenTime = Time.time;
-        
-        OnPreySpotted?.Invoke(prey);
-        
-        if (showDebugLogs)
-            Debug.Log($"👁️ {gameObject.name} SPOTTING {prey.GetEntityName()}");
     }
     
     private void EnterStalking()
     {
         currentState = HuntState.Stalking;
-        spottingProgress = 1f;
-        
-        OnPreyLocked?.Invoke(currentTarget);
-        OnStartStalking?.Invoke(currentTarget);
         
         if (showDebugLogs)
             Debug.Log($"🚶 {gameObject.name} STALKING {currentTarget.GetEntityName()}");
+        
+        OnTargetLocked?.Invoke(currentTarget);
+    }
+    
+    private void UpdateStalking()
+    {
+        if (currentTarget == null || currentTarget.IsDead())
+        {
+            StopHunting();
+            return;
+        }
+        
+        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        
+        if (distance <= chaseRange && IsInChaseFOV(currentTarget))
+        {
+            EnterChasing();
+            return;
+        }
+        
+        if (IsInDetectionFOV(currentTarget))
+        {
+            lastTargetSeenTime = Time.time;
+        }
+        else
+        {
+            if (Time.time - lastTargetSeenTime > loseTargetTime)
+            {
+                LoseTarget();
+            }
+        }
     }
     
     private void EnterChasing()
     {
         currentState = HuntState.Chasing;
         
-        OnStartChasing?.Invoke(currentTarget);
-        
         if (showDebugLogs)
             Debug.Log($"🏃 {gameObject.name} CHASING {currentTarget.GetEntityName()}!");
+        
+        if (stamina != null)
+        {
+            stamina.StartSprint();
+        }
+    }
+    
+    private void UpdateChasing()
+    {
+        if (currentTarget == null || currentTarget.IsDead())
+        {
+            StopHunting();
+            return;
+        }
+        
+        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        
+        if (attack != null && distance <= attack.GetAttackRange())
+        {
+            EnterAttacking();
+            return;
+        }
+        
+        if (distance > chaseRange || !IsInChaseFOV(currentTarget))
+        {
+            currentState = HuntState.Stalking;
+            if (stamina != null)
+            {
+                stamina.StopSprint();
+            }
+        }
+        
+        lastTargetSeenTime = Time.time;
     }
     
     private void EnterAttacking()
     {
         currentState = HuntState.Attacking;
         
-        OnTargetInRange?.Invoke(currentTarget);
-        
         if (showDebugLogs)
             Debug.Log($"⚔️ {gameObject.name} ATTACKING {currentTarget.GetEntityName()}!");
+        
+        if (stamina != null)
+        {
+            stamina.StopSprint();
+        }
+    }
+    
+    private void UpdateAttacking()
+    {
+        if (currentTarget == null || currentTarget.IsDead())
+        {
+            StopHunting();
+            return;
+        }
+        
+        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        
+        if (attack != null && attack.IsAttackReady())
+        {
+            attack.TryAttack(currentTarget);
+        }
+        
+        if (distance > attack.GetAttackRange() * 1.5f)
+        {
+            EnterChasing();
+        }
     }
     
     private void LoseTarget()
@@ -334,137 +350,102 @@ public class HuntComponent : MonoBehaviour
         if (showDebugLogs)
             Debug.Log($"❌ {gameObject.name} lost target {currentTarget?.GetEntityName()}");
         
-        OnLostTarget?.Invoke(currentTarget);
-        ResetHunt();
+        OnTargetLost?.Invoke(currentTarget);
+        StopHunting();
     }
     
-    private void ResetHunt()
+    private void StopHunting()
     {
         currentState = HuntState.Idle;
         currentTarget = null;
         spottingProgress = 0f;
         
         if (stamina != null)
-            stamina.StopUsingStamina();
+        {
+            stamina.StopSprint();
+        }
     }
     
-    #endregion
-    
-    #region FOV Detection
-    
-    /// <summary>
-    /// Trova preda più vicina nel detection FOV.
-    /// </summary>
-    private Entity FindNearestPreyInDetectionFOV()
+    private void OnEntityDied(Entity entity, Entity killer)
     {
-        Entity nearest = null;
-        float minDistance = detectionRange;
-        
-        foreach (string tag in preyTags)
+        if (entity == currentTarget)
         {
-            GameObject[] preys = GameObject.FindGameObjectsWithTag(tag);
-            
-            foreach (GameObject preyObj in preys)
+            if (killer == selfEntity)
             {
-                if (preyObj == gameObject) continue;
+                OnTargetKilled?.Invoke(entity);
                 
-                Entity preyEntity = preyObj.GetComponent<Entity>();
-                if (preyEntity == null || preyEntity.IsDead()) continue;
+                if (showDebugLogs)
+                    Debug.Log($"🍖 {gameObject.name} killed {entity.GetEntityName()}");
                 
-                if (IsInDetectionFOV(preyEntity))
+                // ========== FEED ON KILL (FIXED) ==========
+                if (hunger != null && diet != null)
                 {
-                    float distance = Vector3.Distance(transform.position, preyObj.transform.position);
-                    if (distance < minDistance)
+                    DietComponent preyDiet = entity.GetDietComponent();
+                    if (preyDiet != null)
                     {
-                        minDistance = distance;
-                        nearest = preyEntity;
+                        float nutrition = preyDiet.GetNutritionValue();
+                        hunger.Feed(nutrition);
+                        
+                        if (showDebugLogs)
+                            Debug.Log($"🍖 {gameObject.name} fed +{nutrition} nutrition!");
                     }
                 }
+                // ==========================================
             }
+            
+            StopHunting();
         }
-        
-        return nearest;
     }
     
-    /// <summary>
-    /// Check se target è nel detection FOV.
-    /// </summary>
     private bool IsInDetectionFOV(Entity target)
     {
-        if (target == null) return false;
+        Vector3 dirToTarget = (target.transform.position - transform.position).normalized;
+        float angle = Vector3.Angle(transform.forward, dirToTarget);
+        float distance = Vector3.Distance(transform.position, target.transform.position);
         
-        return IsInFOV(target.transform.position, detectionRange, detectionAngle);
+        return angle <= detectionAngle / 2f && distance <= detectionRange;
     }
     
-    /// <summary>
-    /// Check se target è nel chase FOV.
-    /// </summary>
     private bool IsInChaseFOV(Entity target)
     {
-        if (target == null) return false;
+        Vector3 dirToTarget = (target.transform.position - transform.position).normalized;
+        float angle = Vector3.Angle(transform.forward, dirToTarget);
+        float distance = Vector3.Distance(transform.position, target.transform.position);
         
-        return IsInFOV(target.transform.position, chaseRange, chaseAngle);
+        return angle <= chaseAngle / 2f && distance <= chaseRange;
     }
     
-    /// <summary>
-    /// Generic FOV check (range + angle).
-    /// </summary>
-    private bool IsInFOV(Vector3 targetPos, float range, float angle)
-    {
-        Vector3 directionToTarget = targetPos - transform.position;
-        float distance = directionToTarget.magnitude;
-        
-        // Check range
-        if (distance > range) return false;
-        
-        // Check angle (FOV cono)
-        Vector3 forward = transform.forward;
-        float angleToTarget = Vector3.Angle(forward, directionToTarget);
-        
-        return angleToTarget <= angle / 2f;
-    }
+    // Setters per EntityConfig
+    public void SetDetectionRange(float range) => detectionRange = range;
+    public void SetDetectionAngle(float angle) => detectionAngle = angle;
+    public void SetChaseRange(float range) => chaseRange = range;
+    public void SetChaseSpeed(float speed) => chaseSpeed = speed;
+    public void SetStalkSpeed(float speed) => stalkSpeed = speed;
     
-    #endregion
-    
-    #region Public API
-    
+    // Getters
     public HuntState GetHuntState() => currentState;
     public Entity GetCurrentTarget() => currentTarget;
     public bool IsHunting() => currentState != HuntState.Idle;
-    public bool IsChasing() => currentState == HuntState.Chasing;
-    public float GetSpottingProgress() => spottingProgress;
-    public float GetStalkSpeed() => stalkSpeed;
     public float GetChaseSpeed() => chaseSpeed;
-    
-    public void ForceStopHunt()
-    {
-        ResetHunt();
-    }
-    
-    #endregion
-    
-    #region Debug Visualization
+    public float GetStalkSpeed() => stalkSpeed;
     
     void OnDrawGizmos()
     {
         if (!showDebugGizmos) return;
         if (!Application.isPlaying) return;
         
-        Vector3 forward = transform.forward;
-        Vector3 origin = transform.position;
+        // Detection FOV (yellow)
+        Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
+        DrawFOVCone(detectionRange, detectionAngle);
         
-        // === DETECTION FOV (Outer) ===
-        Gizmos.color = new Color(1f, 1f, 0f, 0.1f); // Giallo trasparente
-        DrawFOVCone(origin, forward, detectionRange, detectionAngle);
+        // Chase FOV (red)
+        Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
+        DrawFOVCone(chaseRange, chaseAngle);
         
-        // === CHASE FOV (Inner) ===
-        Gizmos.color = new Color(1f, 0f, 0f, 0.2f); // Rosso trasparente
-        DrawFOVCone(origin, forward, chaseRange, chaseAngle);
-        
-        // === TARGET LINE ===
+        // Target line
         if (currentTarget != null && currentTarget.IsAlive())
         {
-            Color lineColor = currentState switch
+            Gizmos.color = currentState switch
             {
                 HuntState.Spotting => Color.yellow,
                 HuntState.Stalking => Color.green,
@@ -473,101 +454,22 @@ public class HuntComponent : MonoBehaviour
                 _ => Color.white
             };
             
-            Gizmos.color = lineColor;
-            Gizmos.DrawLine(origin, currentTarget.transform.position);
-        }
-        
-        // === STATE LABEL ===
-        #if UNITY_EDITOR
-        Vector3 labelPos = transform.position + Vector3.up * 2.8f;
-        
-        GUIStyle style = new GUIStyle();
-        style.alignment = TextAnchor.MiddleCenter;
-        style.fontSize = 11;
-        style.fontStyle = FontStyle.Bold;
-        
-        string statusText = currentState switch
-        {
-            HuntState.Idle => "🔍 IDLE",
-            HuntState.Spotting => $"👁️ SPOTTING {spottingProgress * 100:F0}%",
-            HuntState.Stalking => "🚶 STALKING",
-            HuntState.Chasing => "🏃 CHASING",
-            HuntState.Attacking => "⚔️ ATTACKING",
-            _ => ""
-        };
-        
-        style.normal.textColor = currentState switch
-        {
-            HuntState.Spotting => Color.yellow,
-            HuntState.Stalking => Color.green,
-            HuntState.Chasing => Color.red,
-            HuntState.Attacking => Color.magenta,
-            _ => Color.gray
-        };
-        
-        if (currentTarget != null)
-            statusText += $"\n→ {currentTarget.GetEntityName()}";
-        
-        UnityEditor.Handles.Label(labelPos, statusText, style);
-        #endif
-        
-        // === SPOTTING PROGRESS BAR ===
-        if (currentState == HuntState.Spotting)
-        {
-            Vector3 barPos = transform.position + Vector3.up * 0.6f;
-            DrawProgressBar(barPos, spottingProgress, Color.yellow, Color.gray);
+            Gizmos.DrawLine(transform.position, currentTarget.transform.position);
         }
     }
     
-    private void DrawFOVCone(Vector3 origin, Vector3 forward, float range, float angle)
+    private void DrawFOVCone(float range, float angle)
     {
         int segments = 20;
         float halfAngle = angle / 2f;
         
-        Vector3 leftBoundary = Quaternion.Euler(0, -halfAngle, 0) * forward * range;
-        Vector3 rightBoundary = Quaternion.Euler(0, halfAngle, 0) * forward * range;
+        Vector3 forward = transform.forward * range;
         
-        // Arc
         for (int i = 0; i <= segments; i++)
         {
             float currentAngle = -halfAngle + (angle * i / segments);
-            Vector3 direction = Quaternion.Euler(0, currentAngle, 0) * forward * range;
-            Vector3 nextDirection = Quaternion.Euler(0, currentAngle + (angle / segments), 0) * forward * range;
-            
-            Gizmos.DrawLine(origin + direction, origin + nextDirection);
+            Vector3 dir = Quaternion.Euler(0, currentAngle, 0) * forward;
+            Gizmos.DrawLine(transform.position, transform.position + dir);
         }
-        
-        // Boundaries
-        Gizmos.DrawLine(origin, origin + leftBoundary);
-        Gizmos.DrawLine(origin, origin + rightBoundary);
     }
-    
-    private void DrawProgressBar(Vector3 position, float progress, Color fillColor, Color bgColor)
-    {
-        float barWidth = 1f;
-        float barHeight = 0.08f;
-        
-        // Background
-        Gizmos.color = bgColor;
-        Gizmos.DrawCube(position, new Vector3(barWidth, barHeight, 0.01f));
-        
-        // Fill
-        Gizmos.color = fillColor;
-        Vector3 fillPos = position - new Vector3(barWidth * (1 - progress) * 0.5f, 0, 0);
-        Gizmos.DrawCube(fillPos, new Vector3(barWidth * progress, barHeight, 0.02f));
-    }
-    
-    #endregion
-}
-
-/// <summary>
-/// Stati hunt.
-/// </summary>
-public enum HuntState
-{
-    Idle,       // Cerca prede
-    Spotting,   // Preda vista, buildup 3 sec
-    Stalking,   // Avvicinamento cauto
-    Chasing,    // Inseguimento sprint
-    Attacking   // In attack range
 }

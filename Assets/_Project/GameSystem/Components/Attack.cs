@@ -33,6 +33,7 @@ public class AttackComponent : MonoBehaviour
     
     // State
     private float lastAttackTime = -999f;
+    private float nextAttackTime = 0f; // ← AGGIUNTO per HuntComponent
     private Entity currentTarget = null;
     private float nextAutoAttackCheck = 0f;
     
@@ -68,55 +69,33 @@ public class AttackComponent : MonoBehaviour
     }
     
     /// <summary>
-    /// Tenta attacco su target specifico.
+    /// Try attack target (chiamato da HuntComponent con Entity parameter).
     /// </summary>
-    public bool TryAttack(Entity target)
+    public void TryAttack(Entity target)
     {
-        if (target == null)
-        {
-            if (showDebugLogs)
-                Debug.LogWarning($"[Attack] {gameObject.name}: Target is null");
-            return false;
-        }
-        
-        if (target.IsDead())
-        {
-            if (showDebugLogs)
-                Debug.Log($"[Attack] {gameObject.name}: Target {target.GetEntityName()} is already dead");
-            return false;
-        }
-        
-        // Cooldown check
-        if (!IsAttackReady())
+        if (!IsAttackReady()) 
         {
             OnAttackOnCooldown?.Invoke();
-            return false;
+            return;
         }
         
-        // Range check
+        if (target == null || target.IsDead()) return;
+        
         float distance = Vector3.Distance(transform.position, target.transform.position);
-        if (distance > attackRange)
-        {
-            if (showDebugLogs)
-                Debug.Log($"[Attack] {gameObject.name}: Target {target.GetEntityName()} out of range ({distance:F2}m > {attackRange}m)");
-            return false;
-        }
         
-        // Line of sight check
-        if (requireLineOfSight && !HasLineOfSight(target))
+        if (distance <= attackRange)
         {
-            if (showDebugLogs)
-                Debug.Log($"[Attack] {gameObject.name}: No line of sight to {target.GetEntityName()}");
-            return false;
+            if (requireLineOfSight && !HasLineOfSight(target))
+                return;
+            
+            PerformAttack(target);
+            lastAttackTime = Time.time;
+            nextAttackTime = Time.time + attackCooldown;
         }
-        
-        // Execute attack
-        ExecuteAttack(target);
-        return true;
     }
     
     /// <summary>
-    /// Tenta attacco su target corrente.
+    /// Try attack current target (overload without parameter).
     /// </summary>
     public bool TryAttack()
     {
@@ -125,15 +104,17 @@ public class AttackComponent : MonoBehaviour
             currentTarget = FindNearestTarget();
         }
         
-        return TryAttack(currentTarget);
+        if (currentTarget == null) return false;
+        
+        TryAttack(currentTarget);
+        return true;
     }
     
     /// <summary>
-    /// Esegue attacco su target.
+    /// Perform attack (internal method).
     /// </summary>
-    private void ExecuteAttack(Entity target)
+    private void PerformAttack(Entity target)
     {
-        lastAttackTime = Time.time;
         currentTarget = target;
         
         if (showDebugLogs)
@@ -199,9 +180,9 @@ public class AttackComponent : MonoBehaviour
         if (target == null || target.IsDead()) return false;
         if (target == selfEntity) return false;
         
-        // Non attaccare stessa faction
-        if (selfEntity != null && target.GetEntityType() == selfEntity.GetEntityType())
-            return false;
+        // Non attaccare stessa faction (opzionale, può essere rimosso)
+        // if (selfEntity != null && target.GetEntityType() == selfEntity.GetEntityType())
+        //     return false;
         
         return true;
     }
@@ -225,34 +206,56 @@ public class AttackComponent : MonoBehaviour
         return true;
     }
     
+    #region Public Getters/Setters
+    
+    /// <summary>
+    /// Check se attack è pronto (cooldown finished).
+    /// </summary>
     public bool IsAttackReady()
     {
         return Time.time >= lastAttackTime + attackCooldown;
     }
     
+    /// <summary>
+    /// Get cooldown remaining.
+    /// </summary>
     public float GetCooldownRemaining()
     {
         float remaining = (lastAttackTime + attackCooldown) - Time.time;
         return Mathf.Max(remaining, 0f);
     }
     
+    /// <summary>
+    /// Set target manualmente.
+    /// </summary>
     public void SetTarget(Entity target)
     {
         currentTarget = target;
     }
     
+    /// <summary>
+    /// Clear target.
+    /// </summary>
     public void ClearTarget()
     {
         currentTarget = null;
     }
     
+    /// <summary>
+    /// Reset cooldown (instant attack ready).
+    /// </summary>
     public void ResetCooldown()
     {
         lastAttackTime = -999f;
+        nextAttackTime = 0f;
     }
     
-    #region Getters
+    // Setters per EntityConfig
+    public void SetDamage(float dmg) => damage = dmg;
+    public void SetAttackRange(float range) => attackRange = range;
+    public void SetCooldown(float cooldown) => attackCooldown = cooldown;
     
+    // Getters
     public float GetDamage() => damage;
     public float GetAttackRange() => attackRange;
     public float GetCooldown() => attackCooldown;

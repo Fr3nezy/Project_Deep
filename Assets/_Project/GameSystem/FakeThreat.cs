@@ -1,15 +1,31 @@
 using UnityEngine;
 
 /// <summary>
-/// Entity fittizia per testing Fear system.
+/// Fake threat entity for testing fear/hunt systems.
 /// </summary>
 public class FakeThreatEntity : Entity
 {
-    protected override void InitializeEntity()
+    [Header("Fake Threat Settings")]
+    [SerializeField] private bool showDebugLogs = true;
+    
+    protected override void Initialize()
     {
-        base.InitializeEntity();
+        base.Initialize();
         
-        entityName = "Fake Threat";
-        entityType = EntityType.Player; // Simula player
+        if (showDebugLogs)
+            Debug.Log($"[Entity] FakeThreat initialized: {entityName}");
+    }
+    
+    protected override void OnDeath(Entity killer)
+    {
+        base.OnDeath(killer);
+        
+        if (showDebugLogs)
+        {
+            if (killer != null)
+                Debug.Log($"💀 FakeThreat killed by {killer.GetEntityName()}");
+            else
+                Debug.Log($"💀 FakeThreat died");
+        }
     }
 }

@@ -1,23 +1,31 @@
 using UnityEngine;
 
 /// <summary>
-/// Entità di test per validare sistema.
+/// Test fish entity implementation.
 /// </summary>
 public class TestFishEntity : Entity
 {
-    protected override void InitializeEntity()
+    [Header("Test Fish Settings")]
+    [SerializeField] private bool showDebugLogs = true;
+    
+    protected override void Initialize()
     {
-        base.InitializeEntity();
+        base.Initialize();
         
-        entityName = "Test Fish";
-        entityType = EntityType.NormalFish;
-        
-        Debug.Log($"✓ {entityName} initialized!");
+        if (showDebugLogs)
+            Debug.Log($"[Entity] {entityName} initialized as {entityType}");
     }
     
-    public override void OnEntityDeath(Entity killer)
+    protected override void OnDeath(Entity killer)
     {
-        base.OnEntityDeath(killer);
-        Debug.Log($"💀 {entityName} death callback received!");
+        base.OnDeath(killer);
+        
+        if (showDebugLogs)
+        {
+            if (killer != null)
+                Debug.Log($"💀 {entityName} killed by {killer.GetEntityName()}");
+            else
+                Debug.Log($"💀 {entityName} died");
+        }
     }
 }

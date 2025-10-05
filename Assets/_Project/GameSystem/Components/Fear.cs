@@ -3,414 +3,351 @@ using UnityEngine.Events;
 using System.Collections.Generic;
 
 /// <summary>
-/// Gestisce paura, detection minacce e comportamento fuga.
-/// Include fear level system, stamina integration e visual feedback.
+/// Fear behavior per entity AI. Diet-based predator detection.
 /// </summary>
 public class FearComponent : MonoBehaviour
 {
     [Header("Fear Settings")]
-    [SerializeField] private LayerMask threatLayers;
-    [SerializeField] private string[] threatTags = { "Player", "Leviathan" };
+    [SerializeField] private float maxFearLevel = 100f;
+    [SerializeField] private float fearFleeThreshold = 50f;
+    [SerializeField] private float fearDecayRate = 10f;
+    [SerializeField] private float fearBuildupRate = 20f;
     
-    [Header("Detection Radii")]
+    [Header("Threat Detection (DEPRECATED - Usa DietComponent!)")]
     [SerializeField] private float playerFearRadius = 2.5f;
-    [SerializeField] private float leviathanFearRadius = 4f;
-    [SerializeField] private float genericThreatRadius = 3f;
+    [SerializeField] private float leviathanFearRadius = 10f;
+    [SerializeField] private float threatScanInterval = 0.3f;
     
     [Header("Flee Behavior")]
-    [SerializeField] private float fleeDistance = 15f;
-    [SerializeField] private float fleeDuration = 10f;
-    [SerializeField] private float calmDownDelay = 3f;
-    
-    [Header("Threat Priority Weights")]
-    [SerializeField] private float playerThreatWeight = 2f;
-    [SerializeField] private float leviathanThreatWeight = 1.5f;
-    [SerializeField] private float genericThreatWeight = 1f;
-    
-    [Header("Fear Level System")]
-    [SerializeField] private float maxFearLevel = 100f;
-    [SerializeField] private float currentFearLevel = 0f;
-    [SerializeField] private float fearIncreaseRate = 50f;
-    [SerializeField] private float fearDecreaseRate = 20f;
-    [SerializeField] private float fearFleeThreshold = 30f;
-    
-    [Header("Stamina Integration")]
-    [SerializeField] private bool useStaminaWhenFleeing = true;
+    [SerializeField] private float fleeSpeedMultiplier = 1.5f;
+    [SerializeField] private float fleeMinDistance = 15f;
+    [SerializeField] private float fleeStaminaCost = 20f;
     
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = false;
     [SerializeField] private bool showDebugGizmos = true;
     
-    // Events
-    public UnityEvent<Entity> OnThreatDetected;
-    public UnityEvent OnStartFleeing;
-    public UnityEvent OnStopFleeing;
-    public UnityEvent OnCalmDown;
-    
     // State
+    private float currentFearLevel = 0f;
     private bool isFleeing = false;
-    private float fleeStartTime = 0f;
-    private float lastThreatSeenTime = 0f;
-    private Vector3 fleeDirection = Vector3.zero;
-    private List<Entity> detectedThreats = new List<Entity>();
     private Entity primaryThreat = null;
+    private List<Entity> detectedThreats = new List<Entity>();
+    private float nextThreatScan = 0f;
     
-    // Component references
-    private Entity entity;
+    // Events
+    public UnityEvent OnFleeStarted;
+    public UnityEvent OnFleeStopped;
+    public UnityEvent<float> OnFearLevelChanged;
+    
+    // Component cache
+    private Entity selfEntity;
     private StaminaComponent stamina;
+    private MovementController movement;
+    private DietComponent diet; // ← NUOVO!
     
     void Awake()
     {
-        entity = GetComponent<Entity>();
+        selfEntity = GetComponent<Entity>();
         stamina = GetComponent<StaminaComponent>();
+        movement = GetComponent<MovementController>();
+        diet = GetComponent<DietComponent>(); // ← NUOVO!
     }
     
     void Update()
     {
-        DetectThreats();
-        UpdateFearLevel();
-        UpdateFleeState();
-        UpdateStaminaUsage();
+        UpdateFearBehavior();
     }
     
-    /// <summary>
-    /// Rileva minacce in range.
-    /// </summary>
-    private void DetectThreats()
+    private void UpdateFearBehavior()
     {
-        detectedThreats.Clear();
-        Vector3 totalFleeDirection = Vector3.zero;
-        bool foundThreat = false;
-        
-        foreach (string tag in threatTags)
+        // Check se DietComponent presente
+        if (diet == null)
         {
-            GameObject[] threats = GameObject.FindGameObjectsWithTag(tag);
-            
-            foreach (GameObject threatObj in threats)
-            {
-                if (threatObj == gameObject) continue;
-                
-                Entity threatEntity = threatObj.GetComponent<Entity>();
-                if (threatEntity == null || threatEntity.IsDead()) continue;
-                
-                float distance = Vector3.Distance(transform.position, threatObj.transform.position);
-                float detectionRadius = GetDetectionRadiusForTag(tag);
-                
-                if (distance <= detectionRadius)
-                {
-                    detectedThreats.Add(threatEntity);
-                    
-                    Vector3 directionAway = (transform.position - threatObj.transform.position).normalized;
-                    float weight = GetThreatWeightForTag(tag);
-                    float distanceWeight = 1f - (distance / detectionRadius);
-                    totalFleeDirection += directionAway * weight * distanceWeight;
-                    
-                    foundThreat = true;
-                    lastThreatSeenTime = Time.time;
-                    
-                    if (showDebugLogs && !isFleeing)
-                        Debug.Log($"⚠️ {gameObject.name} detected threat: {threatObj.name} at {distance:F1}m");
-                    
-                    OnThreatDetected?.Invoke(threatEntity);
-                }
-            }
+            if (showDebugLogs)
+                Debug.LogWarning($"[Fear] {gameObject.name}: No DietComponent! Cannot detect predators.");
+            return;
         }
         
-        if (foundThreat)
+        // Scan per threats
+        if (Time.time >= nextThreatScan)
         {
-            fleeDirection = totalFleeDirection.normalized;
-            primaryThreat = GetPrimaryThreat();
+            DetectThreats();
+            nextThreatScan = Time.time + threatScanInterval;
         }
-    }
-    
-    /// <summary>
-    /// Aggiorna fear level nel tempo.
-    /// </summary>
-    private void UpdateFearLevel()
-    {
-        bool hasThreatsNearby = detectedThreats.Count > 0;
         
-        if (hasThreatsNearby)
+        // Update fear level
+        if (detectedThreats.Count > 0)
         {
-            currentFearLevel += fearIncreaseRate * Time.deltaTime;
-            currentFearLevel = Mathf.Min(currentFearLevel, maxFearLevel);
+            IncreaseFear(fearBuildupRate * Time.deltaTime * detectedThreats.Count);
         }
         else
         {
-            currentFearLevel -= fearDecreaseRate * Time.deltaTime;
-            currentFearLevel = Mathf.Max(currentFearLevel, 0f);
+            DecreaseFear(fearDecayRate * Time.deltaTime);
         }
         
-        // Triggera fleeing se supera threshold
-        if (currentFearLevel >= fearFleeThreshold && !isFleeing)
+        // Check flee threshold
+        if (!isFleeing && currentFearLevel >= fearFleeThreshold)
         {
             StartFleeing();
         }
-        else if (currentFearLevel < fearFleeThreshold && isFleeing && detectedThreats.Count == 0)
+        else if (isFleeing && currentFearLevel < fearFleeThreshold * 0.5f)
         {
             StopFleeing();
         }
-    }
-    
-    /// <summary>
-    /// Update stato fuga.
-    /// </summary>
-    private void UpdateFleeState()
-    {
-        if (!isFleeing) return;
         
-        float timeSinceLastThreat = Time.time - lastThreatSeenTime;
-        float timeFleeing = Time.time - fleeStartTime;
-        
-        bool shouldStopFleeing = timeFleeing >= fleeDuration || 
-                                 timeSinceLastThreat >= calmDownDelay;
-        
-        if (shouldStopFleeing)
+        // Update flee behavior
+        if (isFleeing)
         {
-            StopFleeing();
+            UpdateFleeMovement();
         }
     }
     
-    /// <summary>
-    /// Consuma stamina durante fuga (integration con StaminaComponent).
-    /// </summary>
-    private void UpdateStaminaUsage()
+    private void DetectThreats()
     {
-        if (!isFleeing || !useStaminaWhenFleeing || stamina == null) return;
-        
-        // Usa stamina durante fuga (simula sprint)
-        bool hasStamina = stamina.UseSprint(Time.deltaTime);
-        
-        // Se esausto, riduce fear più velocemente (troppo stanco per restare spaventato)
-        if (stamina.IsExhausted())
-        {
-            currentFearLevel -= fearDecreaseRate * 0.5f * Time.deltaTime;
-            
-            if (showDebugLogs)
-                Debug.Log($"💨 {gameObject.name} too exhausted to flee effectively");
-        }
-    }
-    
-    /// <summary>
-    /// Inizia comportamento fuga.
-    /// </summary>
-    private void StartFleeing()
-    {
-        isFleeing = true;
-        fleeStartTime = Time.time;
-        
-        if (showDebugLogs)
-            Debug.Log($"🏃 {gameObject.name} START FLEEING from {detectedThreats.Count} threat(s)");
-        
-        OnStartFleeing?.Invoke();
-        
-        // Notifica stamina che sta iniziando sprint
-        if (stamina != null && useStaminaWhenFleeing)
-        {
-            // Stamina inizia automaticamente via UseSprint in UpdateStaminaUsage
-        }
-    }
-    
-    /// <summary>
-    /// Ferma comportamento fuga.
-    /// </summary>
-    private void StopFleeing()
-    {
-        isFleeing = false;
         detectedThreats.Clear();
         primaryThreat = null;
         
-        if (showDebugLogs)
-            Debug.Log($"😌 {gameObject.name} STOP FLEEING - calming down");
+        if (diet == null) return;
         
-        OnStopFleeing?.Invoke();
-        OnCalmDown?.Invoke();
+        // Trova tutte entity
+        Entity[] allEntities = FindObjectsOfType<Entity>();
         
-        // Notifica stamina di fermare sprint
-        if (stamina != null)
+        float closestDistance = float.MaxValue;
+        
+        foreach (Entity potentialThreat in allEntities)
         {
-            stamina.StopUsingStamina();
+            if (potentialThreat == selfEntity) continue;
+            if (potentialThreat.IsDead()) continue;
+            
+            // USA DIET COMPONENT per verificare se è predatore!
+            if (!diet.IsPredator(potentialThreat)) continue;
+            
+            float distance = Vector3.Distance(transform.position, potentialThreat.transform.position);
+            
+            // Radius dinamico basato su tipo (TODO: migliorabile)
+            float fearRadius = GetFearRadiusForPredator(potentialThreat.GetEntityType());
+            
+            if (distance <= fearRadius)
+            {
+                detectedThreats.Add(potentialThreat);
+                
+                // Track closest come primary threat
+                if (distance < closestDistance)
+                {
+                    closestDistance = distance;
+                    primaryThreat = potentialThreat;
+                }
+            }
         }
     }
     
-    /// <summary>
-    /// Ritorna minaccia primaria (più vicina e pericolosa).
-    /// </summary>
-    public Entity GetPrimaryThreat()
+    private float GetFearRadiusForPredator(EntityType predatorType)
     {
-        if (detectedThreats.Count == 0) return null;
+        // TODO: Questo potrebbe essere configurabile in DietComponent!
+        return predatorType switch
+        {
+            EntityType.Leviathan => leviathanFearRadius,
+            EntityType.Player => playerFearRadius,
+            EntityType.LargeFish => 8f,
+            EntityType.MediumFish => 5f,
+            _ => 5f
+        };
+    }
+    
+    private void StartFleeing()
+    {
+        isFleeing = true;
         
-        Entity primary = null;
-        float highestDanger = 0f;
+        if (showDebugLogs)
+            Debug.Log($"😱 {gameObject.name} is FLEEING from {primaryThreat?.GetEntityName()}!");
         
+        OnFleeStarted?.Invoke();
+        
+        // Start consuming stamina
+        if (stamina != null)
+        {
+            stamina.StartSprint();
+        }
+    }
+    
+    private void StopFleeing()
+    {
+        isFleeing = false;
+        
+        if (showDebugLogs)
+            Debug.Log($"😌 {gameObject.name} stopped fleeing");
+        
+        OnFleeStopped?.Invoke();
+        
+        if (stamina != null)
+        {
+            stamina.StopSprint();
+        }
+    }
+    
+    private void UpdateFleeMovement()
+    {
+        if (primaryThreat == null) return;
+        
+        // Calculate flee direction (away from threat)
+        Vector3 fleeDirection = (transform.position - primaryThreat.transform.position).normalized;
+        
+        // Check se abbastanza lontano
+        float distance = Vector3.Distance(transform.position, primaryThreat.transform.position);
+        
+        if (distance >= fleeMinDistance && currentFearLevel < fearFleeThreshold)
+        {
+            StopFleeing();
+        }
+        
+        // Consume stamina
+        if (stamina != null && !stamina.IsExhausted())
+        {
+            stamina.ConsumeStamina(fleeStaminaCost * Time.deltaTime);
+        }
+    }
+    
+    private void IncreaseFear(float amount)
+    {
+        float oldFear = currentFearLevel;
+        currentFearLevel = Mathf.Min(currentFearLevel + amount, maxFearLevel);
+        
+        if (currentFearLevel != oldFear)
+        {
+            OnFearLevelChanged?.Invoke(currentFearLevel);
+        }
+    }
+    
+    private void DecreaseFear(float amount)
+    {
+        float oldFear = currentFearLevel;
+        currentFearLevel = Mathf.Max(currentFearLevel - amount, 0f);
+        
+        if (currentFearLevel != oldFear)
+        {
+            OnFearLevelChanged?.Invoke(currentFearLevel);
+        }
+    }
+    
+    public void ForceFear(float amount)
+    {
+        IncreaseFear(amount);
+    }
+    
+    public void ResetFear()
+    {
+        currentFearLevel = 0f;
+        StopFleeing();
+    }
+    
+    // Setters per EntityConfig
+    public void SetFearThreshold(float threshold) => fearFleeThreshold = threshold;
+    
+    // Getters
+    public float GetCurrentFearLevel() => currentFearLevel;
+    public float GetMaxFearLevel() => maxFearLevel;
+    public bool IsFleeing() => isFleeing;
+    public Entity GetPrimaryThreat() => primaryThreat;
+    public Vector3 GetFleeDirection()
+    {
+        if (primaryThreat != null)
+            return (transform.position - primaryThreat.transform.position).normalized;
+        return transform.forward;
+    }
+    public Vector3 GetFleeTarget()
+    {
+        return transform.position + GetFleeDirection() * fleeMinDistance;
+    }
+    
+    #region Debug Visualization
+    
+    void OnDrawGizmos()
+    {
+        if (!showDebugGizmos) return;
+        
+        // Detection radii (solo in editor, per reference)
+        Gizmos.color = new Color(1f, 0f, 0f, 0.1f);
+        Gizmos.DrawSphere(transform.position, playerFearRadius);
+        
+        Gizmos.color = new Color(1f, 0.5f, 0f, 0.1f);
+        Gizmos.DrawSphere(transform.position, leviathanFearRadius);
+        
+        if (!Application.isPlaying) return;
+        
+        // Fear bar (viola)
+        Vector3 barPos = transform.position + Vector3.up * 1.6f;
+        float barWidth = 1f;
+        float barHeight = 0.1f;
+        
+        Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
+        Gizmos.DrawCube(barPos, new Vector3(barWidth, barHeight, 0.01f));
+        
+        Color fearBarColor;
+        if (currentFearLevel >= fearFleeThreshold)
+            fearBarColor = new Color(0.5f, 0f, 1f);
+        else if (currentFearLevel >= fearFleeThreshold * 0.5f)
+            fearBarColor = new Color(0.7f, 0.3f, 1f);
+        else
+            fearBarColor = new Color(0.9f, 0.7f, 1f);
+        
+        Gizmos.color = fearBarColor;
+        float fearPercent = currentFearLevel / maxFearLevel;
+        Vector3 fearBarFillPos = barPos - new Vector3(barWidth * (1 - fearPercent) * 0.5f, 0, 0);
+        Gizmos.DrawCube(fearBarFillPos, new Vector3(barWidth * fearPercent, barHeight, 0.02f));
+        
+        // Fear status label
+        #if UNITY_EDITOR
+        Vector3 labelPos = transform.position + Vector3.up * 3.5f;
+        
+        GUIStyle style = new GUIStyle();
+        style.alignment = TextAnchor.MiddleCenter;
+        style.fontSize = 11;
+        style.fontStyle = FontStyle.Bold;
+        
+        string statusText = "";
+        
+        if (isFleeing)
+        {
+            statusText = "😱 FLEEING";
+            style.normal.textColor = new Color(0.5f, 0f, 1f);
+            
+            if (stamina != null && stamina.IsExhausted())
+                statusText += " (EXHAUSTED)";
+        }
+        else if (currentFearLevel >= fearFleeThreshold * 0.5f)
+        {
+            statusText = "😰 NERVOUS";
+            style.normal.textColor = new Color(0.7f, 0.3f, 1f);
+        }
+        else
+        {
+            statusText = "😌 CALM";
+            style.normal.textColor = new Color(0.9f, 0.7f, 1f);
+        }
+        
+        statusText += $" | Fear: {currentFearLevel:F0}";
+        
+        UnityEditor.Handles.Label(labelPos, statusText, style);
+        #endif
+        
+        // Flee direction arrow
+        if (isFleeing && primaryThreat != null)
+        {
+            Gizmos.color = new Color(0.5f, 0f, 1f);
+            Vector3 fleeTarget = GetFleeTarget();
+            Gizmos.DrawLine(transform.position, fleeTarget);
+            Gizmos.DrawWireSphere(fleeTarget, 1f);
+        }
+        
+        // Lines to threats
         foreach (Entity threat in detectedThreats)
         {
             if (threat == null) continue;
             
-            float distance = Vector3.Distance(transform.position, threat.transform.position);
-            float weight = GetThreatWeightForEntity(threat);
-            float danger = weight / Mathf.Max(distance, 0.1f);
-            
-            if (danger > highestDanger)
-            {
-                highestDanger = danger;
-                primary = threat;
-            }
+            Gizmos.color = threat == primaryThreat ? new Color(0.5f, 0f, 1f) : new Color(0.7f, 0.3f, 1f);
+            Gizmos.DrawLine(transform.position, threat.transform.position);
         }
-        
-        return primary;
     }
-    
-    private float GetDetectionRadiusForTag(string tag)
-    {
-        return tag switch
-        {
-            "Player" => playerFearRadius,
-            "Leviathan" => leviathanFearRadius,
-            _ => genericThreatRadius
-        };
-    }
-    
-    private float GetThreatWeightForTag(string tag)
-    {
-        return tag switch
-        {
-            "Player" => playerThreatWeight,
-            "Leviathan" => leviathanThreatWeight,
-            _ => genericThreatWeight
-        };
-    }
-    
-    private float GetThreatWeightForEntity(Entity entity)
-    {
-        if (entity == null) return genericThreatWeight;
-        
-        return entity.GetEntityType() switch
-        {
-            EntityType.Player => playerThreatWeight,
-            EntityType.Leviathan => leviathanThreatWeight,
-            _ => genericThreatWeight
-        };
-    }
-    
-    #region Public API
-    
-    public bool IsFleeing() => isFleeing;
-    public Vector3 GetFleeDirection() => fleeDirection;
-    public Vector3 GetFleeTarget() => transform.position + fleeDirection * fleeDistance;
-    public List<Entity> GetDetectedThreats() => new List<Entity>(detectedThreats);
-    public int GetThreatCount() => detectedThreats.Count;
-    public float GetFearLevel() => currentFearLevel;
-    public float GetFearPercentage() => currentFearLevel / maxFearLevel;
-    public float GetFearThreshold() => fearFleeThreshold;
-    
-    public void ForceStopFleeing()
-    {
-        if (isFleeing)
-            StopFleeing();
-    }
-    
-    #endregion
-    
-    #region Debug Visualization
-    
- void OnDrawGizmos()
-{
-    if (!showDebugGizmos) return;
-    
-    // Detection radii
-    Gizmos.color = new Color(1f, 0f, 0f, 0.1f);
-    Gizmos.DrawSphere(transform.position, playerFearRadius);
-    
-    Gizmos.color = new Color(1f, 0.5f, 0f, 0.1f);
-    Gizmos.DrawSphere(transform.position, leviathanFearRadius);
-    
-    if (!Application.isPlaying) return;
-    
-    // === FEAR BAR (VIOLA) ===
-    Vector3 barPos = transform.position + Vector3.up * 1.6f; // ← CAMBIATO da 0.9f
-    float barWidth = 1f;
-    float barHeight = 0.1f;
-    
-    // Background (grigio scuro)
-    Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
-    Gizmos.DrawCube(barPos, new Vector3(barWidth, barHeight, 0.01f));
-    
-    // Foreground (VIOLA gradiente) ← NUOVO
-    Color fearBarColor;
-    if (currentFearLevel >= fearFleeThreshold)
-        fearBarColor = new Color(0.5f, 0f, 1f); // Viola intenso
-    else if (currentFearLevel >= fearFleeThreshold * 0.5f)
-        fearBarColor = new Color(0.7f, 0.3f, 1f); // Viola medio
-    else
-        fearBarColor = new Color(0.9f, 0.7f, 1f); // Viola pallido
-    
-    Gizmos.color = fearBarColor;
-    float fearPercent = currentFearLevel / maxFearLevel;
-    Vector3 fearBarFillPos = barPos - new Vector3(barWidth * (1 - fearPercent) * 0.5f, 0, 0);
-    Gizmos.DrawCube(fearBarFillPos, new Vector3(barWidth * fearPercent, barHeight, 0.02f));
-    
-    // Threshold marker (linea bianca)
-    float thresholdX = (fearFleeThreshold / maxFearLevel - 0.5f) * barWidth;
-    Vector3 thresholdPos = barPos + new Vector3(thresholdX, 0, 0);
-    Gizmos.color = Color.white;
-    Gizmos.DrawLine(thresholdPos + Vector3.up * barHeight * 0.5f, 
-                    thresholdPos - Vector3.up * barHeight * 0.5f);
-    
-    // === FEAR STATUS LABEL ===
-    #if UNITY_EDITOR
-    Vector3 labelPos = transform.position + Vector3.up * 3.5f; // ← CAMBIATO da 2.2f
-    
-    GUIStyle style = new GUIStyle();
-    style.alignment = TextAnchor.MiddleCenter;
-    style.fontSize = 11;
-    style.fontStyle = FontStyle.Bold;
-    
-    string statusText = "";
-    
-    if (isFleeing)
-    {
-        statusText = "😱 FLEEING";
-        style.normal.textColor = new Color(0.5f, 0f, 1f); // Viola
-        
-        if (stamina != null && stamina.IsExhausted())
-            statusText += " (EXHAUSTED)";
-    }
-    else if (currentFearLevel >= fearFleeThreshold * 0.5f)
-    {
-        statusText = "😰 NERVOUS";
-        style.normal.textColor = new Color(0.7f, 0.3f, 1f);
-    }
-    else
-    {
-        statusText = "😌 CALM";
-        style.normal.textColor = new Color(0.9f, 0.7f, 1f);
-    }
-    
-    statusText += $" | Fear: {currentFearLevel:F0}";
-    
-    UnityEditor.Handles.Label(labelPos, statusText, style);
-    #endif
-    
-    // Flee direction arrow
-    if (isFleeing)
-    {
-        Gizmos.color = new Color(0.5f, 0f, 1f); // Viola per freccia
-        Vector3 fleeTarget = GetFleeTarget();
-        Gizmos.DrawLine(transform.position, fleeTarget);
-        Gizmos.DrawWireSphere(fleeTarget, 1f);
-    }
-    
-    // Lines to threats
-    foreach (Entity threat in detectedThreats)
-    {
-        if (threat == null) continue;
-        
-        Gizmos.color = threat == primaryThreat ? new Color(0.5f, 0f, 1f) : new Color(0.7f, 0.3f, 1f);
-        Gizmos.DrawLine(transform.position, threat.transform.position);
-    }
-}
-
     
     #endregion
 }
