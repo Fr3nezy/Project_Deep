@@ -100,17 +100,22 @@ public class MovementController : MonoBehaviour
         Vector3 desiredDirection = Vector3.zero;
         float desiredSpeed = baseSpeed;
         
-        // PRIORITY 1: FEAR
-        if (fear != null && fear.IsFleeing())
-        {
-            currentState = MovementState.Fleeing;
-            desiredDirection = fear.GetFleeDirection();
-            desiredSpeed = baseSpeed * 1.75f;
-            currentTarget = transform.position + desiredDirection * 10f;
-            
-            if (showDebugLogs)
-                Debug.Log($"[Movement] {gameObject.name}: FLEEING");
-        }
+// PRIORITY 1: FEAR
+if (fear != null && fear.IsFleeing())
+{
+    currentState = MovementState.Fleeing;
+    desiredDirection = fear.GetFleeDirection();
+    
+    // ========== FIX: USA fleeSpeedMultiplier da FearComponent! ==========
+    desiredSpeed = baseSpeed * fear.GetFleeSpeedMultiplier(); // ← DYNAMIC!
+    // ===================================================================
+    
+    currentTarget = transform.position + desiredDirection * 10f;
+    
+    if (showDebugLogs)
+        Debug.Log($"[Movement] {gameObject.name}: FLEEING at {desiredSpeed}m/s");
+}
+
         // PRIORITY 2: HUNT
         else if (hunt != null && hunt.IsHunting())
         {
@@ -188,26 +193,38 @@ public class MovementController : MonoBehaviour
     /// <summary>
     /// Calcola velocità finale con tutti i modifier.
     /// </summary>
-    private float CalculateFinalSpeed(float baseSpeed)
+private float CalculateFinalSpeed(float baseSpeed)
+{
+    float speed = baseSpeed;
+    
+    // Stamina multiplier
+    if (stamina != null)
     {
-        float speed = baseSpeed;
-        
-        // Stamina multiplier
-        if (stamina != null)
-        {
-            speed *= stamina.GetSpeedMultiplier();
-        }
-        
-        // Hunger penalty
-        if (hunger != null && hunger.IsStarving())
-        {
-            speed *= 0.7f;
-        }
-        
-        speed = Mathf.Min(speed, maxSpeed);
-        
-        return speed;
+        speed *= stamina.GetSpeedMultiplier();
     }
+    
+    // Hunger penalty
+    if (hunger != null && hunger.IsStarving())
+    {
+        speed *= 0.7f;
+    }
+    
+    // ========== FIX: Clamp solo se NON sta fuggendo! ==========
+    // Se sta fuggendo, allow speed > maxSpeed (panic mode!)
+    if (currentState != MovementState.Fleeing)
+    {
+        speed = Mathf.Min(speed, maxSpeed);
+    }
+    else
+    {
+        // Durante flee, clamp a maxSpeed * 2 (safety cap)
+        speed = Mathf.Min(speed, maxSpeed * 2f);
+    }
+    // ===========================================================
+    
+    return speed;
+}
+
     
     /// <summary>
     /// Wander behavior: movimento casuale drift.
@@ -284,29 +301,27 @@ public class MovementController : MonoBehaviour
     /// <summary>
     /// Applica movimento al rigidbody.
     /// </summary>
-    private void ApplyMovement()
+private void ApplyMovement()
+{
+    // ========== FIX: Clamp differenziato per flee ==========
+    float speedCap = currentState == MovementState.Fleeing ? maxSpeed * 2f : maxSpeed;
+    
+    if (rb.linearVelocity.magnitude > speedCap)
     {
-        // Clamp velocity a max speed
-        if (rb.linearVelocity.magnitude > maxSpeed)
-        {
-            rb.linearVelocity = rb.linearVelocity.normalized * maxSpeed;
-        }
-        
-        currentSpeed = rb.linearVelocity.magnitude;
-        
-        // ========== STAMINA CONSUMPTION (AGGIUNTO) ==========
-        // Consuma stamina se sta sprintando (chase/flee)
-        if (stamina != null)
-        {
-            // Se velocità corrente > base speed = sta sprintando
-            if (currentSpeed > baseSpeed * 1.1f) // 10% tolleranza
-            {
-                float staminaCost = 15f * Time.fixedDeltaTime; // ~15 stamina/sec
-                stamina.ConsumeStamina(staminaCost);
-            }
-        }
-        // ====================================================
+        rb.linearVelocity = rb.linearVelocity.normalized * speedCap;
     }
+    // =======================================================
+    
+    currentSpeed = rb.linearVelocity.magnitude;
+    
+    // Stamina consumption
+    if (stamina != null && currentSpeed > baseSpeed * 1.1f)
+    {
+        float staminaCost = 15f * Time.fixedDeltaTime;
+        stamina.ConsumeStamina(staminaCost);
+    }
+}
+
     
     /// <summary>
     /// Ruota entità verso direzione movimento.

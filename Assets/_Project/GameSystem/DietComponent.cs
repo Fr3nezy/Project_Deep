@@ -40,29 +40,30 @@ public class DietComponent : MonoBehaviour
     /// <summary>
     /// Verifica se target è prey valido.
     /// </summary>
-    public bool IsValidPrey(Entity target)
+public bool IsValidPrey(Entity target)
+{
+    if (target == null || target.IsDead()) 
     {
-        if (target == null || target == selfEntity) return false;
-        if (target.IsDead()) return false;
-        
-        EntityType targetType = target.GetEntityType();
-        
-        // Check se è nella lista prey
-        if (!preyTypes.Contains(targetType))
-            return false;
-        
-        // Check cannibalismo
-        if (!cannibal && targetType == selfEntity.GetEntityType())
-            return false;
-        
-        // Check size (optional)
-        if (!canHuntLarger)
-        {
-            // TODO: Compare size/scale
-        }
-        
-        return true;
+        return false;
     }
+    
+    EntityType targetType = target.GetEntityType();
+    
+    // Check if preyTypes is a List<PreyTypeData> or List<EntityType>
+    foreach (var prey in preyTypes)
+    {
+        // If your preyTypes is List<PreyTypeData> (struct with preyType field):
+        // if (prey.preyType == targetType) return true;
+        
+        // If your preyTypes is List<EntityType> (simple enum list):
+        if (prey == targetType) return true;
+    }
+    
+    return false;
+}
+
+
+
     
     /// <summary>
     /// Verifica se source è un predatore (trigger fear).

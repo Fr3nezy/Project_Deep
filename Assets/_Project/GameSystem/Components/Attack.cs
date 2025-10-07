@@ -33,16 +33,54 @@ public class AttackComponent : MonoBehaviour
     
     // State
     private float lastAttackTime = -999f;
-    private float nextAttackTime = 0f; // ← AGGIUNTO per HuntComponent
+    private float nextAttackTime = 0f;
     private Entity currentTarget = null;
     private float nextAutoAttackCheck = 0f;
     
     // Component references
     private Entity selfEntity;
+    private bool isInitialized = false;
     
     void Awake()
     {
+        Initialize();
+    }
+    
+    /// <summary>
+    /// Initialize component and cache Entity reference.
+    /// </summary>
+    private void Initialize()
+    {
+        if (isInitialized) return;
+        
+        Debug.Log($"[Attack DEBUG] Initialize() called on {gameObject.name}");
+        
+        // Try get Entity component (works even if Entity is abstract)
         selfEntity = GetComponent<Entity>();
+        
+        Debug.Log($"[Attack DEBUG] GetComponent<Entity>() result: {(selfEntity != null ? selfEntity.GetType().Name : "NULL")}");
+        
+        if (selfEntity == null)
+        {
+            // Fallback: try concrete implementations
+            selfEntity = GetComponent<TestFishEntity>();
+            
+            if (selfEntity == null)
+            {
+                Debug.LogError($"[Attack] {gameObject.name}: CRITICAL - No Entity component found! Attack will not work!");
+            }
+            else
+            {
+                Debug.Log($"[Attack DEBUG] Found TestFishEntity instead!");
+            }
+        }
+        
+        if (selfEntity != null)
+        {
+            Debug.Log($"[Attack] {gameObject.name}: ✓ Entity cached: {selfEntity.GetEntityName()}");
+        }
+        
+        isInitialized = true;
     }
     
     void Update()
@@ -73,6 +111,9 @@ public class AttackComponent : MonoBehaviour
     /// </summary>
     public void TryAttack(Entity target)
     {
+        // Force initialize if not done
+        if (!isInitialized) Initialize();
+        
         if (!IsAttackReady()) 
         {
             OnAttackOnCooldown?.Invoke();
@@ -115,13 +156,27 @@ public class AttackComponent : MonoBehaviour
     /// </summary>
     private void PerformAttack(Entity target)
     {
+        // Force initialize if not done
+        if (!isInitialized) Initialize();
+        
         currentTarget = target;
+        
+        // ========== DEBUG KILLER ==========
+        Debug.Log($"[Attack DEBUG] PerformAttack() called");
+        Debug.Log($"[Attack DEBUG] selfEntity: {(selfEntity != null ? selfEntity.GetEntityName() : "NULL")}");
+        Debug.Log($"[Attack DEBUG] target: {(target != null ? target.GetEntityName() : "NULL")}");
+        // ==================================
         
         if (showDebugLogs)
             Debug.Log($"⚔️ {gameObject.name} attacks {target.GetEntityName()} for {damage} damage!");
         
         // Infliggi danno
         bool wasAlive = target.IsAlive();
+        
+        // ========== DEBUG BEFORE TakeDamage ==========
+        Debug.Log($"[Attack DEBUG] Calling TakeDamage(damage: {damage}, killer: {(selfEntity != null ? selfEntity.GetEntityName() : "NULL")})");
+        // ============================================
+        
         target.TakeDamage(damage, selfEntity);
         
         OnAttackExecuted?.Invoke(target);
@@ -180,10 +235,6 @@ public class AttackComponent : MonoBehaviour
         if (target == null || target.IsDead()) return false;
         if (target == selfEntity) return false;
         
-        // Non attaccare stessa faction (opzionale, può essere rimosso)
-        // if (selfEntity != null && target.GetEntityType() == selfEntity.GetEntityType())
-        //     return false;
-        
         return true;
     }
     
@@ -205,8 +256,6 @@ public class AttackComponent : MonoBehaviour
         
         return true;
     }
-    
-    #region Public Getters/Setters
     
     /// <summary>
     /// Check se attack è pronto (cooldown finished).
@@ -261,8 +310,6 @@ public class AttackComponent : MonoBehaviour
     public float GetCooldown() => attackCooldown;
     public Entity GetCurrentTarget() => currentTarget;
     public bool HasTarget() => currentTarget != null && currentTarget.IsAlive();
-    
-    #endregion
     
     #region Debug Visualization
     

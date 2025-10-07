@@ -15,11 +15,11 @@ GameObject:
   - component: {fileID: 5896922074682156626}
   - component: {fileID: 5566387899868195061}
   - component: {fileID: 7782632618485065861}
-  - component: {fileID: 5901238531785427300}
-  - component: {fileID: 5923597486074899908}
   - component: {fileID: 1671553807827273471}
   - component: {fileID: 1079467357966802881}
   - component: {fileID: 4748750035274714306}
+  - component: {fileID: 4165132113677880592}
+  - component: {fileID: 5483558021084104405}
   - component: {fileID: 1535517265349449262}
   m_Layer: 0
   m_Name: Fish
@@ -114,7 +114,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::TestFishEntity
   entityName: TestFish
   entityType: 1
+  entityID: 
   showDebugInfo: 1
+  showDebugLogs: 1
 --- !u!114 &5896922074682156626
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -131,15 +133,20 @@ MonoBehaviour:
   currentHealth: 10
   canRegenerate: 0
   regenRate: 5
-  invulnerabilityTime: 0.5
+  regenDelay: 3
+  useInvulnerabilityFrames: 0
+  invulnerabilityDuration: 0.5
   showDebugLogs: 1
-  OnHealthChanged:
-    m_PersistentCalls:
-      m_Calls: []
   OnDeath:
     m_PersistentCalls:
       m_Calls: []
+  OnHealthChanged:
+    m_PersistentCalls:
+      m_Calls: []
   OnDamageTaken:
+    m_PersistentCalls:
+      m_Calls: []
+  OnHealed:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &5566387899868195061
@@ -156,22 +163,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StaminaComponent
   maxStamina: 100
   currentStamina: 100
-  depletionRate: 15
   regenRate: 10
   regenDelay: 1
+  exhaustedDuration: 3
   sprintMultiplier: 1.5
-  exhaustionPenalty: 0.75
-  exhaustionDuration: 3
-  exhaustionThreshold: 10
-  currentState: 0
+  exhaustedMultiplier: 0.75
   showDebugLogs: 1
+  OnStaminaExhausted:
+    m_PersistentCalls:
+      m_Calls: []
+  OnStaminaRecovered:
+    m_PersistentCalls:
+      m_Calls: []
   OnStaminaChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  OnExhausted:
-    m_PersistentCalls:
-      m_Calls: []
-  OnRecovered:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &7782632618485065861
@@ -187,91 +191,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::FoodValue
   nutritionValue: 30
---- !u!114 &5901238531785427300
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3534290307521101462}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f77160cfd1a9eac49878e3e27cb6c5d7, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::HungerComponent
-  maxHunger: 100
-  currentHunger: 0
-  baseDecayRate: 0.2
-  useMovementBasedDecay: 0
-  movementDecayMultiplier: 0.1
-  hungryThreshold: 40
-  starvingThreshold: 70
-  enableStarvationDamage: 1
-  starvationDamageInterval: 10
-  baseDamagePerTick: 1
-  showDebugLogs: 0
-  OnHungerChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  OnBecomeHungry:
-    m_PersistentCalls:
-      m_Calls: []
-  OnBecomeStarving:
-    m_PersistentCalls:
-      m_Calls: []
-  OnFed:
-    m_PersistentCalls:
-      m_Calls: []
-  OnStarvationDamage:
-    m_PersistentCalls:
-      m_Calls: []
---- !u!114 &5923597486074899908
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3534290307521101462}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5388bdd624fb91547972d2ecb3a707eb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::FearComponent
-  threatLayers:
-    serializedVersion: 2
-    m_Bits: 1280
-  threatTags:
-  - Player
-  - Leviathan
-  playerFearRadius: 2.5
-  leviathanFearRadius: 4
-  genericThreatRadius: 3
-  fleeDistance: 15
-  fleeDuration: 10
-  calmDownDelay: 3
-  playerThreatWeight: 2
-  leviathanThreatWeight: 1.5
-  genericThreatWeight: 1
-  maxFearLevel: 100
-  currentFearLevel: 0
-  fearIncreaseRate: 50
-  fearDecreaseRate: 20
-  fearFleeThreshold: 30
-  useStaminaWhenFleeing: 1
-  showDebugLogs: 1
-  showDebugGizmos: 1
-  OnThreatDetected:
-    m_PersistentCalls:
-      m_Calls: []
-  OnStartFleeing:
-    m_PersistentCalls:
-      m_Calls: []
-  OnStopFleeing:
-    m_PersistentCalls:
-      m_Calls: []
-  OnCalmDown:
-    m_PersistentCalls:
-      m_Calls: []
 --- !u!114 &1671553807827273471
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -284,41 +203,28 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9d9635d2facd6f346a436906f7a0cc68, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Hunt
-  preyTags:
-  - Fish
-  - Plankton
-  preyLayers:
-    serializedVersion: 2
-    m_Bits: 4294967295
   detectionRange: 10
   detectionAngle: 120
-  spottingDuration: 3
   chaseRange: 6
   chaseAngle: 90
+  spottingDuration: 3
+  loseTargetTime: 5
   stalkSpeed: 1.5
   chaseSpeed: 3
-  loseTargetTime: 5
-  useStaminaWhenChasing: 1
   requireHungerToHunt: 1
   minHungerToHunt: 40
   showDebugLogs: 0
   showDebugGizmos: 1
-  OnPreySpotted:
+  OnTargetSpotted:
     m_PersistentCalls:
       m_Calls: []
-  OnPreyLocked:
+  OnTargetLocked:
     m_PersistentCalls:
       m_Calls: []
-  OnStartStalking:
+  OnTargetLost:
     m_PersistentCalls:
       m_Calls: []
-  OnStartChasing:
-    m_PersistentCalls:
-      m_Calls: []
-  OnLostTarget:
-    m_PersistentCalls:
-      m_Calls: []
-  OnTargetInRange:
+  OnTargetKilled:
     m_PersistentCalls:
       m_Calls: []
 --- !u!114 &1079467357966802881
@@ -395,6 +301,70 @@ MonoBehaviour:
   showDebugLogs: 1
   fishAnimator: {fileID: 3706675999394801498}
   animSpeedMultiplier: 1
+--- !u!114 &4165132113677880592
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3534290307521101462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f77160cfd1a9eac49878e3e27cb6c5d7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::HungerComponent
+  maxHunger: 100
+  currentHunger: 0
+  baseDecayRate: 0.5
+  hungryThreshold: 75
+  starvingThreshold: 5
+  starvationDamage: 0.01
+  starvationDamageInterval: 20
+  showDebugLogs: 1
+  OnHungry:
+    m_PersistentCalls:
+      m_Calls: []
+  OnStarving:
+    m_PersistentCalls:
+      m_Calls: []
+  OnFed:
+    m_PersistentCalls:
+      m_Calls: []
+  OnHungerChanged:
+    m_PersistentCalls:
+      m_Calls: []
+--- !u!114 &5483558021084104405
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3534290307521101462}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5388bdd624fb91547972d2ecb3a707eb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FearComponent
+  maxFearLevel: 100
+  fearFleeThreshold: 50
+  fearDecayRate: 10
+  fearBuildupRate: 20
+  predatorDetectionRadius: 10
+  threatScanInterval: 0.3
+  fleeSpeedMultiplier: 1.5
+  fleeMinDistance: 15
+  fleeStaminaCost: 20
+  showDebugLogs: 0
+  showDebugGizmos: 1
+  OnFleeStarted:
+    m_PersistentCalls:
+      m_Calls: []
+  OnFleeStopped:
+    m_PersistentCalls:
+      m_Calls: []
+  OnFearLevelChanged:
+    m_PersistentCalls:
+      m_Calls: []
 --- !u!54 &1535517265349449262
 Rigidbody:
   m_ObjectHideFlags: 0

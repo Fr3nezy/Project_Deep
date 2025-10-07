@@ -3,7 +3,7 @@ using UnityEngine.Events;
 using System.Collections.Generic;
 
 /// <summary>
-/// Fear behavior per entity AI. Diet-based predator detection.
+/// High-performance Fear behavior per entity AI with complete API.
 /// </summary>
 public class FearComponent : MonoBehaviour
 {
@@ -12,69 +12,84 @@ public class FearComponent : MonoBehaviour
     [SerializeField] private float fearFleeThreshold = 50f;
     [SerializeField] private float fearDecayRate = 10f;
     [SerializeField] private float fearBuildupRate = 20f;
-    
-    [Header("Threat Detection (DEPRECATED - Usa DietComponent!)")]
-    [SerializeField] private float playerFearRadius = 2.5f;
-    [SerializeField] private float leviathanFearRadius = 10f;
+
+    [Header("Threat Detection")]
+    [SerializeField] private float predatorDetectionRadius = 10f;
     [SerializeField] private float threatScanInterval = 0.3f;
-    
+
     [Header("Flee Behavior")]
     [SerializeField] private float fleeSpeedMultiplier = 1.5f;
     [SerializeField] private float fleeMinDistance = 15f;
     [SerializeField] private float fleeStaminaCost = 20f;
-    
+
     [Header("Debug")]
     [SerializeField] private bool showDebugLogs = false;
     [SerializeField] private bool showDebugGizmos = true;
-    
+
     // State
     private float currentFearLevel = 0f;
     private bool isFleeing = false;
     private Entity primaryThreat = null;
-    private List<Entity> detectedThreats = new List<Entity>();
+    private List<Entity> detectedThreats = new List<Entity>(16);
+
+    // Performance optimization
     private float nextThreatScan = 0f;
-    
-    // Events
-    public UnityEvent OnFleeStarted;
-    public UnityEvent OnFleeStopped;
-    public UnityEvent<float> OnFearLevelChanged;
-    
+    private float detectionRadiusSqr;
+    private float fleeMinDistanceSqr;
+
     // Component cache
     private Entity selfEntity;
     private StaminaComponent stamina;
     private MovementController movement;
-    private DietComponent diet; // ← NUOVO!
-    
+    private DietComponent diet;
+    private Transform cachedTransform;
+
+    // Events
+    public UnityEvent OnFleeStarted;
+    public UnityEvent OnFleeStopped;
+    public UnityEvent<float> OnFearLevelChanged;
+
+    #region Initialization
+
     void Awake()
+    {
+        CacheComponents();
+        PreCalculateValues();
+    }
+
+    private void CacheComponents()
     {
         selfEntity = GetComponent<Entity>();
         stamina = GetComponent<StaminaComponent>();
         movement = GetComponent<MovementController>();
-        diet = GetComponent<DietComponent>(); // ← NUOVO!
+        diet = GetComponent<DietComponent>();
+        cachedTransform = transform;
     }
-    
+
+    private void PreCalculateValues()
+    {
+        detectionRadiusSqr = predatorDetectionRadius * predatorDetectionRadius;
+        fleeMinDistanceSqr = fleeMinDistance * fleeMinDistance;
+        
+        // Randomize initial scan time
+        nextThreatScan = Time.time + Random.Range(0f, threatScanInterval);
+    }
+
+    #endregion
+
+    #region Update Loop
+
     void Update()
     {
-        UpdateFearBehavior();
-    }
-    
-    private void UpdateFearBehavior()
-    {
-        // Check se DietComponent presente
-        if (diet == null)
-        {
-            if (showDebugLogs)
-                Debug.LogWarning($"[Fear] {gameObject.name}: No DietComponent! Cannot detect predators.");
-            return;
-        }
-        
-        // Scan per threats
+        if (diet == null || selfEntity == null || selfEntity.IsDead()) return;
+
+        // Staggered threat scanning
         if (Time.time >= nextThreatScan)
         {
             DetectThreats();
-            nextThreatScan = Time.time + threatScanInterval;
+            nextThreatScan = Time.time + threatScanInterval + Random.Range(-0.05f, 0.05f);
         }
-        
+
         // Update fear level
         if (detectedThreats.Count > 0)
         {
@@ -84,8 +99,8 @@ public class FearComponent : MonoBehaviour
         {
             DecreaseFear(fearDecayRate * Time.deltaTime);
         }
-        
-        // Check flee threshold
+
+        // Flee state transitions
         if (!isFleeing && currentFearLevel >= fearFleeThreshold)
         {
             StartFleeing();
@@ -94,242 +109,209 @@ public class FearComponent : MonoBehaviour
         {
             StopFleeing();
         }
-        
+
         // Update flee behavior
         if (isFleeing)
         {
             UpdateFleeMovement();
         }
     }
-    
+
+    #endregion
+
+    #region Threat Detection (Optimized)
+
+    /// <summary>
+    /// Ultra-fast threat detection using EntityManager spatial queries
+    /// </summary>
     private void DetectThreats()
     {
         detectedThreats.Clear();
         primaryThreat = null;
-        
+
         if (diet == null) return;
-        
-        // Trova tutte entity
-        Entity[] allEntities = FindObjectsOfType<Entity>();
-        
+
+        // OPTIMIZATION: Spatial query instead of FindObjectsByType
+        List<Entity> nearbyEntities = EntityManager.Instance.GetEntitiesInRadius(
+            cachedTransform.position, 
+            predatorDetectionRadius, 
+            selfEntity
+        );
+
         float closestDistance = float.MaxValue;
-        
-        foreach (Entity potentialThreat in allEntities)
+
+        foreach (Entity potentialThreat in nearbyEntities)
         {
-            if (potentialThreat == selfEntity) continue;
-            if (potentialThreat.IsDead()) continue;
-            
-            // USA DIET COMPONENT per verificare se è predatore!
+            // Check if it's actually a predator
             if (!diet.IsPredator(potentialThreat)) continue;
-            
-            float distance = Vector3.Distance(transform.position, potentialThreat.transform.position);
-            
-            // Radius dinamico basato su tipo (TODO: migliorabile)
-            float fearRadius = GetFearRadiusForPredator(potentialThreat.GetEntityType());
-            
-            if (distance <= fearRadius)
+
+            float distanceSqr = (potentialThreat.transform.position - cachedTransform.position).sqrMagnitude;
+
+            if (distanceSqr <= detectionRadiusSqr)
             {
                 detectedThreats.Add(potentialThreat);
-                
-                // Track closest come primary threat
-                if (distance < closestDistance)
+
+                // Track closest as primary threat
+                if (distanceSqr < closestDistance)
                 {
-                    closestDistance = distance;
+                    closestDistance = distanceSqr;
                     primaryThreat = potentialThreat;
                 }
             }
         }
     }
-    
-    private float GetFearRadiusForPredator(EntityType predatorType)
-    {
-        // TODO: Questo potrebbe essere configurabile in DietComponent!
-        return predatorType switch
-        {
-            EntityType.Leviathan => leviathanFearRadius,
-            EntityType.Player => playerFearRadius,
-            EntityType.LargeFish => 8f,
-            EntityType.MediumFish => 5f,
-            _ => 5f
-        };
-    }
-    
+
+    #endregion
+
+    #region Fear Behavior
+
     private void StartFleeing()
     {
         isFleeing = true;
-        
+
         if (showDebugLogs)
-            Debug.Log($"😱 {gameObject.name} is FLEEING from {primaryThreat?.GetEntityName()}!");
-        
+            Debug.Log($"😱 {selfEntity.GetEntityName()} is FLEEING from {primaryThreat?.GetEntityName()}!");
+
         OnFleeStarted?.Invoke();
-        
+
         // Start consuming stamina
         if (stamina != null)
         {
             stamina.StartSprint();
         }
     }
-    
+
     private void StopFleeing()
     {
         isFleeing = false;
-        
+
         if (showDebugLogs)
-            Debug.Log($"😌 {gameObject.name} stopped fleeing");
-        
+            Debug.Log($"😌 {selfEntity.GetEntityName()} stopped fleeing");
+
         OnFleeStopped?.Invoke();
-        
+
         if (stamina != null)
         {
             stamina.StopSprint();
         }
     }
-    
+
     private void UpdateFleeMovement()
     {
         if (primaryThreat == null) return;
-        
+
         // Calculate flee direction (away from threat)
-        Vector3 fleeDirection = (transform.position - primaryThreat.transform.position).normalized;
-        
-        // Check se abbastanza lontano
-        float distance = Vector3.Distance(transform.position, primaryThreat.transform.position);
-        
-        if (distance >= fleeMinDistance && currentFearLevel < fearFleeThreshold)
+        Vector3 fleeDirection = (cachedTransform.position - primaryThreat.transform.position).normalized;
+
+        // Check if far enough away
+        float distanceSqr = (cachedTransform.position - primaryThreat.transform.position).sqrMagnitude;
+
+        if (distanceSqr >= fleeMinDistanceSqr && currentFearLevel < fearFleeThreshold)
         {
             StopFleeing();
         }
-        
-        // Consume stamina
+
+        // Consume stamina during flee
         if (stamina != null && !stamina.IsExhausted())
         {
             stamina.ConsumeStamina(fleeStaminaCost * Time.deltaTime);
         }
     }
-    
+
     private void IncreaseFear(float amount)
     {
         float oldFear = currentFearLevel;
         currentFearLevel = Mathf.Min(currentFearLevel + amount, maxFearLevel);
-        
+
         if (currentFearLevel != oldFear)
         {
             OnFearLevelChanged?.Invoke(currentFearLevel);
         }
     }
-    
+
     private void DecreaseFear(float amount)
     {
         float oldFear = currentFearLevel;
         currentFearLevel = Mathf.Max(currentFearLevel - amount, 0f);
-        
+
         if (currentFearLevel != oldFear)
         {
             OnFearLevelChanged?.Invoke(currentFearLevel);
         }
     }
-    
+
+    #endregion
+
+    #region Public API (For Other Components)
+
+    // Manual fear control
     public void ForceFear(float amount)
     {
         IncreaseFear(amount);
     }
-    
+
     public void ResetFear()
     {
         currentFearLevel = 0f;
         StopFleeing();
+        OnFearLevelChanged?.Invoke(currentFearLevel);
     }
-    
+
     // Setters per EntityConfig
     public void SetFearThreshold(float threshold) => fearFleeThreshold = threshold;
-    
-    // Getters
+    public void SetPredatorDetectionRadius(float radius) 
+    { 
+        predatorDetectionRadius = radius;
+        detectionRadiusSqr = radius * radius;
+    }
+    public void SetFleeSpeedMultiplier(float multiplier) => fleeSpeedMultiplier = multiplier;
+    public void SetFleeMinDistance(float distance) 
+    { 
+        fleeMinDistance = distance;
+        fleeMinDistanceSqr = distance * distance;
+    }
+
+    // Getters (QUESTI ERANO MANCANTI!)
     public float GetCurrentFearLevel() => currentFearLevel;
     public float GetMaxFearLevel() => maxFearLevel;
     public bool IsFleeing() => isFleeing;
     public Entity GetPrimaryThreat() => primaryThreat;
+    public float GetFleeSpeedMultiplier() => fleeSpeedMultiplier;
+
     public Vector3 GetFleeDirection()
     {
         if (primaryThreat != null)
-            return (transform.position - primaryThreat.transform.position).normalized;
-        return transform.forward;
+            return (cachedTransform.position - primaryThreat.transform.position).normalized;
+        return cachedTransform.forward;
     }
+
     public Vector3 GetFleeTarget()
     {
-        return transform.position + GetFleeDirection() * fleeMinDistance;
+        return cachedTransform.position + GetFleeDirection() * fleeMinDistance;
     }
-    
+
+    #endregion
+
     #region Debug Visualization
-    
+
     void OnDrawGizmos()
     {
-        if (!showDebugGizmos) return;
-        
-        // Detection radii (solo in editor, per reference)
-        Gizmos.color = new Color(1f, 0f, 0f, 0.1f);
-        Gizmos.DrawSphere(transform.position, playerFearRadius);
-        
-        Gizmos.color = new Color(1f, 0.5f, 0f, 0.1f);
-        Gizmos.DrawSphere(transform.position, leviathanFearRadius);
-        
-        if (!Application.isPlaying) return;
-        
-        // Fear bar (viola)
-        Vector3 barPos = transform.position + Vector3.up * 1.6f;
-        float barWidth = 1f;
-        float barHeight = 0.1f;
-        
-        Gizmos.color = new Color(0.3f, 0.3f, 0.3f);
-        Gizmos.DrawCube(barPos, new Vector3(barWidth, barHeight, 0.01f));
-        
-        Color fearBarColor;
-        if (currentFearLevel >= fearFleeThreshold)
-            fearBarColor = new Color(0.5f, 0f, 1f);
-        else if (currentFearLevel >= fearFleeThreshold * 0.5f)
-            fearBarColor = new Color(0.7f, 0.3f, 1f);
-        else
-            fearBarColor = new Color(0.9f, 0.7f, 1f);
-        
-        Gizmos.color = fearBarColor;
-        float fearPercent = currentFearLevel / maxFearLevel;
-        Vector3 fearBarFillPos = barPos - new Vector3(barWidth * (1 - fearPercent) * 0.5f, 0, 0);
-        Gizmos.DrawCube(fearBarFillPos, new Vector3(barWidth * fearPercent, barHeight, 0.02f));
-        
-        // Fear status label
         #if UNITY_EDITOR
-        Vector3 labelPos = transform.position + Vector3.up * 3.5f;
-        
-        GUIStyle style = new GUIStyle();
-        style.alignment = TextAnchor.MiddleCenter;
-        style.fontSize = 11;
-        style.fontStyle = FontStyle.Bold;
-        
-        string statusText = "";
-        
-        if (isFleeing)
+        if (!showDebugGizmos) return;
+
+        // Predator detection radius (red transparent sphere)
+        if (Application.isPlaying)
         {
-            statusText = "😱 FLEEING";
-            style.normal.textColor = new Color(0.5f, 0f, 1f);
-            
-            if (stamina != null && stamina.IsExhausted())
-                statusText += " (EXHAUSTED)";
+            Gizmos.color = new Color(1f, 0f, 0f, 0.05f);
+            Gizmos.DrawSphere(transform.position, predatorDetectionRadius);
+
+            // Wire outline
+            Gizmos.color = new Color(1f, 0f, 0f, 0.3f);
+            Gizmos.DrawWireSphere(transform.position, predatorDetectionRadius);
         }
-        else if (currentFearLevel >= fearFleeThreshold * 0.5f)
-        {
-            statusText = "😰 NERVOUS";
-            style.normal.textColor = new Color(0.7f, 0.3f, 1f);
-        }
-        else
-        {
-            statusText = "😌 CALM";
-            style.normal.textColor = new Color(0.9f, 0.7f, 1f);
-        }
-        
-        statusText += $" | Fear: {currentFearLevel:F0}";
-        
-        UnityEditor.Handles.Label(labelPos, statusText, style);
-        #endif
-        
+
+        if (!Application.isPlaying) return;
+
         // Flee direction arrow
         if (isFleeing && primaryThreat != null)
         {
@@ -337,17 +319,22 @@ public class FearComponent : MonoBehaviour
             Vector3 fleeTarget = GetFleeTarget();
             Gizmos.DrawLine(transform.position, fleeTarget);
             Gizmos.DrawWireSphere(fleeTarget, 1f);
+
+            // Arrow direction
+            Vector3 arrowDir = GetFleeDirection();
+            Gizmos.DrawRay(transform.position, arrowDir * 3f);
         }
-        
-        // Lines to threats
+
+        // Lines to detected threats
         foreach (Entity threat in detectedThreats)
         {
             if (threat == null) continue;
-            
+
             Gizmos.color = threat == primaryThreat ? new Color(0.5f, 0f, 1f) : new Color(0.7f, 0.3f, 1f);
             Gizmos.DrawLine(transform.position, threat.transform.position);
         }
+        #endif
     }
-    
+
     #endregion
 }

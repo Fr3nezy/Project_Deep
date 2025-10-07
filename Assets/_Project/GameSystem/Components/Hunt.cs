@@ -11,20 +11,19 @@ public enum HuntState
     Attacking
 }
 
-/// <summary>
-/// Hunt behavior per entity AI. Diet-based invece di tag-based.
-/// </summary>
 public class HuntComponent : MonoBehaviour
 {
+    #region Inspector Settings
+    
     [Header("Detection FOV")]
-    [SerializeField] private float detectionRange = 10f;
-    [SerializeField] private float detectionAngle = 120f;
+    [SerializeField] protected float detectionRange = 10f;
+    [SerializeField] protected float detectionAngle = 120f;
     
     [Header("Chase FOV")]
     [SerializeField] private float chaseRange = 6f;
     [SerializeField] private float chaseAngle = 90f;
     
-    [Header("Spotting")]
+    [Header("Behavior Timing")]
     [SerializeField] private float spottingDuration = 3f;
     [SerializeField] private float loseTargetTime = 5f;
     
@@ -36,38 +35,84 @@ public class HuntComponent : MonoBehaviour
     [SerializeField] private bool requireHungerToHunt = true;
     [SerializeField] private float minHungerToHunt = 40f;
     
+    [Header("Performance Settings")]
+    [Tooltip("How often to scan for prey (seconds)")]
+    [SerializeField] private float scanInterval = 0.5f;
+    [Tooltip("Update movement every N frames")]
+    [SerializeField] private int movementUpdateFrequency = 1;
+    
     [Header("Debug")]
-    [SerializeField] private bool showDebugLogs = false;
-    [SerializeField] private bool showDebugGizmos = true;
+    [SerializeField] protected bool showDebugLogs = true; // Attivato per debug
+    [SerializeField] protected bool showDebugGizmos = true;
     
-    // State
-    private HuntState currentState = HuntState.Idle;
-    private Entity currentTarget = null;
-    private float spottingProgress = 0f;
-    private float lastTargetSeenTime = 0f;
-    private float scanInterval = 0.5f;
-    private float nextScanTime = 0f;
+    #endregion
     
-    // Events
+    #region Events
+    
     public UnityEvent<Entity> OnTargetSpotted;
     public UnityEvent<Entity> OnTargetLocked;
     public UnityEvent<Entity> OnTargetLost;
     public UnityEvent<Entity> OnTargetKilled;
     
-    // Component cache
-    private Entity selfEntity;
+    #endregion
+    
+    #region State & Performance Variables
+    
+    protected HuntState currentState = HuntState.Idle;
+    protected Entity currentTarget = null;
+    private float spottingProgress = 0f;
+    private float lastTargetSeenTime = 0f;
+    
+    private float nextScanTime = 0f;
+    private int frameCounter = 0;
+    private Entity cachedBestPrey = null;
+    private float cacheValidUntil = 0f;
+    private const float CACHE_DURATION = 0.2f;
+    
+    private float detectionRangeSqr;
+    private float chaseRangeSqr;
+    private float halfDetectionAngle;
+    private float halfChaseAngle;
+    
+    protected Entity selfEntity;
     private HungerComponent hunger;
-    private StaminaComponent stamina;
-    private AttackComponent attack;
-    private DietComponent diet;
+    protected StaminaComponent stamina;
+    protected AttackComponent attack;
+    protected DietComponent diet;
+    protected Transform cachedTransform;
+    
+    #endregion
+    
+    #region Initialization
     
     void Awake()
+    {
+        CacheComponents();
+        PreCalculateValues();
+    }
+    
+    private void CacheComponents()
     {
         selfEntity = GetComponent<Entity>();
         hunger = GetComponent<HungerComponent>();
         stamina = GetComponent<StaminaComponent>();
         attack = GetComponent<AttackComponent>();
         diet = GetComponent<DietComponent>();
+        cachedTransform = transform;
+        
+        #if UNITY_EDITOR
+        if (diet == null)
+            Debug.LogError($"[Hunt] {gameObject.name}: DietComponent required!");
+        #endif
+    }
+    
+    private void PreCalculateValues()
+    {
+        detectionRangeSqr = detectionRange * detectionRange;
+        chaseRangeSqr = chaseRange * chaseRange;
+        halfDetectionAngle = detectionAngle * 0.5f;
+        halfChaseAngle = chaseAngle * 0.5f;
+        nextScanTime = Time.time + Random.Range(0f, scanInterval);
     }
     
     void Start()
@@ -80,38 +125,89 @@ public class HuntComponent : MonoBehaviour
         Entity.OnAnyEntityDied -= OnEntityDied;
     }
     
-    void Update()
+    #endregion
+    
+    #region Update Loop
+    
+void Update()
+{
+    // ========== DEBUG: Press P to force scan ==========
+    if (UnityEngine.InputSystem.Keyboard.current != null && 
+        UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame)
     {
+        Debug.Log("=== FORCE SCAN PRESSED ===");
+        Debug.Log($"Entity: {gameObject.name}");
+        Debug.Log($"EntityType: {selfEntity?.GetEntityType()}");
+        Debug.Log($"Diet present: {diet != null}");
+        Debug.Log($"Can hunt: {CanHunt()}");
+        
+        if (diet != null)
+        {
+            Debug.Log($"Diet component: OK");
+        }
+        
+        ScanForPrey();
+    }
+    
+    // ========== AGGIUNGI QUESTO: Press E to test EntityManager ==========
+    if (UnityEngine.InputSystem.Keyboard.current != null && 
+        UnityEngine.InputSystem.Keyboard.current.eKey.wasPressedThisFrame)
+    {
+        Debug.Log("=== ENTITYMANAGER TEST ===");
+        
+        var allEntities = EntityManager.Instance.GetAllEntities();
+        Debug.Log($"Total entities registered: {allEntities.Count}");
+        
+        foreach (var e in allEntities)
+        {
+            Debug.Log($"  - {e.GetEntityName()}: Type={e.GetEntityType()}");
+        }
+        
+        // Check specifically for Player
+        bool playerFound = false;
+        foreach (var e in allEntities)
+        {
+            if (e.GetEntityType() == EntityType.Player)
+            {
+                playerFound = true;
+                Debug.Log($"✓✓✓ PLAYER FOUND IN ENTITYMANAGER: {e.GetEntityName()}");
+                
+                // Check distance to Player
+                float dist = Vector3.Distance(cachedTransform.position, e.transform.position);
+                Debug.Log($"Distance to Player: {dist:F2}m (Detection Range: {detectionRange}m)");
+                
+                break;
+            }
+        }
+        
+        if (!playerFound)
+        {
+            Debug.LogError("❌❌❌ PLAYER NOT REGISTERED IN ENTITYMANAGER!");
+        }
+    }
+    // =====================================================================
+    
+    if (selfEntity == null || selfEntity.IsDead() || diet == null) return;
+    
+    frameCounter++;
+    if (frameCounter >= movementUpdateFrequency)
+    {
+        frameCounter = 0;
         UpdateHuntBehavior();
     }
+}
+
+
+
     
     private void UpdateHuntBehavior()
     {
-        // ========== HUNGER CHECK (FIXED) ==========
-        if (requireHungerToHunt && hunger != null)
+        if (!CanHunt()) 
         {
-            float currentHunger = hunger.GetCurrentHunger();
-            
-            // Se hunger è TROPPO ALTA (ben nutrito), NON cacciare!
-            if (currentHunger > minHungerToHunt)
+            if (currentState != HuntState.Idle)
             {
-                if (showDebugLogs && currentState != HuntState.Idle)
-                    Debug.Log($"[Hunt] {gameObject.name} not hungry! Hunger: {currentHunger}/{minHungerToHunt}");
-                
-                if (currentState != HuntState.Idle)
-                {
-                    StopHunting();
-                }
-                return;
+                StopHunting("Not hungry enough");
             }
-        }
-        // ==========================================
-        
-        // Check se DietComponent presente
-        if (diet == null)
-        {
-            if (showDebugLogs)
-                Debug.LogWarning($"[Hunt] {gameObject.name}: No DietComponent! Cannot hunt.");
             return;
         }
         
@@ -135,80 +231,37 @@ public class HuntComponent : MonoBehaviour
         }
     }
     
+    protected virtual bool CanHunt()
+    {
+        if (!requireHungerToHunt) return true;
+        if (hunger == null) return true;
+        
+        bool canHunt = hunger.GetCurrentHunger() <= minHungerToHunt;
+        
+  if (UnityEngine.InputSystem.Keyboard.current != null && 
+        UnityEngine.InputSystem.Keyboard.current.pKey.wasPressedThisFrame)
+            Debug.Log($"[CanHunt] Hunger: {hunger.GetCurrentHunger()}/{minHungerToHunt}, Can hunt: {canHunt}");
+        
+        return canHunt;
+    }
+    
+    #endregion
+    
+    #region State Behaviors
+    
     private void UpdateIdle()
     {
         if (Time.time < nextScanTime) return;
-        nextScanTime = Time.time + scanInterval;
         
+        nextScanTime = Time.time + scanInterval + Random.Range(-0.1f, 0.1f);
         ScanForPrey();
-    }
-    
-    private void ScanForPrey()
-    {
-        Entity nearestPrey = FindNearestPreyInDetectionFOV();
-        
-        if (nearestPrey != null)
-        {
-            EnterSpotting(nearestPrey);
-        }
-    }
-    
-    private Entity FindNearestPreyInDetectionFOV()
-    {
-        if (diet == null) return null;
-        
-        Entity nearestPrey = null;
-        float minDistance = detectionRange;
-        int highestPriority = -1;
-        
-        // Trova TUTTE le entity nella scena
-        Entity[] allEntities = FindObjectsByType<Entity>(FindObjectsSortMode.None);
-        
-        foreach (Entity potentialPrey in allEntities)
-        {
-            if (potentialPrey == selfEntity) continue;
-            if (potentialPrey.IsDead()) continue;
-            
-            // USA DIET COMPONENT per validare prey
-            if (!diet.IsValidPrey(potentialPrey)) continue;
-            
-            // Check FOV
-            if (!IsInDetectionFOV(potentialPrey)) continue;
-            
-            float distance = Vector3.Distance(transform.position, potentialPrey.transform.position);
-            
-            // Get priority da diet
-            int priority = diet.GetPreyPriority(potentialPrey.GetEntityType());
-            
-            if (priority > highestPriority || (priority == highestPriority && distance < minDistance))
-            {
-                minDistance = distance;
-                highestPriority = priority;
-                nearestPrey = potentialPrey;
-            }
-        }
-        
-        return nearestPrey;
-    }
-    
-    private void EnterSpotting(Entity target)
-    {
-        currentState = HuntState.Spotting;
-        currentTarget = target;
-        spottingProgress = 0f;
-        lastTargetSeenTime = Time.time;
-        
-        if (showDebugLogs)
-            Debug.Log($"👁️ {gameObject.name} SPOTTING {target.GetEntityName()}");
-        
-        OnTargetSpotted?.Invoke(target);
     }
     
     private void UpdateSpotting()
     {
         if (currentTarget == null || currentTarget.IsDead())
         {
-            StopHunting();
+            StopHunting("Target died during spotting");
             return;
         }
         
@@ -226,32 +279,22 @@ public class HuntComponent : MonoBehaviour
         {
             if (Time.time - lastTargetSeenTime > loseTargetTime)
             {
-                LoseTarget();
+                LoseTarget("Lost sight during spotting");
             }
         }
-    }
-    
-    private void EnterStalking()
-    {
-        currentState = HuntState.Stalking;
-        
-        if (showDebugLogs)
-            Debug.Log($"🚶 {gameObject.name} STALKING {currentTarget.GetEntityName()}");
-        
-        OnTargetLocked?.Invoke(currentTarget);
     }
     
     private void UpdateStalking()
     {
         if (currentTarget == null || currentTarget.IsDead())
         {
-            StopHunting();
+            StopHunting("Target died during stalking");
             return;
         }
         
-        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        float distanceSqr = (cachedTransform.position - currentTarget.transform.position).sqrMagnitude;
         
-        if (distance <= chaseRange && IsInChaseFOV(currentTarget))
+        if (distanceSqr <= chaseRangeSqr && IsInChaseFOV(currentTarget))
         {
             EnterChasing();
             return;
@@ -265,21 +308,8 @@ public class HuntComponent : MonoBehaviour
         {
             if (Time.time - lastTargetSeenTime > loseTargetTime)
             {
-                LoseTarget();
+                LoseTarget("Lost target during stalking");
             }
-        }
-    }
-    
-    private void EnterChasing()
-    {
-        currentState = HuntState.Chasing;
-        
-        if (showDebugLogs)
-            Debug.Log($"🏃 {gameObject.name} CHASING {currentTarget.GetEntityName()}!");
-        
-        if (stamina != null)
-        {
-            stamina.StartSprint();
         }
     }
     
@@ -287,162 +317,299 @@ public class HuntComponent : MonoBehaviour
     {
         if (currentTarget == null || currentTarget.IsDead())
         {
-            StopHunting();
+            StopHunting("Target died during chase");
             return;
         }
         
-        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        float distanceSqr = (cachedTransform.position - currentTarget.transform.position).sqrMagnitude;
         
-        if (attack != null && distance <= attack.GetAttackRange())
+        if (attack != null && distanceSqr <= attack.GetAttackRange() * attack.GetAttackRange())
         {
             EnterAttacking();
             return;
         }
         
-        if (distance > chaseRange || !IsInChaseFOV(currentTarget))
+        if (distanceSqr > chaseRangeSqr || !IsInChaseFOV(currentTarget))
         {
             currentState = HuntState.Stalking;
-            if (stamina != null)
-            {
-                stamina.StopSprint();
-            }
+            if (stamina != null) stamina.StopSprint();
+            return;
         }
         
         lastTargetSeenTime = Time.time;
-    }
-    
-    private void EnterAttacking()
-    {
-        currentState = HuntState.Attacking;
-        
-        if (showDebugLogs)
-            Debug.Log($"⚔️ {gameObject.name} ATTACKING {currentTarget.GetEntityName()}!");
-        
-        if (stamina != null)
-        {
-            stamina.StopSprint();
-        }
     }
     
     private void UpdateAttacking()
     {
         if (currentTarget == null || currentTarget.IsDead())
         {
-            StopHunting();
+            StopHunting("Target died before attack");
             return;
         }
         
-        float distance = Vector3.Distance(transform.position, currentTarget.transform.position);
+        float distanceSqr = (cachedTransform.position - currentTarget.transform.position).sqrMagnitude;
+        float attackRangeSqr = attack.GetAttackRange() * attack.GetAttackRange();
         
-        if (attack != null && attack.IsAttackReady())
+        if (attack != null && attack.IsAttackReady() && distanceSqr <= attackRangeSqr)
         {
             attack.TryAttack(currentTarget);
         }
         
-        if (distance > attack.GetAttackRange() * 1.5f)
+        if (distanceSqr > attackRangeSqr * 2.25f)
         {
             EnterChasing();
         }
     }
     
-    private void LoseTarget()
+    #endregion
+    
+    #region Prey Detection
+    
+    private void ScanForPrey()
     {
-        if (showDebugLogs)
-            Debug.Log($"❌ {gameObject.name} lost target {currentTarget?.GetEntityName()}");
+        if (Time.time < cacheValidUntil && cachedBestPrey != null && cachedBestPrey.IsAlive())
+        {
+            if (IsInDetectionFOV(cachedBestPrey))
+            {
+                EnterSpotting(cachedBestPrey);
+                return;
+            }
+        }
         
-        OnTargetLost?.Invoke(currentTarget);
-        StopHunting();
+        Entity bestPrey = FindBestPrey();
+        
+        cachedBestPrey = bestPrey;
+        cacheValidUntil = Time.time + CACHE_DURATION;
+        
+        if (bestPrey != null)
+        {
+            EnterSpotting(bestPrey);
+        }
     }
     
-    private void StopHunting()
+    protected virtual Entity FindBestPrey()
+    {
+        Debug.Log($"[FindBestPrey] {gameObject.name} scanning...");
+        Debug.Log($"[FindBestPrey] Detection range: {detectionRange}");
+        Debug.Log($"[FindBestPrey] Position: {cachedTransform.position}");
+        
+        List<Entity> nearbyEntities = EntityManager.Instance.GetEntitiesInRadius(
+            cachedTransform.position, 
+            detectionRange, 
+            selfEntity
+        );
+        
+        Debug.Log($"[FindBestPrey] Found {nearbyEntities.Count} entities nearby");
+        
+        foreach (var e in nearbyEntities)
+        {
+            Debug.Log($"  - Entity: {e.GetEntityName()}, Type: {e.GetEntityType()}, Alive: {e.IsAlive()}");
+            
+            bool isValidPrey = diet.IsValidPrey(e);
+            Debug.Log($"    IsValidPrey: {isValidPrey}");
+            
+            if (isValidPrey)
+            {
+                bool inFOV = IsInDetectionFOV(e);
+                float distance = Vector3.Distance(cachedTransform.position, e.transform.position);
+                Debug.Log($"    InFOV: {inFOV}, Distance: {distance:F2}m");
+            }
+        }
+        
+        Entity bestPrey = null;
+        float minDistance = detectionRangeSqr;
+        int highestPriority = -1;
+        
+        foreach (Entity potentialPrey in nearbyEntities)
+        {
+            if (!diet.IsValidPrey(potentialPrey)) continue;
+            if (!IsInDetectionFOV(potentialPrey)) continue;
+            
+            float distanceSqr = (cachedTransform.position - potentialPrey.transform.position).sqrMagnitude;
+            int priority = diet.GetPreyPriority(potentialPrey.GetEntityType());
+            
+            Debug.Log($"  ✓ VALID PREY: {potentialPrey.GetEntityName()} (priority={priority})");
+            
+            if (priority > highestPriority || (priority == highestPriority && distanceSqr < minDistance))
+            {
+                minDistance = distanceSqr;
+                highestPriority = priority;
+                bestPrey = potentialPrey;
+            }
+        }
+        
+        if (bestPrey != null)
+            Debug.Log($"[FindBestPrey] BEST PREY SELECTED: {bestPrey.GetEntityName()}");
+        else
+            Debug.Log($"[FindBestPrey] NO VALID PREY FOUND");
+        
+        return bestPrey;
+    }
+    
+    protected bool IsInDetectionFOV(Entity target)
+    {
+        Vector3 dirToTarget = target.transform.position - cachedTransform.position;
+        float distanceSqr = dirToTarget.sqrMagnitude;
+        
+        if (distanceSqr > detectionRangeSqr) return false;
+        
+        dirToTarget = dirToTarget.normalized;
+        float angle = Vector3.Angle(cachedTransform.forward, dirToTarget);
+        
+        return angle <= halfDetectionAngle;
+    }
+    
+    private bool IsInChaseFOV(Entity target)
+    {
+        Vector3 dirToTarget = target.transform.position - cachedTransform.position;
+        float distanceSqr = dirToTarget.sqrMagnitude;
+        
+        if (distanceSqr > chaseRangeSqr) return false;
+        
+        dirToTarget = dirToTarget.normalized;
+        float angle = Vector3.Angle(cachedTransform.forward, dirToTarget);
+        
+        return angle <= halfChaseAngle;
+    }
+    
+    #endregion
+    
+    #region State Transitions
+    
+    protected void EnterSpotting(Entity target)
+    {
+        currentState = HuntState.Spotting;
+        currentTarget = target;
+        spottingProgress = 0f;
+        lastTargetSeenTime = Time.time;
+        
+        Debug.Log($"👁️ {gameObject.name} SPOTTING {target.GetEntityName()}");
+        
+        OnTargetSpotted?.Invoke(target);
+    }
+    
+    private void EnterStalking()
+    {
+        currentState = HuntState.Stalking;
+        
+        Debug.Log($"🚶 {gameObject.name} STALKING {currentTarget.GetEntityName()}");
+        
+        OnTargetLocked?.Invoke(currentTarget);
+    }
+    
+    protected void EnterChasing()
+    {
+        currentState = HuntState.Chasing;
+        
+        Debug.Log($"🏃 {gameObject.name} CHASING {currentTarget.GetEntityName()}!");
+        
+        if (stamina != null) stamina.StartSprint();
+    }
+    
+    private void EnterAttacking()
+    {
+        currentState = HuntState.Attacking;
+        
+        Debug.Log($"⚔️ {gameObject.name} ATTACKING {currentTarget.GetEntityName()}!");
+        
+        if (stamina != null) stamina.StopSprint();
+    }
+    
+    private void LoseTarget(string reason = "")
+    {
+        Debug.Log($"❌ {gameObject.name} lost target {currentTarget?.GetEntityName()} ({reason})");
+        
+        OnTargetLost?.Invoke(currentTarget);
+        StopHunting(reason);
+    }
+    
+    protected void StopHunting(string reason = "")
     {
         currentState = HuntState.Idle;
         currentTarget = null;
         spottingProgress = 0f;
         
-        if (stamina != null)
-        {
-            stamina.StopSprint();
-        }
+        cachedBestPrey = null;
+        cacheValidUntil = 0f;
+        
+        if (stamina != null) stamina.StopSprint();
     }
+    
+    #endregion
+    
+    #region Event Handlers
     
     private void OnEntityDied(Entity entity, Entity killer)
     {
-        if (entity == currentTarget)
+        if (entity != currentTarget || killer != selfEntity) return;
+        
+        OnTargetKilled?.Invoke(entity);
+        
+        Debug.Log($"🍖 {gameObject.name} killed {entity.GetEntityName()}");
+        
+        if (hunger != null && diet != null)
         {
-            if (killer == selfEntity)
+            DietComponent preyDiet = entity.GetDietComponent();
+            if (preyDiet != null)
             {
-                OnTargetKilled?.Invoke(entity);
+                float nutrition = preyDiet.GetNutritionValue();
+                hunger.Feed(nutrition);
                 
-                if (showDebugLogs)
-                    Debug.Log($"🍖 {gameObject.name} killed {entity.GetEntityName()}");
-                
-                // ========== FEED ON KILL (FIXED) ==========
-                if (hunger != null && diet != null)
-                {
-                    DietComponent preyDiet = entity.GetDietComponent();
-                    if (preyDiet != null)
-                    {
-                        float nutrition = preyDiet.GetNutritionValue();
-                        hunger.Feed(nutrition);
-                        
-                        if (showDebugLogs)
-                            Debug.Log($"🍖 {gameObject.name} fed +{nutrition} nutrition!");
-                    }
-                }
-                // ==========================================
+                Debug.Log($"🍖 {gameObject.name} fed +{nutrition} nutrition!");
             }
-            
-            StopHunting();
         }
-    }
-    
-    private bool IsInDetectionFOV(Entity target)
-    {
-        Vector3 dirToTarget = (target.transform.position - transform.position).normalized;
-        float angle = Vector3.Angle(transform.forward, dirToTarget);
-        float distance = Vector3.Distance(transform.position, target.transform.position);
         
-        return angle <= detectionAngle / 2f && distance <= detectionRange;
+        StopHunting("Target killed");
     }
     
-    private bool IsInChaseFOV(Entity target)
-    {
-        Vector3 dirToTarget = (target.transform.position - transform.position).normalized;
-        float angle = Vector3.Angle(transform.forward, dirToTarget);
-        float distance = Vector3.Distance(transform.position, target.transform.position);
-        
-        return angle <= chaseAngle / 2f && distance <= chaseRange;
+    #endregion
+    
+    #region Public API
+    
+    public void SetDetectionRange(float range) 
+    { 
+        detectionRange = range;
+        detectionRangeSqr = range * range;
     }
     
-    // Setters per EntityConfig
-    public void SetDetectionRange(float range) => detectionRange = range;
-    public void SetDetectionAngle(float angle) => detectionAngle = angle;
-    public void SetChaseRange(float range) => chaseRange = range;
+    public void SetDetectionAngle(float angle) 
+    { 
+        detectionAngle = angle;
+        halfDetectionAngle = angle * 0.5f;
+    }
+    
+    public void SetChaseRange(float range) 
+    { 
+        chaseRange = range;
+        chaseRangeSqr = range * range;
+    }
+    
     public void SetChaseSpeed(float speed) => chaseSpeed = speed;
     public void SetStalkSpeed(float speed) => stalkSpeed = speed;
+    public void SetScanInterval(float interval) => scanInterval = interval;
     
-    // Getters
     public HuntState GetHuntState() => currentState;
     public Entity GetCurrentTarget() => currentTarget;
     public bool IsHunting() => currentState != HuntState.Idle;
     public float GetChaseSpeed() => chaseSpeed;
     public float GetStalkSpeed() => stalkSpeed;
+    protected Entity GetSelfEntity() => selfEntity;
+    
+    #endregion
+    
+    #region Debug Gizmos
     
     void OnDrawGizmos()
     {
-        if (!showDebugGizmos) return;
-        if (!Application.isPlaying) return;
+        #if UNITY_EDITOR
+        if (!showDebugGizmos || !Application.isPlaying) return;
         
-        // Detection FOV (yellow)
         Gizmos.color = new Color(1f, 1f, 0f, 0.2f);
         DrawFOVCone(detectionRange, detectionAngle);
         
-        // Chase FOV (red)
         Gizmos.color = new Color(1f, 0f, 0f, 0.2f);
         DrawFOVCone(chaseRange, chaseAngle);
         
-        // Target line
         if (currentTarget != null && currentTarget.IsAlive())
         {
             Gizmos.color = currentState switch
@@ -456,8 +623,10 @@ public class HuntComponent : MonoBehaviour
             
             Gizmos.DrawLine(transform.position, currentTarget.transform.position);
         }
+        #endif
     }
     
+    #if UNITY_EDITOR
     private void DrawFOVCone(float range, float angle)
     {
         int segments = 20;
@@ -472,4 +641,7 @@ public class HuntComponent : MonoBehaviour
             Gizmos.DrawLine(transform.position, transform.position + dir);
         }
     }
+    #endif
+    
+    #endregion
 }
