@@ -1,0 +1,112 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+namespace Deeploration.EntitySystem
+{
+    /// <summary>
+    /// ScriptableObject che definisce tutti i parametri di una creatura.
+    /// Permette di creare profili riutilizzabili senza modificare il codice.
+    /// </summary>
+    [CreateAssetMenu(fileName = "New Creature Profile", menuName = "Deeploration/Creature Profile")]
+    public class CreatureProfile : ScriptableObject
+    {
+        [Header("Identità")]
+        [Tooltip("Tipo di entità (usato per catena alimentare)")]
+        public EntityType entityType = EntityType.SmallFish;
+        
+        [Tooltip("Nome identificativo della creatura")]
+        public string creatureName = "Generic Fish";
+
+        [Header("Parametri Vitali")]
+        [Tooltip("Salute massima (range: 0-100)")]
+        [Range(1f, 100f)]
+        public float maxHealth = 100f;
+
+        [Tooltip("Stamina massima (range: 0-100)")]
+        [Range(1f, 100f)]
+        public float maxStamina = 100f;
+
+        [Tooltip("Fame massima (range: 0-100). A 0 = affamato, a 100 = sazio")]
+        [Range(1f, 100f)]
+        public float maxHunger = 100f;
+
+        [Header("Tasso di Decadimento")]
+        [Tooltip("Velocità di aumento della fame per secondo")]
+        [Range(0.1f, 10f)]
+        public float hungerRate = 1f;
+
+        [Tooltip("Velocità di recupero della stamina per secondo (durante riposo)")]
+        [Range(0.5f, 20f)]
+        public float staminaRecoveryRate = 5f;
+
+        [Header("Soglie Comportamentali")]
+        [Tooltip("Soglia di fame sotto cui l'entità cerca cibo (0-100)")]
+        [Range(0f, 100f)]
+        public float hungerThreshold = 40f;
+
+        [Tooltip("Soglia di stamina sotto cui l'entità va in riposo (0-100)")]
+        [Range(0f, 50f)]
+        public float staminaThreshold = 20f;
+
+        [Tooltip("Distanza di rilevamento per prede/predatori")]
+        [Range(1f, 50f)]
+        public float senseRadius = 15f;
+
+        [Tooltip("Distanza minima da un predatore per attivare la fuga")]
+        [Range(1f, 30f)]
+        public float fearThreshold = 10f;
+
+        [Header("Parametri di Movimento")]
+        [Tooltip("Velocità base di movimento")]
+        [Range(0.5f, 10f)]
+        public float speedBase = 3f;
+
+        [Tooltip("Velocità aumentata durante fuga/caccia (richiede stamina)")]
+        [Range(1f, 20f)]
+        public float speedFlee = 8f;
+
+        [Tooltip("Costo di stamina per secondo durante l'accelerazione")]
+        [Range(1f, 30f)]
+        public float staminaCostPerSecond = 10f;
+
+        [Tooltip("Velocità di rotazione (gradi per secondo)")]
+        [Range(30f, 360f)]
+        public float rotationSpeed = 120f;
+
+        [Header("Catena Alimentare")]
+        [Tooltip("Tipi di entità che questa creatura può cacciare")]
+        public List<EntityType> preyTypes = new List<EntityType>();
+
+        [Tooltip("Tipi di entità che cacciano questa creatura")]
+        public List<EntityType> predatorTypes = new List<EntityType>();
+
+        [Header("Parametri di Steering")]
+        [Tooltip("Forza massima di steering per l'evitamento ostacoli")]
+        [Range(1f, 20f)]
+        public float maxSteerForce = 10f;
+
+        [Tooltip("Distanza massima per rilevare ostacoli (raycast)")]
+        [Range(1f, 10f)]
+        public float obstacleDetectionDistance = 5f;
+
+        /// <summary>
+        /// Valida i parametri del profilo per evitare configurazioni invalide.
+        /// </summary>
+        private void OnValidate()
+        {
+            // Assicura che speedFlee sia sempre maggiore di speedBase
+            if (speedFlee <= speedBase)
+            {
+                speedFlee = speedBase + 1f;
+                Debug.LogWarning($"[{creatureName}] speedFlee deve essere > speedBase. Corretto automaticamente.");
+            }
+
+            // Assicura che hungerThreshold sia sensato
+            if (hungerThreshold > maxHunger)
+            {
+                hungerThreshold = maxHunger * 0.5f;
+                Debug.LogWarning($"[{creatureName}] hungerThreshold non può essere > maxHunger. Corretto automaticamente.");
+            }
+        }
+    }
+}
