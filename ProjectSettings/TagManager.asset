@@ -5,24 +5,22 @@ TagManager:
   serializedVersion: 3
   tags:
   - CinemachineTarget
-  - Fish
-  - Leviathan
   - GameLight
-  - Plankton
+  - Entity
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  - 
+  - Player
   - Water
   - UI
+  - Obstacle
+  - Entity
+  - Enviroment
   - 
   - 
-  - Player
-  - Fish
-  - Leviathan
-  - GameLight
-  - Plankton
+  - 
+  - 
   - 
   - 
   - 

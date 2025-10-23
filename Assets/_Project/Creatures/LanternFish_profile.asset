@@ -1,0 +1,34 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 018a9396c6a32c44da6629ea99642c6e, type: 3}
+  m_Name: LanternFish_profile
+  m_EditorClassIdentifier: Assembly-CSharp::GameSystem.CreatureProfile
+  creatureName: Unknown Creature
+  entityType: 2
+  description: 
+  preyTypes: 
+  preyPriorities: 
+  predatorTypes: 
+  nutritionValue: 50
+  maxHealth: 100
+  maxStamina: 100
+  maxHunger: 100
+  baseSpeed: 2
+  sprintMultiplier: 1.5
+  turnSpeed: 180
+  attackDamage: 20
+  attackRange: 2
+  attackCooldown: 1.5
+  isAggressive: 0
+  isTerritorial: 0
+  canSchool: 0
+  isTimid: 1
