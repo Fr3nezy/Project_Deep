@@ -19,19 +19,6 @@ namespace Deeploration.EntitySystem
         [Range(1f, 20f)]
         private float rotationSmoothing = 5f;
 
-        [Header("Wander Settings (per Idle)")]
-        [SerializeField, Tooltip("Distanza del cerchio di wander")]
-        [Range(1f, 10f)]
-        private float wanderDistance = 3f;
-
-        [SerializeField, Tooltip("Raggio del cerchio di wander")]
-        [Range(0.5f, 5f)]
-        private float wanderRadius = 2f;
-
-        [SerializeField, Tooltip("Variazione casuale per frame")]
-        [Range(1f, 50f)]
-        private float wanderJitter = 10f;
-
         [Header("Bounds Settings")]
         [SerializeField, Tooltip("Usa bounds per limitare il movimento")]
         private bool useBounds = true;
@@ -42,13 +29,10 @@ namespace Deeploration.EntitySystem
         [SerializeField, Tooltip("Dimensioni dell'area di movimento")]
         private Vector3 boundsSize = new Vector3(50f, 30f, 50f);
 
-        [Header("Profondità Preferita")]
-        [SerializeField, Tooltip("Profondità preferita (Y) per questa creatura")]
-        private float preferredDepth = -5f;
-
-        [SerializeField, Tooltip("Tolleranza prima di correggere la profondità")]
+        [Header("Altitudine Settings")]
+        [SerializeField, Tooltip("Tolleranza prima di correggere l'altitudine (da CreatureProfile)")]
         [Range(0.5f, 5f)]
-        private float depthTolerance = 2f;
+        private float altitudeTolerance = 2f;
 
         [Header("Pesi Steering")]
         [SerializeField, Tooltip("Peso per l'obstacle avoidance")]
@@ -59,9 +43,9 @@ namespace Deeploration.EntitySystem
         [Range(0f, 3f)]
         private float boundsWeight = 1.5f;
 
-        [SerializeField, Tooltip("Peso per il mantenimento della profondità")]
+        [SerializeField, Tooltip("Peso per il mantenimento dell'altitudine")]
         [Range(0f, 2f)]
-        private float depthWeight = 0.8f;
+        private float altitudeWeight = 0.8f;
 
         // Componenti
         private Rigidbody rb;
@@ -74,7 +58,6 @@ namespace Deeploration.EntitySystem
         private Vector3 targetDirection;
         private float currentSpeed;
         private bool isAccelerating;
-        private float wanderAngle;
 
         // Proprietà pubbliche
         public Vector3 CurrentVelocity => currentVelocity;
@@ -93,9 +76,6 @@ namespace Deeploration.EntitySystem
             rb.linearDamping = 1f;
             rb.angularDamping = 5f;
             rb.constraints = RigidbodyConstraints.FreezeRotation;
-
-            // Inizializza wander angle casuale
-            wanderAngle = Random.Range(0f, 360f);
         }
 
         private void FixedUpdate()
@@ -187,7 +167,7 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Movimento di vagabondaggio casuale (Wander).
+        /// Movimento di vagabondaggio organico usando Perlin Noise.
         /// </summary>
         public void Wander()
         {
@@ -195,15 +175,19 @@ namespace Deeploration.EntitySystem
 
             CreatureProfile profile = entityStatus.Profile;
 
-            // Calcola forza di wander
-            Vector3 wanderForce = SteeringBehaviors.Wander(
-                currentVelocity.magnitude > 0.1f ? currentVelocity : cachedTransform.forward,
-                ref wanderAngle,
-                wanderDistance,
-                wanderRadius,
-                wanderJitter,
+            // Calcola forza di wander con Perlin Noise
+            Vector3 wanderForce = SteeringBehaviors.WanderPerlin(
+                cachedTransform.position,
+                currentVelocity,
+                Time.time,
+                profile.wanderStrength,
+                profile.wanderFrequency,
+                profile.perlinScale,
                 profile.maxSteerForce
             );
+
+            // Applica preset basato su MovementStyle
+            wanderForce = ApplyMovementStyleModifier(wanderForce, profile.movementStyle);
 
             ApplySteeringForces(wanderForce, profile.speedBase);
         }
@@ -218,20 +202,36 @@ namespace Deeploration.EntitySystem
             // Recupera stamina durante il riposo
             entityStatus.RecoverStamina(Time.fixedDeltaTime);
 
-            // Movimento minimo con wander molto lento
+            // Movimento molto ridotto con Perlin Noise
             CreatureProfile profile = entityStatus.Profile;
             float restSpeed = profile.speedBase * 0.3f; // 30% della velocità base
 
-            Vector3 wanderForce = SteeringBehaviors.Wander(
-                currentVelocity.magnitude > 0.1f ? currentVelocity : cachedTransform.forward,
-                ref wanderAngle,
-                wanderDistance * 0.5f,
-                wanderRadius * 0.5f,
-                wanderJitter * 0.3f,
+            // Parametri ridotti per movimento calmo durante riposo
+            Vector3 wanderForce = SteeringBehaviors.WanderPerlin(
+                cachedTransform.position,
+                currentVelocity,
+                Time.time,
+                profile.wanderStrength * 0.3f,  // Intensità ridotta
+                profile.wanderFrequency * 0.5f, // Frequenza più lenta
+                profile.perlinScale,
                 profile.maxSteerForce * 0.3f
             );
 
             ApplySteeringForces(wanderForce, restSpeed);
+        }
+
+        /// <summary>
+        /// Applica modificatori alla forza di movimento basati sullo stile.
+        /// </summary>
+        private Vector3 ApplyMovementStyleModifier(Vector3 force, MovementStyle style)
+        {
+            return style switch
+            {
+                MovementStyle.Calm => force * 0.7f,     // Movimento più lento e fluido
+                MovementStyle.Nervous => force * 1.5f,  // Movimento più veloce e scattoso
+                MovementStyle.Active => force,          // Nessuna modifica
+                _ => force
+            };
         }
 
         /// <summary>
@@ -256,14 +256,14 @@ namespace Deeploration.EntitySystem
                 );
             }
 
-            // Mantenimento profondità
-            float depthCorrection = SteeringBehaviors.MaintainDepth(
+            // Mantenimento altitudine (usa preferredAltitude dal CreatureProfile)
+            float altitudeCorrection = SteeringBehaviors.MaintainDepth(
                 cachedTransform.position.y,
-                preferredDepth,
-                depthTolerance,
+                profile.preferredAltitude,  // Ora usa valore positivo dal profile!
+                altitudeTolerance,
                 profile.maxSteerForce
             );
-            depthForce = Vector3.up * depthCorrection;
+            Vector3 altitudeForce = Vector3.up * altitudeCorrection;
 
             // Combina tutte le forze con pesi
             var forces = new (Vector3 force, float weight)[]
@@ -271,7 +271,7 @@ namespace Deeploration.EntitySystem
                 (primaryForce, 1f),
                 (avoidanceForce, obstacleAvoidanceWeight),
                 (boundsForce, boundsWeight),
-                (depthForce, depthWeight)
+                (altitudeForce, altitudeWeight)
             };
 
             Vector3 totalForce = SteeringBehaviors.CombineForces(forces, profile.maxSteerForce);
@@ -336,14 +336,6 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Imposta la profondità preferita.
-        /// </summary>
-        public void SetPreferredDepth(float depth)
-        {
-            preferredDepth = depth;
-        }
-
-        /// <summary>
         /// Imposta i bounds di movimento.
         /// </summary>
         public void SetBounds(Vector3 center, Vector3 size)
@@ -362,11 +354,17 @@ namespace Deeploration.EntitySystem
                 Gizmos.DrawWireCube(boundsCenter, boundsSize);
             }
 
-            // Mostra profondità preferita
-            Gizmos.color = new Color(0f, 0.5f, 1f, 0.5f);
-            Vector3 depthIndicator = transform.position;
-            depthIndicator.y = preferredDepth;
-            Gizmos.DrawWireSphere(depthIndicator, 0.5f);
+            // Mostra altitudine preferita (dal CreatureProfile)
+            if (entityStatus != null && entityStatus.Profile != null)
+            {
+                Gizmos.color = new Color(0f, 1f, 0.5f, 0.5f);
+                Vector3 altitudeIndicator = transform.position;
+                altitudeIndicator.y = entityStatus.Profile.preferredAltitude;
+                Gizmos.DrawWireSphere(altitudeIndicator, 0.8f);
+                
+                // Linea dall'entità all'altitudine preferita
+                Gizmos.DrawLine(transform.position, altitudeIndicator);
+            }
         }
 
         #endregion

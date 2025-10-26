@@ -89,6 +89,26 @@ namespace Deeploration.EntitySystem
         [Range(1f, 10f)]
         public float obstacleDetectionDistance = 5f;
 
+        [Header("Movimento Organico (Perlin Noise)")]
+        [Tooltip("Altitudine preferita sopra il terreno (Y positivo)")]
+        [Range(1f, 20f)]
+        public float preferredAltitude = 5f;
+
+        [Tooltip("Intensità del movimento wander (0.5=calmo, 2=nervoso)")]
+        [Range(0.1f, 3f)]
+        public float wanderStrength = 1f;
+
+        [Tooltip("Frequenza cambio direzione (0.1=lento, 2=veloce)")]
+        [Range(0.05f, 2f)]
+        public float wanderFrequency = 0.5f;
+
+        [Tooltip("Scala del Perlin Noise (più basso=più fluido)")]
+        [Range(0.1f, 1f)]
+        public float perlinScale = 0.3f;
+
+        [Tooltip("Stile di movimento preset")]
+        public MovementStyle movementStyle = MovementStyle.Active;
+
         /// <summary>
         /// Valida i parametri del profilo per evitare configurazioni invalide.
         /// </summary>

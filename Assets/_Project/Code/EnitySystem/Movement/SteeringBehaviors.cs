@@ -87,15 +87,10 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Calcola la forza di steering per vagabondare casualmente (Wander).
+        /// Calcola la forza di steering per vagabondare casualmente (Wander) - DEPRECATO.
+        /// Usa WanderPerlin per movimento più organico.
         /// </summary>
-        /// <param name="currentVelocity">Velocità corrente</param>
-        /// <param name="wanderAngle">Angolo corrente di wander (ref per persistenza)</param>
-        /// <param name="wanderDistance">Distanza del cerchio di wander</param>
-        /// <param name="wanderRadius">Raggio del cerchio di wander</param>
-        /// <param name="wanderJitter">Variazione casuale per frame</param>
-        /// <param name="maxForce">Forza di steering massima</param>
-        /// <returns>Forza di steering da applicare</returns>
+        [System.Obsolete("Use WanderPerlin instead for more organic movement")]
         public static Vector3 Wander(Vector3 currentVelocity, ref float wanderAngle, float wanderDistance, float wanderRadius, float wanderJitter, float maxForce)
         {
             // Aggiungi variazione casuale all'angolo
@@ -114,6 +109,58 @@ namespace Deeploration.EntitySystem
 
             Vector3 wanderForce = circleCenter + displacement;
             
+            return Vector3.ClampMagnitude(wanderForce, maxForce);
+        }
+
+        /// <summary>
+        /// Calcola la forza di steering per vagabondare organicamente usando Perlin Noise.
+        /// Movimento fluido e naturale su piano XZ con variazione Y limitata.
+        /// </summary>
+        /// <param name="currentPosition">Posizione corrente</param>
+        /// <param name="currentVelocity">Velocità corrente</param>
+        /// <param name="time">Tempo corrente (usa Time.time)</param>
+        /// <param name="wanderStrength">Intensità del movimento (0.5-2)</param>
+        /// <param name="wanderFrequency">Velocità di cambio direzione (0.1-2)</param>
+        /// <param name="perlinScale">Scala del noise (più basso = più fluido)</param>
+        /// <param name="maxForce">Forza di steering massima</param>
+        /// <returns>Forza di steering da applicare</returns>
+        public static Vector3 WanderPerlin(
+            Vector3 currentPosition,
+            Vector3 currentVelocity,
+            float time,
+            float wanderStrength,
+            float wanderFrequency,
+            float perlinScale,
+            float maxForce)
+        {
+            // Usa la posizione come seed per offset unici per ogni entità
+            float offsetX = currentPosition.x * 0.1f;
+            float offsetZ = currentPosition.z * 0.1f;
+
+            // 3 campioni Perlin indipendenti per X, Y, Z
+            // Centrato su 0.5, poi rimappato a [-0.5, 0.5]
+            float noiseX = Mathf.PerlinNoise(time * wanderFrequency + offsetX, 0f) - 0.5f;
+            float noiseY = Mathf.PerlinNoise(0f, time * wanderFrequency + offsetZ) - 0.5f;
+            float noiseZ = Mathf.PerlinNoise(time * wanderFrequency + offsetX, time * wanderFrequency + offsetZ) - 0.5f;
+
+            // Costruisci forza wander
+            // Movimento principalmente orizzontale (XZ), poco verticale (Y)
+            Vector3 wanderForce = new Vector3(
+                noiseX * wanderStrength,
+                noiseY * wanderStrength * 0.2f,  // Ridotto movimento verticale
+                noiseZ * wanderStrength
+            );
+
+            // Applica scala perlin per controllo della fluidità
+            wanderForce *= perlinScale;
+
+            // Combina con direzione corrente per continuità
+            if (currentVelocity.magnitude > 0.1f)
+            {
+                Vector3 forward = currentVelocity.normalized;
+                wanderForce += forward * 0.3f;  // Mantieni un po' della direzione corrente
+            }
+
             return Vector3.ClampMagnitude(wanderForce, maxForce);
         }
 

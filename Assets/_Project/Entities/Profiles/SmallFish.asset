@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 275a57e627f0972449d833a49c75147d, type: 3}
-  m_Name: Pesciozzo
+  m_Name: SmallFish
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
   entityType: 1
-  creatureName: Pesciozzo
+  creatureName: SmallFish
   maxHealth: 100
   maxStamina: 100
   maxHunger: 100
@@ -22,7 +22,7 @@ MonoBehaviour:
   hungerThreshold: 40
   staminaThreshold: 20
   senseRadius: 15
-  fearThreshold: 10
+  fearThreshold: 8
   speedBase: 3
   speedFlee: 8
   staminaCostPerSecond: 10
@@ -31,3 +31,8 @@ MonoBehaviour:
   predatorTypes: 0200000007000000
   maxSteerForce: 10
   obstacleDetectionDistance: 5
+  preferredAltitude: 5
+  wanderStrength: 1
+  wanderFrequency: 0.5
+  perlinScale: 0.3
+  movementStyle: 0

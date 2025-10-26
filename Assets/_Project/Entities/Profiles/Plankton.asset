@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 275a57e627f0972449d833a49c75147d, type: 3}
-  m_Name: BluePlankton
+  m_Name: Plankton
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
   entityType: 8
   creatureName: BluePlankton
@@ -28,6 +28,6 @@ MonoBehaviour:
   staminaCostPerSecond: 10
   rotationSpeed: 120
   preyTypes: 
-  predatorTypes: 
+  predatorTypes: 01000000
   maxSteerForce: 10
   obstacleDetectionDistance: 5

@@ -39,4 +39,14 @@ namespace Deeploration.EntitySystem
         Stamina,
         Hunger
     }
+
+    /// <summary>
+    /// Stile di movimento dell'entità. Influenza il comportamento del wander.
+    /// </summary>
+    public enum MovementStyle
+    {
+        Calm,       // Movimento lento e fluido (grandi creature)
+        Active,     // Movimento standard (pesci medi)
+        Nervous     // Movimento veloce e scattoso (piccole creature)
+    }
 }

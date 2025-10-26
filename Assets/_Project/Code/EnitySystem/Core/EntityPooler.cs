@@ -40,6 +40,9 @@ namespace Deeploration.EntitySystem
         private static EntityPooler instance;
         public static EntityPooler Instance => instance;
 
+        // Getter per accedere ai pool configs (usato da EntitySpawner)
+        public System.Collections.Generic.List<PoolConfig> PoolConfigs => poolConfigs;
+
         private void Awake()
         {
             // Singleton pattern
@@ -67,8 +70,12 @@ namespace Deeploration.EntitySystem
         /// </summary>
         private void InitializePools()
         {
+            Debug.Log($"[EntityPooler] Starting InitializePools with {poolConfigs.Count} configs");
+
             foreach (PoolConfig config in poolConfigs)
             {
+                Debug.Log($"[EntityPooler] Processing config '{config.poolName}' with initialSize {config.initialSize}, prefab: {config.prefab}");
+
                 if (config.prefab == null)
                 {
                     Debug.LogWarning($"[EntityPooler] Prefab nullo per pool '{config.poolName}'. Saltato.");
@@ -77,8 +84,11 @@ namespace Deeploration.EntitySystem
 
                 // Crea il pool
                 Queue<GameObject> pool = new Queue<GameObject>();
-                
+
                 // Pre-istanzia le entità
+                totalCreated[config.poolName] = config.initialSize;
+                Debug.Log($"[EntityPooler] Set totalCreated['{config.poolName}'] to {config.initialSize}");
+
                 for (int i = 0; i < config.initialSize; i++)
                 {
                     GameObject obj = CreateNewEntity(config.prefab, config.poolName);
@@ -89,7 +99,6 @@ namespace Deeploration.EntitySystem
                 pools[config.poolName] = pool;
                 poolConfigMap[config.poolName] = config;
                 activeCount[config.poolName] = 0;
-                totalCreated[config.poolName] = config.initialSize;
 
                 Debug.Log($"[EntityPooler] Pool '{config.poolName}' inizializzato con {config.initialSize} entità");
             }
@@ -100,8 +109,21 @@ namespace Deeploration.EntitySystem
         /// </summary>
         private GameObject CreateNewEntity(GameObject prefab, string poolName)
         {
+            Debug.Log($"[EntityPooler] Creating entity for '{poolName}'");
             GameObject obj = Instantiate(prefab, poolContainer);
-            obj.name = $"{poolName}_{totalCreated[poolName]}";
+            Debug.Log($"[EntityPooler] Instantiated obj: {obj}, totalCreated contains '{poolName}': {totalCreated.ContainsKey(poolName)}");
+
+            if (totalCreated.ContainsKey(poolName))
+            {
+                obj.name = $"{poolName}_{totalCreated[poolName]}";
+                Debug.Log($"[EntityPooler] Set name to '{obj.name}'");
+            }
+            else
+            {
+                Debug.LogError($"[EntityPooler] totalCreated missing key '{poolName}'");
+                obj.name = $"{poolName}_error";
+            }
+
             obj.SetActive(false);
 
             // Aggiungi component per il ritorno al pool
