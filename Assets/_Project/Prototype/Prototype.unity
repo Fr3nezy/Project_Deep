@@ -2761,6 +2761,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 478524120}
+  - component: {fileID: 478524121}
   m_Layer: 8
   m_Name: Player
   m_TagString: Untagged
@@ -2787,6 +2788,23 @@ Transform:
   - {fileID: 1375083637}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &478524121
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 478524119}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: edf0eb964bcb50d4b86d8330cc5e7f03, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.PlayerStatus
+  playerProfile: {fileID: 11400000, guid: 7d9542321188ca84682c8ca8d382268e, type: 2}
+  currentHealth: 0
+  currentStamina: 0
+  currentHunger: 0
+  isAlive: 1
 --- !u!1001 &483947065
 PrefabInstance:
   m_ObjectHideFlags: 0

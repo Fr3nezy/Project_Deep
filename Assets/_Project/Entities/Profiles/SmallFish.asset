@@ -17,11 +17,11 @@ MonoBehaviour:
   maxHealth: 100
   maxStamina: 100
   maxHunger: 100
-  hungerRate: 1
+  hungerRate: 0.2
   staminaRecoveryRate: 5
-  hungerThreshold: 90
+  hungerThreshold: 60
   staminaThreshold: 20
-  senseRadius: 50
+  senseRadius: 25
   fearThreshold: 8
   speedBase: 5
   speedFlee: 8

@@ -21,7 +21,7 @@ MonoBehaviour:
   staminaRecoveryRate: 5
   hungerThreshold: 0
   staminaThreshold: 20
-  senseRadius: 50
+  senseRadius: 5
   fearThreshold: 10
   speedBase: 1.8
   speedFlee: 8

@@ -21,9 +21,9 @@ MonoBehaviour:
   maxHunger: 100
   hungerRate: 0.5
   hungerThreshold: 25
-  allowDeathByStarvation: 1
+  allowDeathByStarvation: 0
   starvationDamageRate: 2
   showStatusUI: 1
-  staminaBarColor: {r: 0, g: 1, b: 0, a: 1}
-  hungerBarColor: {r: 1, g: 0.5, b: 0, a: 1}
-  healthBarColor: {r: 1, g: 0, b: 0, a: 1}
+  staminaBarColor: {r: 0, g: 0.6079955, b: 1, a: 1}
+  hungerBarColor: {r: 1, g: 0.8816934, b: 0, a: 1}
+  healthBarColor: {r: 0.14971161, g: 1, b: 0, a: 1}
