@@ -58,6 +58,7 @@ namespace Deeploration.EntitySystem
             );
 
             // Inizializza con lo stato iniziale
+            Debug.Log($"[StateManager] Entity {entityStatus.Profile.creatureName} initializing with initialState {initialState}");
             SetState(CreateState(initialState));
         }
 
@@ -91,6 +92,8 @@ namespace Deeploration.EntitySystem
         private void FixedUpdate()
         {
             if (!entityStatus.IsAlive || currentState == null) return;
+
+            Debug.Log($"[StateManager] Entity {entityStatus.Profile.creatureName} FixedUpdate, calling state {currentStateType}");
 
             // FixedUpdate dello stato corrente
             currentState.OnFixedUpdate(context);

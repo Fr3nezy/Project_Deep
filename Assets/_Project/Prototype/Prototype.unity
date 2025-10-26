@@ -1143,8 +1143,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: af31fb3226ebd5247ab9116908d8d201, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::EntitySpawner
-  spawnAreaCenter: {x: 0, y: 0, z: 0}
-  spawnAreaSize: {x: 20, y: 10, z: 20}
+  spawnAreaCenter: {x: 0, y: 2.11, z: 0}
+  spawnAreaSize: {x: 20, y: 4.03, z: 20}
   autoSpawnOnStart: 1
   entityPoolerReference: {fileID: 122689441}
   showSpawnArea: 1

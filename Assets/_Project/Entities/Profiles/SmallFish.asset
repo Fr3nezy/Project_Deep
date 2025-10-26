@@ -19,11 +19,11 @@ MonoBehaviour:
   maxHunger: 100
   hungerRate: 1
   staminaRecoveryRate: 5
-  hungerThreshold: 40
+  hungerThreshold: 90
   staminaThreshold: 20
   senseRadius: 15
   fearThreshold: 8
-  speedBase: 3
+  speedBase: 5
   speedFlee: 8
   staminaCostPerSecond: 10
   rotationSpeed: 120
@@ -31,8 +31,8 @@ MonoBehaviour:
   predatorTypes: 0200000007000000
   maxSteerForce: 10
   obstacleDetectionDistance: 5
-  preferredAltitude: 5
-  wanderStrength: 1
-  wanderFrequency: 0.5
+  preferredAltitude: 2
+  wanderStrength: 2
+  wanderFrequency: 1
   perlinScale: 0.3
-  movementStyle: 0
+  movementStyle: 1

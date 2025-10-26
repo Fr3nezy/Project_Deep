@@ -84,10 +84,13 @@ namespace Deeploration.EntitySystem
             {
                 // Ferma il movimento se morto
                 rb.linearVelocity = Vector3.zero;
+                currentSpeed = 0f;
+                isAccelerating = false;
                 return;
             }
 
             currentVelocity = rb.linearVelocity;
+            Debug.Log($"[Movement] {entityStatus.Profile.creatureName} FixedUpdate, velocity: {currentVelocity.magnitude}, alive: {entityStatus.IsAlive}");
         }
 
         /// <summary>
@@ -173,6 +176,8 @@ namespace Deeploration.EntitySystem
         {
             if (!entityStatus.IsAlive) return;
 
+            Debug.Log($"[Movement] {entityStatus.Profile.creatureName} starting Wander");
+
             CreatureProfile profile = entityStatus.Profile;
 
             // Calcola forza di wander con Perlin Noise
@@ -188,6 +193,8 @@ namespace Deeploration.EntitySystem
 
             // Applica preset basato su MovementStyle
             wanderForce = ApplyMovementStyleModifier(wanderForce, profile.movementStyle);
+
+            Debug.Log($"[Movement] {entityStatus.Profile.creatureName} wanderForce: {wanderForce.magnitude}, speedBase: {profile.speedBase}");
 
             ApplySteeringForces(wanderForce, profile.speedBase);
         }
@@ -280,6 +287,11 @@ namespace Deeploration.EntitySystem
             if (totalForce.magnitude > 0.01f)
             {
                 rb.AddForce(totalForce, ForceMode.Acceleration);
+                Debug.Log($"[Movement] {entityStatus.Profile.creatureName} adding force: {totalForce.magnitude}");
+            }
+            else
+            {
+                Debug.Log($"[Movement] {entityStatus.Profile.creatureName} no force added, totalForce too small: {totalForce.magnitude}");
             }
 
             // Limita la velocità massima

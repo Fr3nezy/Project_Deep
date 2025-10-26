@@ -191,6 +191,13 @@ namespace Deeploration.EntitySystem
                 status.ResetStatus();
             }
 
+            // Reset stato a Idle per spawn freschi (entità potrebbero essere in Dead dal pool)
+            EntityStateManager stateManager = obj.GetComponent<EntityStateManager>();
+            if (stateManager != null)
+            {
+                stateManager.ForceState(EntityState.Idle);
+            }
+
             activeCount[poolName]++;
 
             return obj;

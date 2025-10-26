@@ -26,6 +26,7 @@ namespace Deeploration.EntitySystem
         public void OnFixedUpdate(StateContext context)
         {
             // Movimento di wander
+            Debug.Log($"[IdleState] {context.EntityStatus.Profile.creatureName} calling Wander");
             context.MovementController.Wander();
         }
 
