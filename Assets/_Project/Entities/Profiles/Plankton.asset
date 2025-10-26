@@ -14,16 +14,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
   entityType: 8
   creatureName: BluePlankton
-  maxHealth: 100
-  maxStamina: 100
+  maxHealth: 15
+  maxStamina: 20
   maxHunger: 100
-  hungerRate: 1
+  hungerRate: 0.1
   staminaRecoveryRate: 5
-  hungerThreshold: 40
+  hungerThreshold: 0
   staminaThreshold: 20
   senseRadius: 50
   fearThreshold: 10
-  speedBase: 0.5
+  speedBase: 1.8
   speedFlee: 8
   staminaCostPerSecond: 10
   rotationSpeed: 120

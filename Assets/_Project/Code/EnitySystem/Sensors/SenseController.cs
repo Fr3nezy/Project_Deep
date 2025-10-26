@@ -30,6 +30,13 @@ namespace Deeploration.EntitySystem
         [SerializeField, Tooltip("Layer degli ostacoli per line of sight check")]
         private LayerMask obstacleLayer;
 
+        [Header("Player Detection")]
+        [SerializeField, Tooltip("Layer del Player per auto-rilevamento (default Player layer)")]
+        private LayerMask playerLayer = 0;
+
+        [SerializeField, Tooltip("Player Transform trovato automaticamente (read-only)")]
+        private Transform playerTransform;
+
         [Header("Debug")]
         [SerializeField, Tooltip("Mostra sfere di debug per entità rilevate")]
         private bool showDebugSpheres = true;
@@ -64,6 +71,9 @@ namespace Deeploration.EntitySystem
 
             // Pre-alloca array per evitare GC
             detectedColliders = new Collider[maxDetections];
+
+            // Rileva automaticamente Player via layer se configurato
+            DetectPlayerTransform();
         }
 
         private void Start()
@@ -128,6 +138,9 @@ namespace Deeploration.EntitySystem
 
             // Trova i target più vicini
             UpdateClosestTargets();
+
+            // Rileva Player come predatore esterno
+            DetectPlayerAsPredator();
 
             // Emetti eventi
             EmitSenseEvents();
@@ -210,6 +223,10 @@ namespace Deeploration.EntitySystem
                 if (predatorStatus != null)
                 {
                     OnPredatorDetected?.Invoke(ClosestPredator, predatorStatus.EntityType);
+                }
+                else if (ClosestPredator == playerTransform) // Player rilevato come predatore
+                {
+                    OnPredatorDetected?.Invoke(ClosestPredator, EntityType.None);
                 }
             }
             else if (nearbyPredators.Count == 0)
@@ -298,6 +315,54 @@ namespace Deeploration.EntitySystem
             }
 
             return fleeDirection.normalized;
+        }
+
+        /// <summary>
+        /// Trova automaticamente il Player via layer nella scena.
+        /// </summary>
+        private void DetectPlayerTransform()
+        {
+            if (playerLayer == 0)
+            {
+                Debug.LogWarning($"[SenseController] {gameObject.name}: Player Layer non configurato, saltato auto-rilevamento Player.");
+                return;
+            }
+
+            // Usa una search rapida per trovare Player nella scena (raggio ampio)
+            Collider[] tempColliders = new Collider[1]; // Solo bisogno del primo trovato
+            int hitCount = Physics.OverlapSphereNonAlloc(cachedTransform.position, 10000f, tempColliders, playerLayer);
+
+            if (hitCount > 0)
+            {
+                playerTransform = tempColliders[0].transform;
+                Debug.Log($"[SenseController] {gameObject.name}: Player trovato automaticamente: {playerTransform.name}");
+            }
+            else
+            {
+                Debug.LogWarning($"[SenseController] {gameObject.name}: Nessun Player trovato sul layer configurato.");
+            }
+        }
+
+        /// <summary>
+        /// Rileva Player come predatore esterno se vicino.
+        /// </summary>
+        private void DetectPlayerAsPredator()
+        {
+            if (playerTransform == null) return;
+
+            float playerDistance = Vector3.Distance(cachedTransform.position, playerTransform.position);
+            if (playerDistance > entityStatus.Profile.senseRadius) return;
+
+            if (requireLineOfSight && !HasLineOfSight(playerTransform.position)) return;
+
+            // Player è sempre considerato predatore
+            nearbyPredators.Add(playerTransform);
+
+            // Verifica se è il più vicino
+            if (ClosestPredator == null || playerDistance < Vector3.Distance(cachedTransform.position, ClosestPredator.position))
+            {
+                ClosestPredator = playerTransform;
+            }
         }
 
         #region Debug Visualization
