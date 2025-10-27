@@ -11,6 +11,22 @@ namespace StarterAssets
 #endif
 	public class FirstPersonController : MonoBehaviour
 	{
+	[Header("Stamina Integration")]
+	[Tooltip("Integrazione con PlayerStatus per gestire stamina")]
+	public bool useStaminaSystem = true;
+
+	[Tooltip("Thrust del jetpack mentre si tiene premuto spazio in aria")]
+	[Range(0f, 50f)]
+	public float jetpackThrust = 12f;
+
+	[Tooltip("Costo stamina per secondo del jetpack")]
+	[Range(1f, 50f)]
+	public float jetpackCostPerSecond = 12f;
+
+	[Tooltip("Ritardo prima dell'attivazione del jetpack dopo un salto")]
+	[Range(0f, 1f)]
+	public float jetpackActivationDelay = 0.1f;
+
 		[Header("Player")]
 		[Tooltip("Move speed of the character in m/s")]
 		public float MoveSpeed = 4.0f;
@@ -27,9 +43,9 @@ namespace StarterAssets
 		[Tooltip("The character uses its own gravity value. The engine default is -9.81f")]
 		public float Gravity = -15.0f;
 
-		[Space(10)]
-		[Tooltip("Time required to pass before being able to jump again. Set to 0f to instantly jump again")]
-		public float JumpTimeout = 0.1f;
+	[Space(10)]
+	[Tooltip("Time required to pass before being able to jump again. Set to 0f to instantly jump again")]
+	public float JumpTimeout = 0f;
 		[Tooltip("Time required to pass before entering the fall state. Useful for walking down stairs")]
 		public float FallTimeout = 0.15f;
 
@@ -64,6 +80,14 @@ namespace StarterAssets
 		private float _jumpTimeoutDelta;
 		private float _fallTimeoutDelta;
 
+		// grounded hysteresis
+		private float _groundedHysteresisTimer = 0f;
+		private const float _groundedHysteresisTimeout = 0.05f;
+
+	// jetpack boost tracking
+	private bool _jetpackWasActive = false;
+	private float _lastJumpTime = -1f;
+
 	
 #if ENABLE_INPUT_SYSTEM
 		private PlayerInput _playerInput;
@@ -71,6 +95,7 @@ namespace StarterAssets
 		private CharacterController _controller;
 		private StarterAssetsInputs _input;
 		private GameObject _mainCamera;
+		private Deeploration.EntitySystem.PlayerStatus _playerStatus;
 
 		private const float _threshold = 0.01f;
 
@@ -105,6 +130,17 @@ namespace StarterAssets
 			Debug.LogError( "Starter Assets package is missing dependencies. Please use Tools/Starter Assets/Reinstall Dependencies to fix it");
 #endif
 
+			// Get PlayerStatus component if stamina system is enabled
+			if (useStaminaSystem)
+			{
+				_playerStatus = GetComponent<Deeploration.EntitySystem.PlayerStatus>();
+				if (_playerStatus == null)
+				{
+					Debug.LogWarning("[FirstPersonController] useStaminaSystem is enabled but PlayerStatus component not found. Stamina system disabled.");
+					useStaminaSystem = false;
+				}
+			}
+
 			// reset our timeouts on start
 			_jumpTimeoutDelta = JumpTimeout;
 			_fallTimeoutDelta = FallTimeout;
@@ -112,8 +148,8 @@ namespace StarterAssets
 
 		private void Update()
 		{
-			JumpAndGravity();
 			GroundedCheck();
+			JumpAndGravity();
 			Move();
 		}
 
@@ -126,7 +162,40 @@ namespace StarterAssets
 		{
 			// set sphere position, with offset
 			Vector3 spherePosition = new Vector3(transform.position.x, transform.position.y - GroundedOffset, transform.position.z);
-			Grounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
+			bool rawGrounded = Physics.CheckSphere(spherePosition, GroundedRadius, GroundLayers, QueryTriggerInteraction.Ignore);
+
+			// Hysteresis for stable grounded detection
+			bool wasGrounded = Grounded;
+			if (rawGrounded && !Grounded)
+			{
+				// Was not grounded, now detected grounded - immediate set
+				Grounded = true;
+				_groundedHysteresisTimer = 0f;
+				Debug.Log("[Grounded Check] Became grounded!");
+			}
+			else if (!rawGrounded && Grounded)
+			{
+				// Was grounded, now detected not grounded - start hysteresis delay
+				if (_groundedHysteresisTimer == 0f)
+				{
+					_groundedHysteresisTimer = _groundedHysteresisTimeout;
+				}
+				_groundedHysteresisTimer -= Time.deltaTime;
+
+				if (_groundedHysteresisTimer <= 0f)
+				{
+					// Delay expired, set to not grounded
+					Grounded = false;
+					_groundedHysteresisTimer = 0f;
+					Debug.LogWarning("[Grounded Check] Became not grounded!");
+				}
+				// else stay grounded
+			}
+			else if (Grounded && rawGrounded)
+			{
+				// Ensure timer is reset when continuously grounded
+				_groundedHysteresisTimer = 0f;
+			}
 		}
 
 		private void CameraRotation()
@@ -153,8 +222,17 @@ namespace StarterAssets
 
 		private void Move()
 		{
+			// Check if sprinting is allowed with stamina system
+			bool canSprint = true;
+			if (useStaminaSystem && _playerStatus != null && _input.sprint)
+			{
+				// Try to consume stamina for sprint (cost per second * deltaTime)
+				float sprintCost = _playerStatus.Profile.sprintCostPerSecond * Time.deltaTime;
+				canSprint = _playerStatus.TryUseStamina(sprintCost);
+			}
+
 			// set target speed based on move speed, sprint speed and if sprint is pressed
-			float targetSpeed = _input.sprint ? SprintSpeed : MoveSpeed;
+			float targetSpeed = (_input.sprint && canSprint) ? SprintSpeed : MoveSpeed;
 
 			// a simplistic acceleration and deceleration designed to be easy to remove, replace, or iterate upon
 
@@ -200,6 +278,12 @@ namespace StarterAssets
 
 		private void JumpAndGravity()
 		{
+			// Disable jump input when grounded to reset continuous press
+			if (Grounded)
+			{
+				_input.jump = false;
+			}
+
 			if (Grounded)
 			{
 				// reset the fall timeout timer
@@ -211,11 +295,36 @@ namespace StarterAssets
 					_verticalVelocity = -2f;
 				}
 
-				// Jump
-				if (_input.jump && _jumpTimeoutDelta <= 0.0f)
+				// Initial Jump - use jumpDown (rising edge managed by StarterAssetsInputs)
+				if (_input.jumpDown && _jumpTimeoutDelta <= 0.0f)
 				{
-					// the square root of H * -2 * G = how much velocity needed to reach desired height
-					_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+					// Check if stamina system is enabled and consume jump cost
+					bool canJump = true;
+					if (useStaminaSystem && _playerStatus != null)
+					{
+						// Jump is a one-time cost
+						canJump = _playerStatus.TryUseStamina(_playerStatus.Profile.jumpCost);
+						Debug.Log($"[Jump] Trying to jump - Can jump: {canJump}, Stamina: {_playerStatus.CurrentStamina}/{_playerStatus.MaxStamina}");
+					}
+					else
+					{
+						Debug.Log("[Jump] No stamina system or player status, jumping freely");
+					}
+
+					if (canJump)
+					{
+						// the square root of H * -2 * G = how much velocity needed to reach desired height
+						_verticalVelocity = Mathf.Sqrt(JumpHeight * -2f * Gravity);
+						_lastJumpTime = Time.time;
+						Debug.Log($"[Jump] Jumped! Vertical velocity: {_verticalVelocity}");
+					}
+					else
+					{
+						Debug.LogWarning("[Jump] Cannot jump - insufficient stamina or system disabled");
+					}
+					
+					// Consume the jumpDown input
+					_input.jumpDown = false;
 				}
 
 				// jump timeout
@@ -223,9 +332,13 @@ namespace StarterAssets
 				{
 					_jumpTimeoutDelta -= Time.deltaTime;
 				}
+				
+				// Reset jetpack state when landing
+				_jetpackWasActive = false;
 			}
 			else
 			{
+				// IN AIR
 				// reset the jump timeout timer
 				_jumpTimeoutDelta = JumpTimeout;
 
@@ -235,8 +348,40 @@ namespace StarterAssets
 					_fallTimeoutDelta -= Time.deltaTime;
 				}
 
-				// if we are not grounded, do not jump
-				_input.jump = false;
+				// Jetpack Thrust: If holding SPACE while in air, apply continuous thrust after delay
+				if (_input.jump && Time.time >= _lastJumpTime + jetpackActivationDelay && useStaminaSystem && _playerStatus != null)
+				{
+					if (!_jetpackWasActive)
+					{
+						_jetpackWasActive = true;
+						Debug.Log("[Jetpack] Jetpack activated!");
+					}
+
+					// Try to consume stamina for jetpack
+					float thrustCostPerFrame = jetpackCostPerSecond * Time.deltaTime;
+					bool hasStamina = _playerStatus.TryUseStamina(thrustCostPerFrame);
+
+					if (hasStamina)
+					{
+						// Apply constant upward thrust
+						_verticalVelocity += jetpackThrust * Time.deltaTime;
+
+						// Clamp max upward velocity to prevent floating away
+						_verticalVelocity = Mathf.Min(_verticalVelocity, jetpackThrust * 0.5f);
+					}
+					else
+					{
+						// No stamina, deactivate jetpack
+						_jetpackWasActive = false;
+						Debug.Log("[Jetpack] Out of stamina, jetpack deactivated");
+					}
+				}
+				else if (_jetpackWasActive)
+				{
+					// Deactivate jetpack if player releases space
+					_jetpackWasActive = false;
+					Debug.Log("[Jetpack] Jetpack boost deactivated (released space)");
+				}
 			}
 
 			// apply gravity over time if under terminal (multiply by delta time twice to linearly speed up over time)

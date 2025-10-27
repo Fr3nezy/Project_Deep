@@ -23,6 +23,8 @@ MonoBehaviour:
   hungerThreshold: 25
   allowDeathByStarvation: 0
   starvationDamageRate: 2
+  preyTypes: 0100000008000000
+  predatorTypes: 02000000
   showStatusUI: 1
   staminaBarColor: {r: 0, g: 0.6079955, b: 1, a: 1}
   hungerBarColor: {r: 1, g: 0.8816934, b: 0, a: 1}

@@ -187,7 +187,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.SenseController
   entityLayer:
     serializedVersion: 2
-    m_Bits: 512
+    m_Bits: 768
   senseUpdateInterval: 0.3
   maxDetections: 20
   requireLineOfSight: 1

@@ -122,8 +122,8 @@ namespace Deeploration.EntitySystem
                 // Ignora se stesso
                 if (col.transform == cachedTransform) continue;
 
-                // Ottieni EntityStatus del target
-                EntityStatus targetStatus = col.GetComponent<EntityStatus>();
+                // Ottieni EntityStatus del target (anche su parent se collider è su child)
+                EntityStatus targetStatus = col.GetComponentInParent<EntityStatus>();
                 if (targetStatus == null || !targetStatus.IsAlive) continue;
 
                 // Line of sight check
@@ -344,7 +344,7 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Rileva Player come predatore esterno se vicino.
+        /// Rileva Player come predatore o preda basandosi sui profili di entrambi.
         /// </summary>
         private void DetectPlayerAsPredator()
         {
@@ -355,14 +355,44 @@ namespace Deeploration.EntitySystem
 
             if (requireLineOfSight && !HasLineOfSight(playerTransform.position)) return;
 
-            // Player è sempre considerato predatore
-            nearbyPredators.Add(playerTransform);
-
-            // Verifica se è il più vicino
-            if (ClosestPredator == null || playerDistance < Vector3.Distance(cachedTransform.position, ClosestPredator.position))
+            // Ottieni PlayerStatus per verificare il profilo (anche su parent se collider è su child)
+            PlayerStatus playerStatus = playerTransform.GetComponentInParent<PlayerStatus>();
+            if (playerStatus == null || !playerStatus.IsAlive)
             {
-                ClosestPredator = playerTransform;
+                return; // Player non ha PlayerStatus o è morto
             }
+
+            EntityType myType = entityStatus.EntityType;
+
+            // Verifica relazione predatore-preda in entrambe le direzioni
+            bool playerIsMyPredator = playerStatus.Profile.preyTypes.Contains(myType);
+            bool iAmPlayerPredator = playerStatus.Profile.predatorTypes.Contains(myType);
+            
+            // IMPORTANTE: Verifica anche se IO posso cacciare il Player dal MIO profilo
+            bool iCanHuntPlayer = entityStatus.Profile.preyTypes.Contains(EntityType.Player);
+
+            // Determina la relazione finale
+            if (playerIsMyPredator && !iCanHuntPlayer)
+            {
+                // Il Player mi caccia e io NON caccio il Player → Player è predatore
+                nearbyPredators.Add(playerTransform);
+
+                if (ClosestPredator == null || playerDistance < Vector3.Distance(cachedTransform.position, ClosestPredator.position))
+                {
+                    ClosestPredator = playerTransform;
+                }
+            }
+            else if (iAmPlayerPredator || iCanHuntPlayer)
+            {
+                // Io sono predatore del Player (dal PlayerProfile) O posso cacciare Player (dal mio profile) → Player è preda
+                nearbyPrey.Add(playerTransform);
+
+                if (ClosestPrey == null || playerDistance < Vector3.Distance(cachedTransform.position, ClosestPrey.position))
+                {
+                    ClosestPrey = playerTransform;
+                }
+            }
+            // Altrimenti neutrale (si ignorano)
         }
 
         #region Debug Visualization

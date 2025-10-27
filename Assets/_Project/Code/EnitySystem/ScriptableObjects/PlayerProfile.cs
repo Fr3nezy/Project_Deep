@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 namespace Deeploration.EntitySystem
 {
@@ -54,6 +55,13 @@ namespace Deeploration.EntitySystem
         [Tooltip("Se no death, danno per secondo con fame=0")]
         [Range(0f, 10f)]
         public float starvationDamageRate = 2f;
+
+        [Header("Catena Alimentare")]
+        [Tooltip("Tipi di entità che il Player può cacciare")]
+        public List<EntityType> preyTypes = new List<EntityType>();
+
+        [Tooltip("Tipi di entità che cacciano il Player")]
+        public List<EntityType> predatorTypes = new List<EntityType>();
 
         [Header("UI / Feedback")]
         [Tooltip("Mostra UI per statistiche")]

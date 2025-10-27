@@ -11,6 +11,8 @@ namespace StarterAssets
 		public Vector2 move;
 		public Vector2 look;
 		public bool jump;
+      // True only on the frame the button was pressed (rising edge)
+		public bool jumpDown;
 		public bool sprint;
 
 		[Header("Movement Settings")]
@@ -58,6 +60,18 @@ namespace StarterAssets
 
 		public void JumpInput(bool newJumpState)
 		{
+			// Detect rising edge: button pressed and wasn't pressed before
+			if (newJumpState && !jump)
+			{
+				jumpDown = true;
+			}
+
+			// Reset jumpDown when key is released to clear pending jump intents
+			if (!newJumpState)
+			{
+				jumpDown = false;
+			}
+
 			jump = newJumpState;
 		}
 
