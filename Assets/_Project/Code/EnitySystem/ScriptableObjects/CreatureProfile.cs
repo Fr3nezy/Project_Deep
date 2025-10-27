@@ -80,6 +80,15 @@ namespace Deeploration.EntitySystem
         [Tooltip("Tipi di entità che cacciano questa creatura")]
         public List<EntityType> predatorTypes = new List<EntityType>();
 
+        [Header("Parametri di Attacco")]
+        [Tooltip("Danno inflitto quando attacca una preda")]
+        [Range(5f, 100f)]
+        public float attackDamage = 20f;
+
+        [Tooltip("Tempo tra attacchi successivi (non ancora utilizzato)")]
+        [Range(0.5f, 10f)]
+        public float attackCooldown = 2f;
+
         [Header("Parametri di Steering")]
         [Tooltip("Forza massima di steering per l'evitamento ostacoli")]
         [Range(1f, 20f)]

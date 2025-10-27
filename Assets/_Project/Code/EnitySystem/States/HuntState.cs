@@ -13,6 +13,10 @@ namespace Deeploration.EntitySystem
         private const float CATCH_DISTANCE = 2f; // Distanza per "catturare" la preda
         private const float GIVE_UP_DISTANCE = 30f; // Distanza oltre cui si abbandona la caccia
         private const float GIVE_UP_TIME = 10f; // Tempo massimo di caccia prima di arrendersi
+        private const float MIN_ATTACK_INTERVAL = 1f; // Minimo 1 secondo tra attacchi consecutivi
+
+        // Stato per gestire cooldown attacchi
+        private float lastAttackTime;
 
         public void OnEnter(StateContext context)
         {
@@ -131,24 +135,60 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Gestisce la cattura della preda.
+        /// Gestisce la cattura della preda con danno progressivo.
         /// </summary>
         private void CatchPrey(StateContext context)
         {
+            // Controlla cooldown tra attacchi
+            if (Time.time - lastAttackTime < MIN_ATTACK_INTERVAL)
+            {
+                return; // Troppo presto per attaccare di nuovo
+            }
+
+            // Cerca prima EntityStatus (altre creature)
             EntityStatus preyStatus = context.CurrentTarget.GetComponent<EntityStatus>();
             if (preyStatus != null && preyStatus.IsAlive)
             {
-                // Uccidi la preda
-                preyStatus.ApplyDamage(preyStatus.Profile.maxHealth);
+                // Applica danno basato sul profilo
+                float damage = context.EntityStatus.Profile.attackDamage;
+                preyStatus.ApplyDamage(damage);
+                lastAttackTime = Time.time; // Aggiorna cooldown
 
-                // Consuma cibo
-                float foodValue = preyStatus.Profile.maxHealth * 0.5f; // 50% della salute come cibo
-                context.EntityStatus.ConsumeFood(foodValue);
-
-                Debug.Log($"[HuntState] {context.EntityStatus.Profile.creatureName} ha catturato {preyStatus.Profile.creatureName}!");
+                if (!preyStatus.IsAlive)
+                {
+                    // Preda morta - consuma cibo
+                    float foodValue = preyStatus.Profile.maxHealth * 0.5f;
+                    context.EntityStatus.ConsumeFood(foodValue);
+                    context.ClearTarget();
+                    Debug.Log($"[HuntState] {context.EntityStatus.Profile.creatureName} ha ucciso e mangiato {preyStatus.Profile.creatureName}!");
+                }
+                else
+                {
+                    // Preda sopravvissuta - ricomincia timer per prossimo attacco
+                    context.ResetTimer();
+                    Debug.Log($"[HuntState] {context.EntityStatus.Profile.creatureName} ha attaccato {preyStatus.Profile.creatureName} infliggendo {damage} danni. Preda sopravvive!");
+                }
             }
+            else
+            {
+                // Cerca PlayerStatus (se il target è il Player)
+                PlayerStatus playerStatus = context.CurrentTarget.GetComponent<PlayerStatus>();
+                if (playerStatus != null && playerStatus.IsAlive)
+                {
+                    // Applica danno al Player
+                    float damage = context.EntityStatus.Profile.attackDamage;
+                    playerStatus.ApplyDamage(damage);
+                    lastAttackTime = Time.time; // Aggiorna cooldown
 
-            context.ClearTarget();
+                    Debug.Log($"[HuntState] {context.EntityStatus.Profile.creatureName} ha attaccato il Player infliggendo {damage} danni!");
+                    context.ResetTimer(); // Ricomincia timer per prossimo attacco
+                }
+                else if (preyStatus != null && !preyStatus.IsAlive)
+                {
+                    // Se la preda è già morta (dall'ultimo attacco), pulisci target
+                    context.ClearTarget();
+                }
+            }
         }
     }
 }
