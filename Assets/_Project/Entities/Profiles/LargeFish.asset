@@ -12,29 +12,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 275a57e627f0972449d833a49c75147d, type: 3}
   m_Name: LargeFish
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
-  entityType: 1
-  creatureName: Generic Fish
+  entityType: 3
+  creatureName: LargeFish
   maxHealth: 100
   maxStamina: 100
   maxHunger: 100
   hungerRate: 1
   staminaRecoveryRate: 5
-  hungerThreshold: 40
+  hungerThreshold: 95
   staminaThreshold: 20
-  senseRadius: 15
+  senseRadius: 25
   fearThreshold: 10
-  speedBase: 3
+  speedBase: 2.5
   speedFlee: 8
   staminaCostPerSecond: 10
   rotationSpeed: 120
-  preyTypes: 
+  preyTypes: 010000000200000007000000
   predatorTypes: 
-  attackDamage: 20
-  attackCooldown: 2
+  attackDamage: 75
+  attackCooldown: 3
+  fovAngle: 120
+  fovVerticalOffset: -15
+  fovHorizontalOffset: 0
+  biteRange: 3
+  decisionRange: 5
+  detectionRange: 10
   maxSteerForce: 10
   obstacleDetectionDistance: 5
   preferredAltitude: 5
-  wanderStrength: 1
-  wanderFrequency: 0.5
+  wanderStrength: 2.5
+  wanderFrequency: 1.5
   perlinScale: 0.3
-  movementStyle: 1
+  movementStyle: 2
