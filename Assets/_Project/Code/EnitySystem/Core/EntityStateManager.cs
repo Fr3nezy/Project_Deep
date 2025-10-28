@@ -133,9 +133,11 @@ namespace Deeploration.EntitySystem
             return stateType switch
             {
                 EntityState.Idle => new IdleState(),
+                EntityState.Inspect => new InspectState(),
                 EntityState.Hunt => new HuntState(),
                 EntityState.Flee => new FleeState(),
                 EntityState.Rest => new RestState(),
+                EntityState.Bite => new BiteState(),
                 _ => new IdleState()
             };
         }

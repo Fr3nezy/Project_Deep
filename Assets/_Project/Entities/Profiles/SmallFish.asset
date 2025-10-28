@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
   entityType: 1
   creatureName: SmallFish
-  maxHealth: 100
+  maxHealth: 45
   maxStamina: 100
   maxHunger: 100
   hungerRate: 0.2
@@ -29,6 +29,8 @@ MonoBehaviour:
   rotationSpeed: 120
   preyTypes: 08000000
   predatorTypes: 0200000007000000
+  attackDamage: 20
+  attackCooldown: 2
   maxSteerForce: 10
   obstacleDetectionDistance: 5
   preferredAltitude: 2

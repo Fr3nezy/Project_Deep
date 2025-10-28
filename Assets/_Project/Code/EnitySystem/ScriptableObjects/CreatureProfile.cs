@@ -85,9 +85,34 @@ namespace Deeploration.EntitySystem
         [Range(5f, 100f)]
         public float attackDamage = 20f;
 
-        [Tooltip("Tempo tra attacchi successivi (non ancora utilizzato)")]
+        [Tooltip("Tempo tra attacchi successivi")]
         [Range(0.5f, 10f)]
         public float attackCooldown = 2f;
+
+        [Header("Campo Visivo (FOV) 3D")]
+        [Tooltip("Angolo del campo visivo del pesce (gradi)")]
+        [Range(60f, 180f)]
+        public float fovAngle = 120f;
+
+        [Tooltip("Inclinazione del FOV verso il basso (gradi)")]
+        [Range(-30f, 30f)]
+        public float fovVerticalOffset = -15f;
+
+        [Tooltip("Rotazione orizzontale del FOV (gradi)")]
+        [Range(-45f, 45f)]
+        public float fovHorizontalOffset = 0f;
+
+        [Tooltip("Distanza zona di morso (attacco diretto)")]
+        [Range(0.5f, 3f)]
+        public float biteRange = 1f;
+
+        [Tooltip("Distanza zona di decisione (fuga/caccia)")]
+        [Range(2f, 8f)]
+        public float decisionRange = 4f;
+
+        [Tooltip("Distanza zona di avvistamento (inspect)")]
+        [Range(3f, 15f)]
+        public float detectionRange = 5f;
 
         [Header("Parametri di Steering")]
         [Tooltip("Forza massima di steering per l'evitamento ostacoli")]

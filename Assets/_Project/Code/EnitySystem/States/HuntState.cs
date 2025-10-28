@@ -13,7 +13,6 @@ namespace Deeploration.EntitySystem
         private const float CATCH_DISTANCE = 2f; // Distanza per "catturare" la preda
         private const float GIVE_UP_DISTANCE = 30f; // Distanza oltre cui si abbandona la caccia
         private const float GIVE_UP_TIME = 10f; // Tempo massimo di caccia prima di arrendersi
-        private const float MIN_ATTACK_INTERVAL = 1f; // Minimo 1 secondo tra attacchi consecutivi
 
         // Stato per gestire cooldown attacchi
         private float lastAttackTime;
@@ -100,19 +99,28 @@ namespace Deeploration.EntitySystem
             }
 
             // PRIORITÀ 4: Nessuna preda disponibile o troppo tempo passato
-            if (context.CurrentTarget == null || 
+            if (context.CurrentTarget == null ||
                 !context.SenseController.HasPreyNearby ||
                 context.StateTimer > GIVE_UP_TIME)
             {
                 return new IdleState();
             }
 
-            // PRIORITÀ 5: Preda troppo lontana
+            // PRIORITÀ 5: Preda troppo lontana o uscita dal FOV
             if (context.CurrentTarget != null)
             {
                 float distance = Vector3.Distance(context.Transform.position, context.CurrentTarget.position);
                 if (distance > GIVE_UP_DISTANCE)
                 {
+                    return new IdleState();
+                }
+
+                // Verifica se la preda è ancora nel FOV
+                FovZone targetZone = context.SenseController.GetFovZone(context.CurrentTarget.position);
+                if (targetZone == FovZone.None)
+                {
+                    // Target uscito dal campo visivo
+                    context.ClearTarget();
                     return new IdleState();
                 }
             }
@@ -121,17 +129,26 @@ namespace Deeploration.EntitySystem
         }
 
         /// <summary>
-        /// Verifica se il target è ancora valido.
+        /// Verifica se il target è ancora valido (supporta sia EntityStatus che PlayerStatus).
         /// </summary>
         private bool IsTargetValid(StateContext context)
         {
             if (context.CurrentTarget == null) return false;
 
-            EntityStatus targetStatus = context.CurrentTarget.GetComponent<EntityStatus>();
-            if (targetStatus == null || !targetStatus.IsAlive) return false;
-
+            // Controlla distanza prima
             float distance = Vector3.Distance(context.Transform.position, context.CurrentTarget.position);
-            return distance <= GIVE_UP_DISTANCE;
+            if (distance > GIVE_UP_DISTANCE) return false;
+
+            // Controlla EntityStatus (altre creature)
+            EntityStatus entityStatus = context.CurrentTarget.GetComponent<EntityStatus>();
+            if (entityStatus != null) return entityStatus.IsAlive;
+
+            // Controlla PlayerStatus (Player)
+            PlayerStatus playerStatus = context.CurrentTarget.GetComponent<PlayerStatus>();
+            if (playerStatus != null) return playerStatus.IsAlive;
+
+            // Nessun componente di stato trovato
+            return false;
         }
 
         /// <summary>
@@ -139,8 +156,9 @@ namespace Deeploration.EntitySystem
         /// </summary>
         private void CatchPrey(StateContext context)
         {
-            // Controlla cooldown tra attacchi
-            if (Time.time - lastAttackTime < MIN_ATTACK_INTERVAL)
+            // Controlla cooldown tra attacchi basato sul profilo
+            float attackCooldown = context.EntityStatus.Profile.attackCooldown;
+            if (Time.time - lastAttackTime < attackCooldown)
             {
                 return; // Troppo presto per attaccare di nuovo
             }

@@ -64,6 +64,17 @@ namespace Deeploration.EntitySystem
         public bool HasThreats => nearbyPredators.Count > 0;
         public bool HasPreyNearby => nearbyPrey.Count > 0;
 
+        // Proprietà FOV
+        public FovZone GetFovZone(Vector3 targetPosition)
+        {
+            return CalculateFovZone(transform.position, targetPosition);
+        }
+
+        public Vector3 GetFovDirection()
+        {
+            return CalculateFovDirection();
+        }
+
         private void Awake()
         {
             entityStatus = GetComponent<EntityStatus>();
@@ -393,6 +404,73 @@ namespace Deeploration.EntitySystem
                 }
             }
             // Altrimenti neutrale (si ignorano)
+        }
+
+        /// <summary>
+        /// Calcola in quale zona FOV si trova una posizione target.
+        /// </summary>
+        private FovZone CalculateFovZone(Vector3 sourcePosition, Vector3 targetPosition)
+        {
+            float distance = Vector3.Distance(sourcePosition, targetPosition);
+
+            // Determina zona base per distanza (priorità alla zona più vicina)
+            FovZone distanceZone;
+            if (distance <= entityStatus.Profile.biteRange)
+                distanceZone = FovZone.Bite1;
+            else if (distance <= entityStatus.Profile.decisionRange)
+                distanceZone = FovZone.Decision4;
+            else if (distance <= entityStatus.Profile.detectionRange)
+                distanceZone = FovZone.Detection5;
+            else
+                return FovZone.None;
+
+            // Verifica se il target è entro l'angolo FOV
+            if (!IsInFovCone(targetPosition))
+                return FovZone.None;
+
+            // Verifica line of sight per zone più piccole
+            if (requireLineOfSight && distanceZone != FovZone.Detection5)
+            {
+                if (!HasLineOfSight(targetPosition))
+                    return FovZone.None;
+            }
+
+            return distanceZone;
+        }
+
+        /// <summary>
+        /// Verifica se una posizione target è entro il cono FOV.
+        /// </summary>
+        private bool IsInFovCone(Vector3 targetPosition)
+        {
+            Vector3 fovDirection = CalculateFovDirection();
+            Vector3 targetDirection = (targetPosition - cachedTransform.position).normalized;
+
+            float angle = Vector3.Angle(fovDirection, targetDirection);
+            return angle <= (entityStatus.Profile.fovAngle / 2f);
+        }
+
+        /// <summary>
+        /// Calcola la direzione del FOV basata sul movimento attuale e offset configurati.
+        /// </summary>
+        private Vector3 CalculateFovDirection()
+        {
+            Rigidbody rb = GetComponent<Rigidbody>();
+            if (rb == null) return transform.forward;
+
+            // Direzione base: movimento attuale o direzione attuale
+            Vector3 baseDirection = rb.linearVelocity.normalized;
+            if (baseDirection == Vector3.zero)
+                baseDirection = transform.forward;
+
+            // Applica rotazioni offset
+            Quaternion fovRotation = Quaternion.Euler(
+                entityStatus.Profile.fovVerticalOffset,
+                entityStatus.Profile.fovHorizontalOffset,
+                0f
+            );
+
+            return (fovRotation * baseDirection).normalized;
         }
 
         #region Debug Visualization

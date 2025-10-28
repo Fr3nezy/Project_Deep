@@ -37,7 +37,26 @@ namespace Deeploration.EntitySystem
 
         public IEntityState CheckTransitions(StateContext context)
         {
-            // PRIORITÀ 1: Fuga da predatori
+            // PRIORITÀ 1: Entità nella zona Detection → InspectState
+            if (context.SenseController.ClosestPrey != null)
+            {
+                FovZone preyZone = context.SenseController.GetFovZone(context.SenseController.ClosestPrey.position);
+                if (preyZone == FovZone.Detection5)
+                {
+                    return new InspectState();
+                }
+            }
+
+            if (context.SenseController.ClosestPredator != null)
+            {
+                FovZone predatorZone = context.SenseController.GetFovZone(context.SenseController.ClosestPredator.position);
+                if (predatorZone == FovZone.Detection5)
+                {
+                    return new InspectState();
+                }
+            }
+
+            // PRIORITÀ 2: Fuga da predatori
             if (context.SenseController.HasThreats)
             {
                 Transform predator = context.SenseController.ClosestPredator;

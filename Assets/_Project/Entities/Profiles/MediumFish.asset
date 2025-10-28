@@ -29,6 +29,8 @@ MonoBehaviour:
   rotationSpeed: 120
   preyTypes: 0100000007000000
   predatorTypes: 
+  attackDamage: 22.5
+  attackCooldown: 2
   maxSteerForce: 10
   obstacleDetectionDistance: 5
   preferredAltitude: 5

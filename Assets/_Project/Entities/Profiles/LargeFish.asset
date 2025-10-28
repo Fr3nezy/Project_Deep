@@ -10,31 +10,31 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 275a57e627f0972449d833a49c75147d, type: 3}
-  m_Name: Plankton
+  m_Name: LargeFish
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.EntitySystem.CreatureProfile
-  entityType: 8
-  creatureName: BluePlankton
-  maxHealth: 20
-  maxStamina: 20
+  entityType: 1
+  creatureName: Generic Fish
+  maxHealth: 100
+  maxStamina: 100
   maxHunger: 100
-  hungerRate: 0.1
+  hungerRate: 1
   staminaRecoveryRate: 5
-  hungerThreshold: 0
+  hungerThreshold: 40
   staminaThreshold: 20
-  senseRadius: 5
+  senseRadius: 15
   fearThreshold: 10
-  speedBase: 1.8
+  speedBase: 3
   speedFlee: 8
   staminaCostPerSecond: 10
   rotationSpeed: 120
   preyTypes: 
-  predatorTypes: 01000000
-  attackDamage: 5
-  attackCooldown: 0.5
+  predatorTypes: 
+  attackDamage: 20
+  attackCooldown: 2
   maxSteerForce: 10
   obstacleDetectionDistance: 5
-  preferredAltitude: 1.5
+  preferredAltitude: 5
   wanderStrength: 1
   wanderFrequency: 0.5
   perlinScale: 0.3
-  movementStyle: 0
+  movementStyle: 1

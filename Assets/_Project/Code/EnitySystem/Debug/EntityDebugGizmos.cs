@@ -7,6 +7,7 @@ namespace Deeploration.EntitySystem
     /// Mostra barre di stato, raggio di sensing, target e stato corrente.
     /// </summary>
     [RequireComponent(typeof(EntityStatus))]
+    [RequireComponent(typeof(SenseController))]
     public class EntityDebugGizmos : MonoBehaviour
     {
         [Header("Configurazione Visualizzazione")]
@@ -24,6 +25,14 @@ namespace Deeploration.EntitySystem
 
         [SerializeField, Tooltip("Mostra lo stato corrente come testo")]
         private bool showStateText = true;
+
+        [Header("FOV Gizmos (Campo Visivo)")]
+        [SerializeField, Tooltip("Mostra le zone del campo visivo")]
+        private bool showFovGizmos = true;
+
+        [SerializeField] private Color biteZoneColor = new Color(1f, 0f, 0f, 0.2f);
+        [SerializeField] private Color decisionZoneColor = new Color(1f, 1f, 0f, 0.15f);
+        [SerializeField] private Color detectionZoneColor = new Color(0f, 1f, 0f, 0.1f);
 
         [Header("Parametri Barre di Stato")]
         [SerializeField, Tooltip("Altezza sopra l'entità dove disegnare le barre")]
@@ -115,6 +124,11 @@ namespace Deeploration.EntitySystem
             if (showTargetLines && currentTarget != null)
             {
                 DrawTargetLine();
+            }
+
+            if (showFovGizmos && entityStatus.Profile != null)
+            {
+                DrawFovCones();
             }
         }
 
@@ -228,6 +242,63 @@ namespace Deeploration.EntitySystem
 
             UnityEditor.Handles.Label(textPosition, entityStatus.GetDebugInfo(), style);
             #endif
+        }
+
+        /// <summary>
+        /// Disegna i coni FOV per le tre zone.
+        /// </summary>
+        private void DrawFovCones()
+        {
+            SenseController senseController = GetComponent<SenseController>();
+            if (senseController == null || entityStatus.Profile == null) return;
+
+            Vector3 fovDirection = senseController.GetFovDirection();
+            float halfAngle = entityStatus.Profile.fovAngle / 2f;
+
+            // Bite Zone (rosso)
+            Gizmos.color = biteZoneColor;
+            DrawFovZone(entityStatus.Profile.biteRange, fovDirection, halfAngle);
+
+            // Decision Zone (giallo)
+            Gizmos.color = decisionZoneColor;
+            DrawFovZone(entityStatus.Profile.decisionRange, fovDirection, halfAngle);
+
+            // Detection Zone (verde)
+            Gizmos.color = detectionZoneColor;
+            DrawFovZone(entityStatus.Profile.detectionRange, fovDirection, halfAngle);
+
+            // Linea direzione FOV
+            Gizmos.color = new Color(0f, 1f, 1f, 0.5f); // Cyan trasparente
+            Gizmos.DrawLine(cachedTransform.position, cachedTransform.position + fovDirection * entityStatus.Profile.detectionRange);
+        }
+
+        /// <summary>
+        /// Disegna una singola zona FOV come arco circolare semplificato.
+        /// </summary>
+        private void DrawFovZone(float range, Vector3 direction, float halfAngle)
+        {
+            const int segments = 8;
+            Vector3 center = cachedTransform.position;
+            Quaternion rotation = Quaternion.LookRotation(direction);
+
+            // Disegna segmenti dell'arco
+            for (int i = 0; i < segments; i++)
+            {
+                float angle1 = -halfAngle + (halfAngle * 2f * i / segments);
+                float angle2 = -halfAngle + (halfAngle * 2f * (i + 1) / segments);
+
+                Vector3 point1 = center + rotation * Quaternion.Euler(0, angle1, 0) * Vector3.forward * range;
+                Vector3 point2 = center + rotation * Quaternion.Euler(0, angle2, 0) * Vector3.forward * range;
+
+                Gizmos.DrawLine(point1, point2);
+            }
+
+            // Disegna linee laterali del cono
+            Vector3 leftPoint = center + rotation * Quaternion.Euler(0, -halfAngle, 0) * Vector3.forward * range;
+            Vector3 rightPoint = center + rotation * Quaternion.Euler(0, halfAngle, 0) * Vector3.forward * range;
+
+            Gizmos.DrawLine(center, leftPoint);
+            Gizmos.DrawLine(center, rightPoint);
         }
 
         /// <summary>
