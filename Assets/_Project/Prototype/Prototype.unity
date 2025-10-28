@@ -1032,6 +1032,11 @@ MonoBehaviour:
     initialSize: 2
     maxSize: 5
     allowExpansion: 1
+  - poolName: Large fish
+    prefab: {fileID: 5267203212065829191, guid: 2cba0fb703be8c04690142fefcf93ec6, type: 3}
+    initialSize: 1
+    maxSize: 2
+    allowExpansion: 1
   poolContainer: {fileID: 0}
   showPoolStats: 1
 --- !u!4 &122689442
