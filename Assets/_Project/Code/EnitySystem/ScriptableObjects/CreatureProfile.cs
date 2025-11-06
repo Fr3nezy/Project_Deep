@@ -94,6 +94,10 @@ namespace Deeploration.EntitySystem
         [Range(60f, 180f)]
         public float fovAngle = 120f;
 
+        [Tooltip("Offset in avanti/indietro dell'origine FOV sull'asse Z (per evitare che la mesh blocchi la bite zone)")]
+        [Range(-10f, 10f)]
+        public float fovForwardOffset = 0f;
+
         [Tooltip("Inclinazione del FOV verso il basso (gradi)")]
         [Range(-30f, 30f)]
         public float fovVerticalOffset = -15f;

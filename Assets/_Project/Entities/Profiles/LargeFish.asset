@@ -32,7 +32,8 @@ MonoBehaviour:
   attackDamage: 75
   attackCooldown: 3
   fovAngle: 120
-  fovVerticalOffset: -15
+  fovForwardOffset: 1.9
+  fovVerticalOffset: 0
   fovHorizontalOffset: 0
   biteRange: 3
   decisionRange: 5

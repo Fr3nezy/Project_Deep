@@ -5,9 +5,11 @@ namespace Deeploration.EntitySystem
     /// <summary>
     /// Componente per la visualizzazione di gizmos di debug per le entità.
     /// Mostra barre di stato, raggio di sensing, target e stato corrente.
+    /// Supporta preview in edit mode per fine-tuning dei parametri FOV.
     /// </summary>
     [RequireComponent(typeof(EntityStatus))]
     [RequireComponent(typeof(SenseController))]
+    [ExecuteInEditMode] // Permette esecuzione nell'editor per preview
     public class EntityDebugGizmos : MonoBehaviour
     {
         [Header("Configurazione Visualizzazione")]
@@ -29,6 +31,9 @@ namespace Deeploration.EntitySystem
         [Header("FOV Gizmos (Campo Visivo)")]
         [SerializeField, Tooltip("Mostra le zone del campo visivo")]
         private bool showFovGizmos = true;
+
+        [SerializeField, Tooltip("Abilita preview dei gizmos in edit mode (senza runtime)")]
+        private bool editorPreviewMode = true;
 
         [SerializeField] private Color biteZoneColor = new Color(1f, 0f, 0f, 0.2f);
         [SerializeField] private Color decisionZoneColor = new Color(1f, 1f, 0f, 0.15f);
@@ -75,8 +80,19 @@ namespace Deeploration.EntitySystem
 
         private void Awake()
         {
-            entityStatus = GetComponent<EntityStatus>();
-            cachedTransform = transform;
+            InitializeForEditor();
+        }
+
+        /// <summary>
+        /// Inizializza i riferimenti per funzionare anche in edit mode.
+        /// </summary>
+        private void InitializeForEditor()
+        {
+            if (entityStatus == null)
+                entityStatus = GetComponent<EntityStatus>();
+
+            if (cachedTransform == null)
+                cachedTransform = transform;
         }
 
         /// <summary>
@@ -100,6 +116,12 @@ namespace Deeploration.EntitySystem
 
         private void OnDrawGizmos()
         {
+            // Inizializza riferimenti per edit mode
+            if (editorPreviewMode)
+            {
+                InitializeForEditor();
+            }
+
             if (!showGizmos || entityStatus == null) return;
 
             // Verifica distanza dalla camera
@@ -252,33 +274,42 @@ namespace Deeploration.EntitySystem
             SenseController senseController = GetComponent<SenseController>();
             if (senseController == null || entityStatus.Profile == null) return;
 
+            Vector3 fovOrigin = senseController.GetFovOrigin();
             Vector3 fovDirection = senseController.GetFovDirection();
             float halfAngle = entityStatus.Profile.fovAngle / 2f;
 
             // Bite Zone (rosso)
             Gizmos.color = biteZoneColor;
-            DrawFovZone(entityStatus.Profile.biteRange, fovDirection, halfAngle);
+            DrawFovZone(fovOrigin, entityStatus.Profile.biteRange, fovDirection, halfAngle);
 
             // Decision Zone (giallo)
             Gizmos.color = decisionZoneColor;
-            DrawFovZone(entityStatus.Profile.decisionRange, fovDirection, halfAngle);
+            DrawFovZone(fovOrigin, entityStatus.Profile.decisionRange, fovDirection, halfAngle);
 
             // Detection Zone (verde)
             Gizmos.color = detectionZoneColor;
-            DrawFovZone(entityStatus.Profile.detectionRange, fovDirection, halfAngle);
+            DrawFovZone(fovOrigin, entityStatus.Profile.detectionRange, fovDirection, halfAngle);
 
-            // Linea direzione FOV
+            // Linea direzione FOV dall'origine offset
             Gizmos.color = new Color(0f, 1f, 1f, 0.5f); // Cyan trasparente
-            Gizmos.DrawLine(cachedTransform.position, cachedTransform.position + fovDirection * entityStatus.Profile.detectionRange);
+            Gizmos.DrawLine(fovOrigin, fovOrigin + fovDirection * entityStatus.Profile.detectionRange);
+
+            // Mostra origine FOV offset se diverso dal centro
+            if (entityStatus.Profile.fovForwardOffset != 0f)
+            {
+                Gizmos.color = Color.magenta;
+                Gizmos.DrawWireSphere(fovOrigin, 0.1f);
+                Gizmos.DrawLine(cachedTransform.position, fovOrigin);
+            }
         }
 
         /// <summary>
         /// Disegna una singola zona FOV come arco circolare semplificato.
         /// </summary>
-        private void DrawFovZone(float range, Vector3 direction, float halfAngle)
+        private void DrawFovZone(Vector3 origin, float range, Vector3 direction, float halfAngle)
         {
             const int segments = 8;
-            Vector3 center = cachedTransform.position;
+            Vector3 center = origin;
             Quaternion rotation = Quaternion.LookRotation(direction);
 
             // Disegna segmenti dell'arco

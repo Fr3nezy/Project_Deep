@@ -67,12 +67,23 @@ namespace Deeploration.EntitySystem
         // Proprietà FOV
         public FovZone GetFovZone(Vector3 targetPosition)
         {
-            return CalculateFovZone(transform.position, targetPosition);
+            return CalculateFovZone(GetFovOrigin(), targetPosition);
         }
 
         public Vector3 GetFovDirection()
         {
             return CalculateFovDirection();
+        }
+
+        /// <summary>
+        /// Restituisce l'origine del FOV (posizione offset per evitare che la mesh blocchi la bite zone).
+        /// </summary>
+        public Vector3 GetFovOrigin()
+        {
+            if (entityStatus?.Profile == null) return cachedTransform.position;
+
+            // Applica offset in avanti/indietro sull'asse Z locale
+            return cachedTransform.position + cachedTransform.forward * entityStatus.Profile.fovForwardOffset;
         }
 
         private void Awake()
@@ -252,11 +263,12 @@ namespace Deeploration.EntitySystem
         /// </summary>
         private bool HasLineOfSight(Vector3 targetPosition)
         {
-            Vector3 direction = targetPosition - cachedTransform.position;
+            Vector3 fovOrigin = GetFovOrigin();
+            Vector3 direction = targetPosition - fovOrigin;
             float distance = direction.magnitude;
 
-            // Raycast verso il target
-            if (Physics.Raycast(cachedTransform.position, direction.normalized, out RaycastHit hit, distance, obstacleLayer))
+            // Raycast verso il target dall'origine FOV offset
+            if (Physics.Raycast(fovOrigin, direction.normalized, out RaycastHit hit, distance, obstacleLayer))
             {
                 // C'è un ostacolo nel mezzo
                 return false;
@@ -443,27 +455,23 @@ namespace Deeploration.EntitySystem
         /// </summary>
         private bool IsInFovCone(Vector3 targetPosition)
         {
+            Vector3 fovOrigin = GetFovOrigin();
             Vector3 fovDirection = CalculateFovDirection();
-            Vector3 targetDirection = (targetPosition - cachedTransform.position).normalized;
+            Vector3 targetDirection = (targetPosition - fovOrigin).normalized;
 
             float angle = Vector3.Angle(fovDirection, targetDirection);
             return angle <= (entityStatus.Profile.fovAngle / 2f);
         }
 
         /// <summary>
-        /// Calcola la direzione del FOV basata sul movimento attuale e offset configurati.
+        /// Calcola la direzione del FOV basata sulla direzione fissa dell'entità e offset configurati.
         /// </summary>
         private Vector3 CalculateFovDirection()
         {
-            Rigidbody rb = GetComponent<Rigidbody>();
-            if (rb == null) return transform.forward;
+            // Direzione base: sempre la direzione forward dell'entità (fissa)
+            Vector3 baseDirection = cachedTransform.forward;
 
-            // Direzione base: movimento attuale o direzione attuale
-            Vector3 baseDirection = rb.linearVelocity.normalized;
-            if (baseDirection == Vector3.zero)
-                baseDirection = transform.forward;
-
-            // Applica rotazioni offset
+            // Applica rotazioni offset del profilo
             Quaternion fovRotation = Quaternion.Euler(
                 entityStatus.Profile.fovVerticalOffset,
                 entityStatus.Profile.fovHorizontalOffset,
