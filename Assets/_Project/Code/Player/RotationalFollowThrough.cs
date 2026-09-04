@@ -4,7 +4,7 @@ namespace Deeploration.Player
 {
     [DisallowMultipleComponent]
     [DefaultExecutionOrder(100)]
-    public sealed class TorchFollowThrough : MonoBehaviour
+    public sealed class RotationalFollowThrough : MonoBehaviour
     {
         [SerializeField] private Transform rotationTarget;
         [SerializeField, Min(0.01f)] private float rotationSharpness = 7f;

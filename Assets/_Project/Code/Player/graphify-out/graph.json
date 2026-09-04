@@ -1,0 +1,4498 @@
+{
+  "nodes": [
+    {
+      "id": "darknessstresssource_cs",
+      "label": "DarknessStressSource.cs",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_darknessstresssource_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource",
+      "label": "DarknessStressSource",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L7"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "darknessstresssource_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L9"
+    },
+    {
+      "id": "hashset",
+      "label": "HashSet",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L14"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L16"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_registerlightzone",
+      "label": ".RegisterLightZone()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L23"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_unregisterlightzone",
+      "label": ".UnregisterLightZone()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L29"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_getstresspersecond",
+      "label": ".GetStressPerSecond()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L34"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_getstrongestactiverelief",
+      "label": ".GetStrongestActiveRelief()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L42"
+    },
+    {
+      "id": "player_darknessstresssource_darknessstresssource_onvalidate",
+      "label": ".OnValidate()",
+      "file_type": "code",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L53"
+    },
+    {
+      "id": "divercontroller_cs",
+      "label": "DiverController.cs",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_divercontroller_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L4"
+    },
+    {
+      "id": "player_divercontroller_divercontroller",
+      "label": "DiverController",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L12"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "diverprofile",
+      "label": "DiverProfile",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L15"
+    },
+    {
+      "id": "divercontroller_cs_transform",
+      "label": "Transform",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L18"
+    },
+    {
+      "id": "layermask",
+      "label": "LayerMask",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L22"
+    },
+    {
+      "id": "divercontroller_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L26"
+    },
+    {
+      "id": "divercontroller_cs_bool",
+      "label": "bool",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L32"
+    },
+    {
+      "id": "charactercontroller",
+      "label": "CharacterController",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L36"
+    },
+    {
+      "id": "starterassetsinputs",
+      "label": "StarterAssetsInputs",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L37"
+    },
+    {
+      "id": "vector3",
+      "label": "Vector3",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L39"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L59"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L86"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_lateupdate",
+      "label": ".LateUpdate()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L93"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_groundedcheck",
+      "label": ".GroundedCheck()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L99"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_applygravity",
+      "label": ".ApplyGravity()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L105"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_move",
+      "label": ".Move()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L118"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_rotateview",
+      "label": ".RotateView()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L142"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_applyheadbob",
+      "label": ".ApplyHeadBob()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L165"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_emitfootstep",
+      "label": ".EmitFootstep()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L200"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_getoxygendrainpersecond",
+      "label": ".GetOxygenDrainPerSecond()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L215"
+    },
+    {
+      "id": "player_divercontroller_divercontroller_ondrawgizmosselected",
+      "label": ".OnDrawGizmosSelected()",
+      "file_type": "code",
+      "source_file": "DiverController.cs",
+      "source_location": "L223"
+    },
+    {
+      "id": "diverprofile_cs",
+      "label": "DiverProfile.cs",
+      "file_type": "code",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_diverprofile_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_diverprofile_diverprofile",
+      "label": "DiverProfile",
+      "file_type": "code",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "scriptableobject",
+      "label": "ScriptableObject",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "diverprofile_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L8"
+    },
+    {
+      "id": "diverprofile_cs_bool",
+      "label": "bool",
+      "file_type": "code",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L52"
+    },
+    {
+      "id": "ioxygendrainsource_cs",
+      "label": "IOxygenDrainSource.cs",
+      "file_type": "code",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_ioxygendrainsource_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_ioxygendrainsource_ioxygendrainsource",
+      "label": "IOxygenDrainSource",
+      "file_type": "code",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L9"
+    },
+    {
+      "id": "player_ioxygendrainsource_ioxygendrainsource_getoxygendrainpersecond",
+      "label": ".GetOxygenDrainPerSecond()",
+      "file_type": "code",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L12"
+    },
+    {
+      "id": "istresssource_cs",
+      "label": "IStressSource.cs",
+      "file_type": "code",
+      "source_file": "IStressSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_istresssource_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "IStressSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_istresssource_istresssource",
+      "label": "IStressSource",
+      "file_type": "code",
+      "source_file": "IStressSource.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_istresssource_istresssource_getstresspersecond",
+      "label": ".GetStressPerSecond()",
+      "file_type": "code",
+      "source_file": "IStressSource.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "lookstresssource_cs",
+      "label": "LookStressSource.cs",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_lookstresssource_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_lookstresssource_lookstresssource",
+      "label": "LookStressSource",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "lookstresssource_cs_stressprofile",
+      "label": "StressProfile",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L8"
+    },
+    {
+      "id": "lookstresssource_cs_transform",
+      "label": "Transform",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L9"
+    },
+    {
+      "id": "lookstresssource_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L10"
+    },
+    {
+      "id": "lookstresssource_cs_quaternion",
+      "label": "Quaternion",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L13"
+    },
+    {
+      "id": "player_lookstresssource_lookstresssource_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L15"
+    },
+    {
+      "id": "player_lookstresssource_lookstresssource_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L27"
+    },
+    {
+      "id": "player_lookstresssource_lookstresssource_getstresspersecond",
+      "label": ".GetStressPerSecond()",
+      "file_type": "code",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L43"
+    },
+    {
+      "id": "oxygenprofile_cs",
+      "label": "OxygenProfile.cs",
+      "file_type": "code",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_oxygenprofile_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_oxygenprofile_oxygenprofile",
+      "label": "OxygenProfile",
+      "file_type": "code",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "scriptableobject",
+      "label": "ScriptableObject",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "oxygenprofile_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L8"
+    },
+    {
+      "id": "oxygensystem_cs",
+      "label": "OxygenSystem.cs",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_oxygensystem_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem",
+      "label": "OxygenSystem",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L21"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "oxygenprofile",
+      "label": "OxygenProfile",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L23"
+    },
+    {
+      "id": "oxygensystem_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L26"
+    },
+    {
+      "id": "oxygenlevel",
+      "label": "OxygenLevel",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L28"
+    },
+    {
+      "id": "oxygensystem_cs_list",
+      "label": "List",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L31"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L43"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_registerdrainsource",
+      "label": ".RegisterDrainSource()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L59"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_unregisterdrainsource",
+      "label": ".UnregisterDrainSource()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L67"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_refill",
+      "label": ".Refill()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L75"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L83"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_collectdrainsources",
+      "label": ".CollectDrainSources()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L96"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_setoxygen",
+      "label": ".SetOxygen()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L104"
+    },
+    {
+      "id": "player_oxygensystem_oxygensystem_evaluatelevel",
+      "label": ".EvaluateLevel()",
+      "file_type": "code",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L114"
+    },
+    {
+      "id": "rotationalfollowthrough_cs",
+      "label": "RotationalFollowThrough.cs",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_rotationalfollowthrough_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "label": "RotationalFollowThrough",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "rotationalfollowthrough_cs_transform",
+      "label": "Transform",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L9"
+    },
+    {
+      "id": "rotationalfollowthrough_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L10"
+    },
+    {
+      "id": "rotationalfollowthrough_cs_quaternion",
+      "label": "Quaternion",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L13"
+    },
+    {
+      "id": "player_rotationalfollowthrough_rotationalfollowthrough_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L16"
+    },
+    {
+      "id": "player_rotationalfollowthrough_rotationalfollowthrough_lateupdate",
+      "label": ".LateUpdate()",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L27"
+    },
+    {
+      "id": "player_rotationalfollowthrough_rotationalfollowthrough_onvalidate",
+      "label": ".OnValidate()",
+      "file_type": "code",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L42"
+    },
+    {
+      "id": "stressprofile_cs",
+      "label": "StressProfile.cs",
+      "file_type": "code",
+      "source_file": "StressProfile.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_stressprofile_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "StressProfile.cs",
+      "source_location": "L3"
+    },
+    {
+      "id": "player_stressprofile_stressprofile",
+      "label": "StressProfile",
+      "file_type": "code",
+      "source_file": "StressProfile.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "scriptableobject",
+      "label": "ScriptableObject",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "stressprofile_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "StressProfile.cs",
+      "source_location": "L8"
+    },
+    {
+      "id": "player_stressprofile_stressprofile_onvalidate",
+      "label": ".OnValidate()",
+      "file_type": "code",
+      "source_file": "StressProfile.cs",
+      "source_location": "L19"
+    },
+    {
+      "id": "stresssystem_cs",
+      "label": "StressSystem.cs",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_stresssystem_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L5"
+    },
+    {
+      "id": "player_stresssystem_stresssystem",
+      "label": "StressSystem",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "stresssystem_cs_stressprofile",
+      "label": "StressProfile",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L9"
+    },
+    {
+      "id": "stresssystem_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L10"
+    },
+    {
+      "id": "stresssystem_cs_list",
+      "label": "List",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L13"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L22"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L35"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_registersource",
+      "label": ".RegisterSource()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L48"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_unregistersource",
+      "label": ".UnregisterSource()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L54"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_getoxygendrainpersecond",
+      "label": ".GetOxygenDrainPerSecond()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L59"
+    },
+    {
+      "id": "player_stresssystem_stresssystem_setstress",
+      "label": ".SetStress()",
+      "file_type": "code",
+      "source_file": "StressSystem.cs",
+      "source_location": "L64"
+    },
+    {
+      "id": "suitdebugoverlay_cs",
+      "label": "SuitDebugOverlay.cs",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L1"
+    },
+    {
+      "id": "player_suitdebugoverlay_deeploration_player",
+      "label": "Deeploration.Player",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L6"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay",
+      "label": "SuitDebugOverlay",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L8"
+    },
+    {
+      "id": "monobehaviour",
+      "label": "MonoBehaviour",
+      "file_type": "code",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
+      "id": "oxygensystem",
+      "label": "OxygenSystem",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L10"
+    },
+    {
+      "id": "stresssystem",
+      "label": "StressSystem",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L11"
+    },
+    {
+      "id": "text",
+      "label": "Text",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L12"
+    },
+    {
+      "id": "volume",
+      "label": "Volume",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L13"
+    },
+    {
+      "id": "suitdebugoverlay_cs_float",
+      "label": "float",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L14"
+    },
+    {
+      "id": "vignette",
+      "label": "Vignette",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L21"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_awake",
+      "label": ".Awake()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L23"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_onenable",
+      "label": ".OnEnable()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L30"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_ondisable",
+      "label": ".OnDisable()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L39"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_update",
+      "label": ".Update()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L47"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_handleoxygenchanged",
+      "label": ".HandleOxygenChanged()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L59"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_handlestresschanged",
+      "label": ".HandleStressChanged()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L65"
+    },
+    {
+      "id": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "label": ".RefreshCounter()",
+      "file_type": "code",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L71"
+    }
+  ],
+  "hyperedges": [],
+  "input_tokens": 0,
+  "output_tokens": 0,
+  "links": [
+    {
+      "source": "darknessstresssource_cs",
+      "target": "generic",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "darknessstresssource_cs",
+      "target": "environment",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "darknessstresssource_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "darknessstresssource_cs",
+      "target": "player_darknessstresssource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "darknessstresssource_cs",
+      "target": "player_darknessstresssource_darknessstresssource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_istresssource_istresssource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "darknessstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "darknessstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "darknessstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "darknessstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "hashset",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_registerlightzone",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_unregisterlightzone",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L29",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_getstresspersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L34",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_getstrongestactiverelief",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource",
+      "target": "player_darknessstresssource_darknessstresssource_onvalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "player_darknessstresssource_darknessstresssource_update",
+      "target": "player_darknessstresssource_darknessstresssource_getstrongestactiverelief",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DarknessStressSource.cs",
+      "source_location": "L18",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "starterassets",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "player_divercontroller_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "player_divercontroller_divercontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "diverprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L18",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "layermask",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L34",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "charactercontroller",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L36",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "starterassetsinputs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "vector3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L39",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L42",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L43",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "vector3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L46",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L47",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L48",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L49",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_lateupdate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_groundedcheck",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_applygravity",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_move",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_rotateview",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_applyheadbob",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_emitfootstep",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L215",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_ondrawgizmosselected",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_groundedcheck",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_applygravity",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_move",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_lateupdate",
+      "target": "player_divercontroller_divercontroller_rotateview",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_lateupdate",
+      "target": "player_divercontroller_divercontroller_applyheadbob",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_applyheadbob",
+      "target": "player_divercontroller_divercontroller_emitfootstep",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "diverprofile_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "diverprofile_cs",
+      "target": "player_diverprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "diverprofile_cs",
+      "target": "player_diverprofile_diverprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L48",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L52",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L55",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L59",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L63",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L67",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L71",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L75",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L79",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L84",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "ioxygendrainsource_cs",
+      "target": "player_ioxygendrainsource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "ioxygendrainsource_cs",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "player_ioxygendrainsource_ioxygendrainsource",
+      "target": "player_ioxygendrainsource_ioxygendrainsource_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "istresssource_cs",
+      "target": "player_istresssource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "istresssource_cs",
+      "target": "player_istresssource_istresssource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "player_istresssource_istresssource",
+      "target": "player_istresssource_istresssource_getstresspersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "lookstresssource_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "lookstresssource_cs",
+      "target": "player_lookstresssource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "lookstresssource_cs",
+      "target": "player_lookstresssource_lookstresssource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_istresssource_istresssource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_stressprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_getstresspersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygenprofile_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygenprofile_cs",
+      "target": "player_oxygenprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygenprofile_cs",
+      "target": "player_oxygenprofile_oxygenprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "system",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "generic",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "player_oxygensystem_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "player_oxygensystem_oxygensystem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygenprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L23",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygenlevel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_registerdrainsource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_unregisterdrainsource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_refill",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_collectdrainsources",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_evaluatelevel",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L114",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_awake",
+      "target": "player_oxygensystem_oxygensystem_collectdrainsources",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_refill",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_update",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_setoxygen",
+      "target": "player_oxygensystem_oxygensystem_evaluatelevel",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "rotationalfollowthrough_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "rotationalfollowthrough_cs",
+      "target": "player_rotationalfollowthrough_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "rotationalfollowthrough_cs",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_lateupdate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_onvalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "stressprofile_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "stressprofile_cs",
+      "target": "player_stressprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "stressprofile_cs",
+      "target": "player_stressprofile_stressprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "player_stressprofile_stressprofile_onvalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "system",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "generic",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "player_stresssystem_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "player_stresssystem_stresssystem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_stressprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_registersource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_unregistersource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_setstress",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem_update",
+      "target": "player_stresssystem_stresssystem_setstress",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "unityengine",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "rendering",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L2",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "universal",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "ui",
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "player_suitdebugoverlay_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "player_suitdebugoverlay_suitdebugoverlay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "oxygensystem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "stresssystem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "text",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "volume",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L18",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L19",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L20",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "vignette",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_onenable",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_ondisable",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_handleoxygenchanged",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_handlestresschanged",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_onenable",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_handleoxygenchanged",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_handlestresschanged",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L68",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "player_divercontroller_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L4",
+      "weight": 1.0
+    },
+    {
+      "source": "divercontroller_cs",
+      "target": "player_divercontroller_divercontroller",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "diverprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L18",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "layermask",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L32",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L34",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "charactercontroller",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L36",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "starterassetsinputs",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L37",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "vector3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L39",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L42",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L43",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "vector3",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L46",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L47",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L48",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L49",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "divercontroller_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L50",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L86",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_lateupdate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_groundedcheck",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L99",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_applygravity",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L105",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_move",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L118",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_rotateview",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L142",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_applyheadbob",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L165",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_emitfootstep",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L200",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L215",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller",
+      "target": "player_divercontroller_divercontroller_ondrawgizmosselected",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L223",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_groundedcheck",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L88",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_applygravity",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L89",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_update",
+      "target": "player_divercontroller_divercontroller_move",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L90",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_lateupdate",
+      "target": "player_divercontroller_divercontroller_rotateview",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L95",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_lateupdate",
+      "target": "player_divercontroller_divercontroller_applyheadbob",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "player_divercontroller_divercontroller_applyheadbob",
+      "target": "player_divercontroller_divercontroller_emitfootstep",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverController.cs",
+      "source_location": "L197",
+      "weight": 1.0
+    },
+    {
+      "source": "diverprofile_cs",
+      "target": "player_diverprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "diverprofile_cs",
+      "target": "player_diverprofile_diverprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L35",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L40",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L44",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L48",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L52",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_bool",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L55",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L59",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L63",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L67",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L71",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L75",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L79",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_diverprofile_diverprofile",
+      "target": "diverprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "DiverProfile.cs",
+      "source_location": "L84",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "ioxygendrainsource_cs",
+      "target": "player_ioxygendrainsource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "ioxygendrainsource_cs",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L9",
+      "weight": 1.0
+    },
+    {
+      "source": "player_ioxygendrainsource_ioxygendrainsource",
+      "target": "player_ioxygendrainsource_ioxygendrainsource_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "IOxygenDrainSource.cs",
+      "source_location": "L12",
+      "weight": 1.0
+    },
+    {
+      "source": "istresssource_cs",
+      "target": "player_istresssource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L1",
+      "weight": 1.0
+    },
+    {
+      "source": "istresssource_cs",
+      "target": "player_istresssource_istresssource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "player_istresssource_istresssource",
+      "target": "player_istresssource_istresssource_getstresspersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "IStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "lookstresssource_cs",
+      "target": "player_lookstresssource_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "lookstresssource_cs",
+      "target": "player_lookstresssource_lookstresssource",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_istresssource_istresssource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_stressprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "lookstresssource_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L15",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "player_lookstresssource_lookstresssource",
+      "target": "player_lookstresssource_lookstresssource_getstresspersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "LookStressSource.cs",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygenprofile_cs",
+      "target": "player_oxygenprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygenprofile_cs",
+      "target": "player_oxygenprofile_oxygenprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L22",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L27",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygenprofile_oxygenprofile",
+      "target": "oxygenprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenProfile.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "player_oxygensystem_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "oxygensystem_cs",
+      "target": "player_oxygensystem_oxygensystem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L21",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygenprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L23",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L26",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygenlevel",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L28",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L29",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "oxygensystem_cs_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L31",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L43",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_registerdrainsource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_unregisterdrainsource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L67",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_refill",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L75",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L83",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_collectdrainsources",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L96",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L104",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem",
+      "target": "player_oxygensystem_oxygensystem_evaluatelevel",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L114",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_awake",
+      "target": "player_oxygensystem_oxygensystem_collectdrainsources",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L53",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_refill",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L79",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_update",
+      "target": "player_oxygensystem_oxygensystem_setoxygen",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L93",
+      "weight": 1.0
+    },
+    {
+      "source": "player_oxygensystem_oxygensystem_setoxygen",
+      "target": "player_oxygensystem_oxygensystem_evaluatelevel",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "OxygenSystem.cs",
+      "source_location": "L111",
+      "weight": 1.0
+    },
+    {
+      "source": "rotationalfollowthrough_cs",
+      "target": "player_rotationalfollowthrough_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "rotationalfollowthrough_cs",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_transform",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "rotationalfollowthrough_cs_quaternion",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L16",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_lateupdate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L27",
+      "weight": 1.0
+    },
+    {
+      "source": "player_rotationalfollowthrough_rotationalfollowthrough",
+      "target": "player_rotationalfollowthrough_rotationalfollowthrough_onvalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "RotationalFollowThrough.cs",
+      "source_location": "L42",
+      "weight": 1.0
+    },
+    {
+      "source": "stressprofile_cs",
+      "target": "player_stressprofile_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L3",
+      "weight": 1.0
+    },
+    {
+      "source": "stressprofile_cs",
+      "target": "player_stressprofile_stressprofile",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "scriptableobject",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L8",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "stressprofile_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L17",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stressprofile_stressprofile",
+      "target": "player_stressprofile_stressprofile_onvalidate",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressProfile.cs",
+      "source_location": "L19",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "player_stresssystem_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L5",
+      "weight": 1.0
+    },
+    {
+      "source": "stresssystem_cs",
+      "target": "player_stresssystem_stresssystem",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_ioxygendrainsource_ioxygendrainsource",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L7",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_stressprofile",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L9",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "stresssystem_cs_list",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L22",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L35",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_registersource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L48",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_unregistersource",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L54",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_getoxygendrainpersecond",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem",
+      "target": "player_stresssystem_stresssystem_setstress",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L64",
+      "weight": 1.0
+    },
+    {
+      "source": "player_stresssystem_stresssystem_update",
+      "target": "player_stresssystem_stresssystem_setstress",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "StressSystem.cs",
+      "source_location": "L45",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "player_suitdebugoverlay_deeploration_player",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L6",
+      "weight": 1.0
+    },
+    {
+      "source": "suitdebugoverlay_cs",
+      "target": "player_suitdebugoverlay_suitdebugoverlay",
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "monobehaviour",
+      "relation": "inherits",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L8",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "oxygensystem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "stresssystem",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L11",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "text",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L12",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "volume",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L13",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L14",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L15",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L18",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L19",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "suitdebugoverlay_cs_float",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L20",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "vignette",
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L21",
+      "weight": 1.0,
+      "context": "field"
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_awake",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L23",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_onenable",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L30",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_ondisable",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L39",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_update",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L47",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_handleoxygenchanged",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L59",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_handlestresschanged",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L65",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L71",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_onenable",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L36",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_handleoxygenchanged",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L62",
+      "weight": 1.0
+    },
+    {
+      "source": "player_suitdebugoverlay_suitdebugoverlay_handlestresschanged",
+      "target": "player_suitdebugoverlay_suitdebugoverlay_refreshcounter",
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "SuitDebugOverlay.cs",
+      "source_location": "L68",
+      "weight": 1.0
+    }
+  ]
+}
