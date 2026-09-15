@@ -1,0 +1,217 @@
+# Prologue
+Ultima verifica: 2026-09-13
+
+## Scopo e confini
+Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `GameplayLoop_Blockout.unity`.
+
+## File e componenti
+- `Assets/_Project/Code/Prologue/CinematicControlGate.cs`: Cancello di controllo per disabilitare/ripristinare i componenti del player, congelare il `CharacterController` e azzerare il moto in sincronia con `PlayableDirector`.
+- `Assets/_Project/Code/Prologue/ElevatorPrologueSequence.cs`: Sequencer per la scena isolata dell'ascensore (`Prologue_Elevator.unity`): blocco locomozione con freelook, treadmill di cubi esterni dall'oblò, screenshake continuo e da impatto, sequenza sottotitoli a battute, dissolvenza a nero e caricamento asincrono/sincrono del gameplay loop.
+- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `GameplayLoop_Blockout.unity`: partenza da schermo nero, camera stordita a terra con roll, dissolvenza in apertura, rialzamento progressivo ad altezza occhi, battuta di riavvio tuta e restituzione del controllo al diver.
+- `Assets/_Project/Code/Prologue/SubtitleLine.cs`: ScriptableObject per singola battuta con testi e speaker localizzati tramite Unity Localization.
+- `Assets/_Project/Code/Prologue/SubtitlePanel.cs`: MonoBehaviour per visualizzazione UI a schermo delle battute localizzate.
+- `Assets/_Project/Code/Prologue/SubtitleTrack.cs`: TrackAsset Timeline custom per il binding con `SubtitlePanel` e la creazione del mixer.
+- `Assets/_Project/Code/Prologue/SubtitleClip.cs`: PlayableAsset che incapsula un `SubtitleLine` come clip Timeline.
+- `Assets/_Project/Code/Prologue/SubtitleBehaviour.cs`: PlayableBehaviour di runtime associato alla singola clip di sottotitolo.
+- `Assets/_Project/Code/Prologue/SubtitleMixerBehaviour.cs`: PlayableBehaviour mixer di traccia per il blending e la visualizzazione/pulizia dei sottotitoli a runtime.
+
+## Dipendenze e flusso dati
+- **Unity Localization (`com.unity.localization`)**: `SubtitleLine` e `SubtitlePanel` utilizzano `LocalizedString` e `LocalizeStringEvent`.
+- **Unity Playables & Timeline (`UnityEngine.Timeline`, `UnityEngine.Playables`)**:
+  - `SubtitleTrack` produce `SubtitleMixerBehaviour` che pilota `SubtitlePanel.Show()` e `SubtitlePanel.Clear()`.
+  - `CinematicControlGate` monitora gli stati `played`, `stopped` e lo stato runtime di `PlayableDirector`.
+  - `CinemachineTrack` controlla la transizione continua tra la camera cinematica (`Prologue_IntroCamera`) e la camera gameplay (`PlayerFollowCamera`).
+- **Player & Input**:
+  - `CinematicControlGate` congela `CharacterController.enabled`, disabilita la lista `controls` (`PlayerInput`, `DiverController`, `PlayerInteraction`, `PlayerHands`, `DiverFlashlight`), azzera gli assi di `StarterAssetsInputs` e invoca `DiverController.ResetMotion()`.
+
+```mermaid
+flowchart TD
+    Director[PlayableDirector: Intro_Blockout] -->|CinemachineTrack| CM[Cinemachine 2.x Blend: IntroCam -> PlayerFollowCam]
+    Director -->|AnimationTrack| Anim[IntroCam_Animation: 78s 7 Beat]
+    Director -->|SubtitleTrack| Mixer[SubtitleMixerBehaviour]
+    Director -->|played / stopped| Gate[CinematicControlGate]
+    Director -->|SignalTrack 78s| Hatch[Prologue_Hatch SimpleInteractable Enable]
+    
+    Mixer -->|ProcessFrame: Show / Clear| Panel[SubtitlePanel UI]
+    Panel -->|LocalizedString| Loc[Unity Localization View]
+    
+    Gate -->|Freeze CC & Controls| Player["Player (CharacterController, DiverController, PlayerInput, Hands, Flashlight)"]
+    Gate -->|ResetMotion| Diver[DiverController]
+```
+
+## Componenti
+
+### CinematicControlGate
+- **Responsabilità e ciclo di vita**:
+  - Cancello di sincronizzazione tra cutscene su `PlayableDirector` e libertà d'azione del player.
+  - `Awake()`: Valida che `director`, `diver`, `input`, `subtitles` e l'array `controls` siano assegnati e privi di null o riferimenti circolari. Valida che `controls` contenga `PlayerInput`, `DiverController`, `PlayerInteraction`, `PlayerHands` e `DiverFlashlight`. Risolve e memorizza il riferimento al `CharacterController` del diver.
+  - `OnEnable()`: Sottoscrive `director.played += OnPlayed` e `director.stopped += OnStopped`. Se il director è già in esecuzione (`PlayState.Playing`), invoca immediatamente `Lock()`.
+  - `OnDisable()`: Rimuove i listener su `director` ed esegue `Unlock()` di sicurezza.
+  - `Start()` e `Update()`: Controllo difensivo per intercettare l'avvio della Timeline in modalità `playOnAwake = true` qualora l'evento `director.played` venga emesso prima della sottoscrizione.
+- **Campi Inspector**:
+  - `PlayableDirector director` (default: `null`): Director della sequenza narrativa o cutscene da ascoltare.
+  - `DiverController diver` (default: `null`): Riferimento al controller del player per l'azzeramento della dinamica.
+  - `StarterAssetsInputs input` (default: `null`): Riferimento agli input per l'azzeramento di assi e trigger.
+  - `SubtitlePanel subtitles` (default: `null`): Riferimento al visualizzatore dei sottotitoli per la pulizia a fine riproduzione.
+  - `Behaviour[] controls` (default: `new Behaviour[0]`): Componenti del player da disabilitare durante la cutscene.
+- **API pubbliche**:
+  - `public bool IsLocked { get; private set; }`: Stato corrente del cancello cinematico.
+  - `public void Lock()`: Snapshot dello stato di abilitazione di ogni elemento in `controls`, disabilitazione di tutti i comportamenti, disabilitazione del `CharacterController` (per prevenire cadute/compenetrazioni fisiche durante animazioni della camera), azzeramento degli input e invocazione di `diver.ResetMotion()`. Chiamate ripetute non sovrascrivono lo snapshot iniziale.
+  - `public void Unlock()`: Ripristino dello stato originale di ciascun componente tramite lo snapshot salvato, riabilitazione del `CharacterController`, azzeramento degli input residui, nuovo `ResetMotion()` e invocazione di `subtitles.Clear()`.
+- **Riferimenti obbligatori e comportamento se mancanti**:
+  - `director`, `diver`, `input`, `subtitles` e `controls` non nulli; `controls` deve contenere tutti i componenti chiave del diver. Se mancanti, il componente registra un errore critico e si disabilita in `Awake()`.
+
+### ElevatorPrologueSequence
+- **Responsabilità e ciclo di vita**:
+  - Coordina la discesa della cabina ascensore nella scena `Prologue_Elevator.unity`.
+  - `Awake()`: Risolve i riferimenti al diver, al `cameraTarget` (`PlayerCameraRoot`) e inizializza l'alpha del `fadeOverlay` a 0.
+  - `Start()`: Imposta `diver.LockMovement = true` per bloccare la traslazione orizzontale preservando il freelook con mouse/stick, e genera i cubi procedurali del treadmill esterno.
+  - `Update()`: Avanza il timer della discesa, attiva le battute di dialogo (`dialogueCues`) su `SubtitlePanel` nei timestamp prefissati, aggiorna la posizione dei cubi esterni (wrap-around ciclico) e gestisce il decadimento dello screenshake.
+  - `LateUpdate()`: Applica lo screenshake procedurale continuo su `cameraTarget` (rumore Perlin a frequenza calibrata) e lo scossone violento ad alta frequenza al momento dell'impatto (`TriggerImpact`).
+  - Coroutine `FadeAndLoadSceneRoutine`: Dissolve a nero il `fadeOverlay` e carica la scena target (`GameplayLoop_Blockout`).
+- **Campi Inspector**:
+  - `DiverController diver`: Riferimento al diver per il lock del moto.
+  - `Transform cameraTarget`: Riferimento alla camera del player per l'applicazione degli offset di screenshake.
+  - `SubtitlePanel subtitlePanel`: Pannello UI per mostrare le battute narrative.
+  - `CanvasGroup fadeOverlay`: Overlay a schermo intero per la dissolvenza a nero.
+  - `List<DialogueCue> dialogueCues`: Lista di battute temporizzate con timestamp, durata e `SubtitleLine`.
+  - `int cubeCount` (default: 14): Numero di cubi generati all'esterno dell'oblò.
+  - `float cubeSpeed` (default: 9.0f): Velocità di scorrimento verticale dei cubi.
+  - `bool invertCubeDirection` (default: false): Inverte la direzione di moto dei cubi.
+  - `float descentShakePos` (default: 0.025f) / `descentShakeRot` (default: 0.45f): Intensità dello screenshake continuo durante la discesa.
+  - `float impactTimestamp` (default: 30.0f): Secondo in cui si verifica l'impatto sul fondale.
+  - `float impactShakePos` (default: 0.40f) / `impactShakeRot` (default: 4.0f): Intensità del trauma da impatto.
+  - `float fadeDuration` (default: 1.8f): Durata della dissolvenza prima del cambio scena.
+  - `string nextSceneName` (default: `"GameplayLoop_Blockout"`): Scena di gameplay da caricare all'impatto.
+- **API pubbliche**:
+  - `public void TriggerImpact()`: Innesca immediatamente il trauma da impatto e la coroutine di dissolvenza/caricamento scena.
+
+### PlayerWakeUpSequence
+- **Responsabilità e ciclo di vita**:
+  - Esegue la sequenza di rinvenimento del giocatore nella scena di gameplay (`GameplayLoop_Blockout.unity`), sostituendo la vecchia cutscene della discesa.
+  - `Awake()`: Risolve i riferimenti al diver, a `cameraTarget` (`PlayerCameraRoot`), `fadeOverlay` e `subtitlePanel`. Forza lo schermo a nero (`fadeOverlay.alpha = 1.0f`), blocca la locomozione del diver (`diver.LockMovement = true`) e colloca la testa/camera al suolo ad altezza ribassata (`initialHeadHeight = 0.25f`) e con inclinazione stordita (`initialRoll = 28°`, `initialPitch = 12°`).
+  - `Update()`: Gestisce la dissolvenza in apertura della vista (`Mathf.SmoothStep` dal nero), attiva la battuta di emergenza/riavvio tuta (`wakeUpSubtitle`) e rialza progressivamente la camera fino all'altezza occhi eretta (`standingHeadHeight = 1.375f`) azzerando il roll.
+  - `CompleteWakeUp()`: Una volta in piedi, sblocca la locomozione (`diver.LockMovement = false`), invoca `diver.ResetMotion()` per garantire continuità fisica e disabilita il componente.
+- **Campi Inspector**:
+  - `DiverController diver`: Riferimento al controller del diver.
+  - `Transform cameraTarget`: Target della camera da rialzare (`PlayerCameraRoot`).
+  - `CanvasGroup fadeOverlay`: Overlay nero per la transizione di risveglio.
+  - `SubtitlePanel subtitlePanel`: Pannello UI per la battuta di riavvio tuta.
+  - `SubtitleLine wakeUpSubtitle`: ScriptableObject della battuta di emergenza (`Subtitle_Beat_7.asset`).
+  - `float wakeUpDuration` (default: `3.5f`): Tempo complessivo di rialzamento.
+  - `float initialHeadHeight` (default: `0.25f`): Quota iniziale della testa a terra.
+  - `float standingHeadHeight` (default: `1.375f`): Quota finale della testa eretta.
+  - `float initialRoll` (default: `28.0f`): Inclinazione roll stordito.
+  - `float initialPitch` (default: `12.0f`): Pitch iniziale verso il pavimento.
+  - `float fadeDelay` (default: `0.4f`): Attesa prima dell'apertura del nero.
+  - `float fadeDuration` (default: `2.0f`): Durata del fade da nero.
+  - `float subtitleDelay` (default: `1.2f`): Secondo di comparsa della battuta di emergenza.
+
+### SubtitleLine
+- **Responsabilità e ciclo di vita**:
+  - `ScriptableObject` serializzato come asset `.asset`. Contiene i riferimenti alle stringhe localizzate per la battuta narrativa.
+- **Campi Inspector**:
+  - `LocalizedString speaker`: LocalizedString per il nome del parlante (es. BATHY, H.E.L.M., Ascensore).
+  - `LocalizedString text`: LocalizedString per il corpo del testo della battuta.
+- **API pubbliche**:
+  - `public LocalizedString speaker`
+  - `public LocalizedString text`
+- **Riferimenti obbligatori e comportamento se mancanti**:
+  - Se `text == null` o `text.IsEmpty`, `SubtitlePanel.Show()` rifiuta la battuta registrando un errore.
+
+### SubtitlePanel
+- **Responsabilità e ciclo di vita**:
+  - Componente UI MonoBehaviour agganciato all'overlay dei sottotitoli (`PrologueCanvas`).
+  - `Awake()`: Valida la gerarchia UI (`view`, `speaker`, `body`). In caso di incongruenze disabilita il componente con `Debug.LogError`. Esegue `Clear()`.
+  - `OnDisable()`: Esegue `Clear()` per nascondere la vista e azzerare i binding.
+- **Campi Inspector**:
+  - `GameObject view` (default: `null`): Contenitore visuale del pannello dei sottotitoli.
+  - `LocalizeStringEvent speaker` (default: `null`): Componente evento per l'aggiornamento dello speaker.
+  - `LocalizeStringEvent body` (default: `null`): Componente evento per l'aggiornamento del testo.
+  - `Text speakerText` (default: `null`): Riferimento opzionale al componente Text dello speaker.
+  - `Text bodyText` (default: `null`): Riferimento opzionale al componente Text del testo.
+- **API pubbliche**:
+  - `public void Show(SubtitleLine line)`: Se `isActiveAndEnabled`, esegue `Clear()`, valida `line` e `line.text`, assegna `speaker.StringReference` (o svuota esplicitamente se assente/vuoto), assegna `body.StringReference` e attiva `view`.
+  - `public void Clear()`: Azzera i riferimenti `StringReference`, notifica stringa vuota `OnUpdateString.Invoke(string.Empty)`, svuota i campi di testo e spegne `view`.
+  - `public void SetSpeakerText(string text)`: Aggiorna direttamente `speakerText.text`.
+  - `public void SetBodyText(string text)`: Aggiorna direttamente `bodyText.text`.
+- **Riferimenti obbligatori e comportamento se mancanti**:
+  - `view`, `speaker` e `body` devono essere non nulli; `view` non può coincidere con `gameObject` e sia `speaker` che `body` devono essere nodi figli di `view`.
+
+### SubtitleTrack
+- **Responsabilità e ciclo di vita**:
+  - `TrackAsset` custom derivato da Unity Timeline, marcato con `[TrackColor(0.2f, 0.8f, 1f)]`, `[TrackClipType(typeof(SubtitleClip))]` e `[TrackBindingType(typeof(SubtitlePanel))]`.
+  - Istanziato all'interno di un PlayableAsset Timeline per legare clip di sottotitoli all'istanza di scena del `SubtitlePanel`.
+- **API pubbliche**:
+  - `public override Playable CreateTrackMixer(PlayableGraph graph, GameObject go, int inputCount)`: Crea e restituisce un'istanza di `ScriptPlayable<SubtitleMixerBehaviour>`.
+
+### SubtitleClip
+- **Responsabilità e ciclo di vita**:
+  - `PlayableAsset` serializzabile che implementa `ITimelineClipAsset`.
+- **Campi Inspector**:
+  - `SubtitleLine line` (default: `null`): Riferimento allo ScriptableObject della linea da mostrare.
+- **API pubbliche**:
+  - `public SubtitleLine Line { get; set; }`: Proprietà di accesso alla linea.
+  - `public ClipCaps clipCaps => ClipCaps.None`: Disabilita blending/looping non necessari.
+  - `public override Playable CreatePlayable(PlayableGraph graph, GameObject owner)`: Crea un `ScriptPlayable<SubtitleBehaviour>` e vi inietta il riferimento a `line`.
+
+### SubtitleBehaviour
+- **Responsabilità e ciclo di vita**:
+  - `PlayableBehaviour` leggero associato al runtime della singola clip.
+- **API pubbliche**:
+  - `public SubtitleLine Line { get; set; }`: Linea di sottotitolo trasportata dalla clip.
+
+### SubtitleMixerBehaviour
+- **Responsabilità e ciclo di vita**:
+  - `PlayableBehaviour` di mixer associato alla `SubtitleTrack`.
+  - Valuta a ogni frame (`ProcessFrame`) tutti gli input attivi sulla traccia. Individua la clip con il peso maggiore (`maxWeight`). Se la clip attiva differisce dalla linea precedentemente visualizzata (`activeLine != currentLine`), comanda `panel.Show(activeLine)` o `panel.Clear()` quando nessun sottotitolo ha peso maggiore di zero.
+  - `OnPlayableDestroy()`: Azzera il puntatore alla riga corrente per evitare residui a playback concluso.
+- **API pubbliche**:
+  - `public override void ProcessFrame(Playable playable, FrameData info, object playerData)`
+  - `public override void OnPlayableDestroy(Playable playable)`
+
+## Setup in Unity
+- **Rig Regia Cinematica (Cinemachine 2.10.7)**:
+  - GameObject `Prologue_IntroCamera` (figlio di `01_CrashElevator`), dotato di `CinemachineVirtualCamera` (Priority = 0, FOV = 32.9, NearClip = 0.14, FarClip = 800) e `Animator`.
+  - Animazione `IntroCam_Animation.anim` (durata 78 secondi) che guida posizione e rotazione attraverso i 7 beat narrativi e si allinea alla posizione e rotazione world di `PlayerCameraRoot` (`PlayerFollowCamera`).
+- **Timeline `Intro_Blockout.playable` (78 secondi)**:
+  1. `CinemachineTrack`: Shot 1 associato a `Prologue_IntroCamera` (0-78s, easeOut 4s) e Shot 2 associato a `PlayerFollowCamera` (74-78s, easeIn 4s). Al termine dei 78s, la priorità naturale di `PlayerFollowCamera` (10 > 0) garantisce la restituzione trasparente del controllo visivo senza scatti.
+  2. `AnimationTrack` (`IntroCamTrack`): associata a `Prologue_IntroCamera` con clip `IntroCam_Animation.anim`.
+  3. `SubtitleTrack`: associata al `SubtitlePanel` di `PrologueCanvas`, contenente le 7 clip `Subtitle_Beat_1` .. `Subtitle_Beat_7`.
+  4. `SignalTrack`: marker a 78s con emitter `OnIntroFinished.signal` che sblocca il portello.
+- **Setup Fisico & Collisioni Ascensore (`01_CrashElevator`)**:
+  - Eliminato componente `Rigidbody` orfano su `PlayerCapsule` che provocava caduta nel vuoto durante l'avvio in Play Mode.
+  - Spessore pavimento ascensore (`Floor`) esteso verso il basso a 10 metri (`center = (0, -4.5, 0)`, `size = (1, 10, 1)`) eliminando qualsiasi tunneling da pendenza o sovrapposizione.
+  - Sigillatura frontale: aggiunti colliders `Wall_Front_Left`, `Wall_Front_Right`, `Wall_Front_Top` attorno al vano porta per prevenire la fuoriuscita laterale della capsula del player.
+  - Corretto fallback `cameraBasePosition` in `DiverController` ad altezza occhi `(0, 1.375, 0)` per impedire l'abbassamento della telecamera ai piedi del diver durante `ResetMotion()`.
+
+## Configurazione verificata in prefab e scene
+- Scena `Assets/_Project/Prototype/GameplayLoop_Blockout.unity` completamente allestita e verificata in Play Mode con Unity 6000.3.19f1.
+- Esecuzione fluida della Timeline introduttiva: la camera si risveglia a terra, segue l'arco narrativo e consegna la visuale alla telecamera in prima persona esattamente sulla posa a terra del player a 78 secondi.
+- Durante l'intro: controlli player disabilitati, `CharacterController` congelato, nessun accumulo di gravità o slittamento fisico.
+- Al termine dei 78 secondi: controlli restituiti al giocatore, portello ascensore interagibile via [E] con avvio della sequenza di uscita e titolo `ExitTitle_Blockout`.
+
+## Estensione del sistema
+- Aggiunta di audio diegetico associato allo speaker (sintetizzatore radio di BATHY, annunci cabina ascensore) sincronizzato tramite AudioTrack sulla Timeline.
+- Integrazione di eventi sonori FMOD o Unity AudioSource direttamente sui marker dei beat.
+
+## Limiti e problemi noti
+- **Cinemachine Versioning**: Il progetto adotta Cinemachine 2.10.7 (`CinemachineTrack` e `CinemachineShot` nel namespace globale); vietato l'aggiornamento a Cinemachine 3.x.
+- **Pausa Director**: Durante `director.Pause()`, il cancello mantiene lo stato bloccato finché non viene invocato esplicitamente `director.Stop()`.
+
+## Verifica
+- `python documentation/check_catalog.py`: codice 0, 61/61 script catalogati con reference valide.
+- Compilazione Unity (Unity MCP bridge): 0 errori.
+- `PrologueSmokeCheck`: eseguito in Play Mode con esito positivo (`PASS: controllo Diver e reset input`, `SMOKE_CHECK_PASSED`).
+- Verifica runtime in Play Mode su `GameplayLoop_Blockout.unity`:
+  1. Blocco immediato e congelamento fisico del player con director attivo.
+  2. Nessun tunneling o caduta attraverso il pavimento dell'ascensore.
+  3. Movimento coerente della camera cinematica e handover senza glitch visivi a `PlayerFollowCamera` a t=78s.
+  4. Interazione con il portello [E] e transizione a `ExitTitle_Blockout`.
+
+## Sistemi collegati
+- [PlayerInput.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerInput.md)
+- [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md)
+- [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)
+- [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)
+- [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md)

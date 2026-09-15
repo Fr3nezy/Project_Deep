@@ -8,8 +8,16 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/_Project/Prototype/Prototype.unity
     guid: 5168db8c844831d439662425318b5c4c
+  - enabled: 1
+    path: Assets/_Project/Prototype/Prologue_Elevator.unity
+    guid: 582e2ff892adf794fb988dea6da53ca9
+  - enabled: 1
+    path: Assets/_Project/Prototype/GameplayLoop_Blockout.unity
+    guid: 39bb223f724c7244293f7e13fc12539b
   m_configObjects:
+    com.unity.addressableassets: {fileID: 11400000, guid: dae23d5e081e72442b3521f6e503bcc9, type: 2}
     com.unity.dt.app-ui: {fileID: 11400000, guid: 99f9c9493070a9d4c979a8fec7c5a8d3, type: 2}
     com.unity.input.settings: {fileID: 11400000, guid: 9e7be553448fa2546aea5752021cbcf7, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
+    com.unity.localization.settings: {fileID: 11400000, guid: 875cc5e1ab4895d4b9483b3e80743e3e, type: 2}
   m_UseUCBPForAssetBundles: 0

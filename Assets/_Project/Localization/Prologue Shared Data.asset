@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5b11a58205ec3474ca216360e9fa74a8, type: 3}
+  m_Name: Prologue Shared Data
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.SharedTableData
+  m_TableCollectionName: Prologue
+  m_TableCollectionNameGuidString: fa95e5bdd844b4c46b9c68330353a110
+  m_Entries:
+  - m_Id: 1135599616
+    m_Key: UI/prologue.hatch.open
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1177542656
+    m_Key: Prologue/speaker.bathy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736960
+    m_Key: Prologue/beat1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736961
+    m_Key: Prologue/beat2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736962
+    m_Key: Prologue/beat3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736963
+    m_Key: Prologue/beat4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736964
+    m_Key: Prologue/beat5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736965
+    m_Key: Prologue/beat6
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736966
+    m_Key: Prologue/beat7
+    m_Metadata:
+      m_Items: []
+  m_Metadata:
+    m_Items: []
+  m_KeyGenerator:
+    rid: 7179624323845718111
+  references:
+    version: 2
+    RefIds:
+    - rid: 7179624323845718111
+      type: {class: DistributedUIDGenerator, ns: UnityEngine.Localization.Tables, asm: Unity.Localization}
+      data:
+        m_CustomEpoch: 1789322479858

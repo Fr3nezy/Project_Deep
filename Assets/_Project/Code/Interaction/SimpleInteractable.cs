@@ -45,5 +45,7 @@ namespace Deeploration.Interaction
         {
             isEnabled = state;
         }
+
+        public void SetPromptText(string text) => promptText = text;
     }
 }

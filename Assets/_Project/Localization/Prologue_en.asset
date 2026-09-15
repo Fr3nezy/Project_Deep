@@ -1,0 +1,59 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Prologue_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: fa95e5bdd844b4c46b9c68330353a110, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 1135599616
+    m_Localized: Open Hatch
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1177542656
+    m_Localized: B.A.T.H.Y.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736960
+    m_Localized: Systems online. Descending into Cayman Trench.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736961
+    m_Localized: Minor hydrodynamic disturbance detected.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736962
+    m_Localized: 'Warning: multiple impacts on outer hull!'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736963
+    m_Localized: Primary cable integrity compromised. Critical tension.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736964
+    m_Localized: Secondary cable failure. Structural collapse.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736965
+    m_Localized: Emergency brake... brace for impact!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1181736966
+    m_Localized: Emergency reboot... Depth 8,420m. Suit integrity confirmed.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []
