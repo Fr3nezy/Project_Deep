@@ -3,7 +3,8 @@ using UnityEngine;
 namespace Deeploration.Player
 {
     [DisallowMultipleComponent]
-    [DefaultExecutionOrder(100)]
+    // Dopo CinemachineBrain e PlayerWakeUpSequence (entrambi 100): legge la rotazione finale del target nel frame.
+    [DefaultExecutionOrder(200)]
     public sealed class RotationalFollowThrough : MonoBehaviour
     {
         [SerializeField] private Transform rotationTarget;
