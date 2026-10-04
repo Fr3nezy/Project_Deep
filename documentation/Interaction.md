@@ -134,7 +134,9 @@ flowchart TD
 - Nella scena `Prototype.unity`:
   - Le celle energetiche (`ItemPickup`) con `itemId = "power_cell"` e gli alloggiamenti del generatore (`ItemSocket`) con `acceptedItemId = "power_cell"` sono disposti nel settore d'inizio.
 
-Il portello del prologo e il binding Localization verso `SetPromptText` sono pianificati ma non verificati in scena o Play Mode.
+- Nella scena `GameplayLoop_Blockout.unity` il portello della capsula (`MSH_Hatch_Door`) usa `SimpleInteractable` → `HatchDoor.Open`, con un trigger figlio `HatchInteractVolume` come bersaglio del raycast. Dettagli in [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
+
+Il binding Localization verso `SetPromptText` è pianificato ma non verificato in scena o Play Mode.
 
 ## Sistemi collegati
 - [PlayerInput.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerInput.md)

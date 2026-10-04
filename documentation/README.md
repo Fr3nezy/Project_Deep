@@ -1,5 +1,5 @@
 # Project Deep — Indice e Catalogo dell'Architettura del Codice
-Ultima verifica: 2026-09-13
+Ultima verifica: 2026-10-04
 
 Benvenuto nell'hub di documentazione tecnica di *Project Deep / Deeplonauts*.  
 Questo catalogo mappa ogni singolo script C# presente nella codebase, definisce i confini dei sistemi, le relazioni tra i componenti e le regole tassative per gli agenti AI e gli sviluppatori.
@@ -39,7 +39,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (64 / 64)
+## 2. Catalogo Completo degli Script (66 / 66)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -70,6 +70,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/EntitySystem/States/InspectState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/EntitySystem/States/RestState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
+| `Assets/_Project/Code/Environment/HatchDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
+| `Assets/_Project/Code/Environment/HatchExit.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/MarineSnowFollower.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/OxygenRefillStation.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/StressLightZone.cs` | Darkness Stress | [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md) |
@@ -135,6 +137,8 @@ flowchart TD
         LightZones[StressLightZone]
         RefillStation[OxygenRefillStation]
         Airlock[AirlockDoor]
+        Hatch[HatchDoor]
+        HatchExit[HatchExit]
         Snow[MarineSnowFollower]
     end
 
@@ -169,6 +173,10 @@ flowchart TD
     RefillStation -->|Refill| Oxygen
     RefillStation -->|AdvanceObjective| Quests
     Interaction -->|AdvanceObjective| Quests
+    Interaction -->|SimpleInteractable.onInteracted → Open| Hatch
+    Interaction -->|Interact| HatchExit
+    HatchExit -->|IsOpen| Hatch
+    HatchExit -->|disable / ResetMotion| Diver
 
     %% Progression to World
     Quests -->|OnQuestCompleted| Airlock
