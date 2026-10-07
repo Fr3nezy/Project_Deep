@@ -24,6 +24,9 @@ float4x4 _RockProxyM[ENV_MAX_ROCK_NEIGHBORS]; // world -> proxy space (rotation 
 float4 _RockProxyR[ENV_MAX_ROCK_NEIGHBORS];   // xyz: half extents (m), w: shape (1 ellipsoid, 2 + r rounded box of radius r)
 float4 _RockNeighborParams;                   // x: blend width (m), y: normal blend, z: sediment, w: neighbour count
 
+// Debug view toggled from the editor menu (Deeplonauts/Debug/Rock Blend Masks): 1 shows the blend masks as colours
+float _EnvRockBlendDebug;
+
 struct EnvStochastic
 {
     float2 uv0;
@@ -319,6 +322,16 @@ void RockSurface_float(
     Metallic = lerp(rockMS.r, 0, mask);
     Smoothness = lerp(lerp(SmoothnessMin, SmoothnessMax, rockMS.a), groundSmooth, mask);
     Occlusion = lerp(lerp(1, rockAO, AOStrength), 1, mask);
+
+    // red: ground contact, green: neighbour joint, blue: sediment drape and cavities
+    if (_EnvRockBlendDebug > 0.5)
+    {
+        BaseColor = float3(contact, neighbor, max(top, cavity) * 0.5);
+        NormalTS = float3(0, 0, 1);
+        Metallic = 0;
+        Smoothness = 0;
+        Occlusion = 1;
+    }
 }
 
 #endif
