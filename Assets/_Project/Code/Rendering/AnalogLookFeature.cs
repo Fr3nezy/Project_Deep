@@ -75,8 +75,9 @@ namespace Deeploration.Rendering
 
                 AnalogLook settings = VolumeManager.instance.stack.GetComponent<AnalogLook>();
                 UniversalCameraData camera = frameData.Get<UniversalCameraData>();
-                // la dimensione del pixel è data a 1080p e scala con l'altezza del target
-                float pixel = Mathf.Max(1f, settings.pixelSize.value * camera.cameraTargetDescriptor.height / 1080f);
+                // la dimensione del pixel è data a 1080p e scala con l'altezza del target; intera, altrimenti
+                // le celle escono di larghezze diverse e compaiono strisce
+                float pixel = Mathf.Max(1f, Mathf.Round(settings.pixelSize.value * camera.cameraTargetDescriptor.height / 1080f));
                 material.SetVector(ParamsId, new Vector4(settings.intensity.value, pixel, settings.colorLevels.value, settings.dither.value));
                 material.SetVector(Params2Id, new Vector4(settings.scanlines.value, 0f, 0f, 0f));
 
