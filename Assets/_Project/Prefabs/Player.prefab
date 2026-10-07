@@ -73,7 +73,7 @@ Transform:
   m_GameObject: {fileID: 5963854485263641623}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -9.36765, y: 0.00167, z: -13.81316}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -548,6 +548,10 @@ PrefabInstance:
       propertyPath: m_IsActive
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5393215578589016655, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8616685848737228371, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
       propertyPath: Gravity
       value: -9.8
@@ -702,6 +706,7 @@ MonoBehaviour:
     m_Bits: 4294967295
   groundedOffset: -0.14
   groundedRadius: 0.5
+  lockMovement: 0
   grounded: 0
   currentSpeed: 0
 --- !u!114 &6264952967065150346

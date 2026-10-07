@@ -6,13 +6,13 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/_Project/Prototype/Prototype.unity
+    path: Assets/_Project/Scenes/Prototype.unity
     guid: 5168db8c844831d439662425318b5c4c
   - enabled: 1
-    path: Assets/_Project/Prototype/Prologue_Elevator.unity
+    path: Assets/_Project/Scenes/SCN_Intro.unity
     guid: 582e2ff892adf794fb988dea6da53ca9
   - enabled: 1
-    path: Assets/_Project/Prototype/GameplayLoop_Blockout.unity
+    path: Assets/_Project/Scenes/SCN_Gameplay.unity
     guid: 39bb223f724c7244293f7e13fc12539b
   m_configObjects:
     com.unity.addressableassets: {fileID: 11400000, guid: dae23d5e081e72442b3521f6e503bcc9, type: 2}
