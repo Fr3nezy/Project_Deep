@@ -87,7 +87,7 @@ flowchart TD
 4. Assegnare l'asset nel campo `Active Profile` di `QuestManager`.
 
 ## Configurazione verificata in prefab e scene
-- Nella scena `Prototype.unity`:
+- Nella scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git; configurazione non riverificata dopo la rimozione):
   - `Quest_Objective_1.asset` definisce 3 obiettivi:
     1. `"gen_power"`: Celle Generatore (3 richieste).
     2. `"o2_beacon"`: Stazione Ricarica O₂ (1 richiesta).

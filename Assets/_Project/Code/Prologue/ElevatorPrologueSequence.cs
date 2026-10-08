@@ -51,7 +51,7 @@ namespace Deeploration.Prologue
 
         [Header("Transizione Scena")]
         [SerializeField] private float fadeDuration = 1.8f;
-        [SerializeField] private string nextSceneName = "GameplayLoop_Blockout";
+        [SerializeField] private string nextSceneName = "SCN_Gameplay";
 
         private float timer;
         private bool impacted;

@@ -508,7 +508,7 @@ namespace Deeploration.Editor
             SetField("subtitlePanel", subPanel);
             SetField("fadeOverlay", fadeCg);
             SetField("cubeMaterial", AssetDatabase.LoadAssetAtPath<Material>("Assets/_Project/Prototype/M_Greybox_Hazard.mat"));
-            SetField("nextSceneName", "GameplayLoop_Blockout");
+            SetField("nextSceneName", "SCN_Gameplay");
             SetField("impactTimestamp", 30.0f);
             SetField("cubeBoundsMin", new Vector3(-3.0f, -2.5f, -14.0f));
             SetField("cubeBoundsMax", new Vector3(3.0f, 6.5f, -7.0f));

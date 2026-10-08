@@ -64,7 +64,7 @@ flowchart TD
    - Assegnare `visualLight` e impostare `stressRelief` (es. `1.0` per base/oasi, `0.5` per luci d'emergenza deboli).
 
 ## Configurazione verificata in prefab e scene
-- Nella scena `Prototype.unity`:
+- Nella scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git; configurazione non riverificata dopo la rimozione):
   - `SafeLightZone`: Posizione `(-1, 2, -18)`, trigger `14 × 6 × 14`, `stressRelief = 1.0`.
   - `DimLightZone`: Posizione `(7, 2, -4)`, trigger `10 × 5 × 10`, `stressRelief = 0.5`.
 

@@ -114,7 +114,7 @@ flowchart LR
 
 ## Verifica
 - `ResetMotion()` è implementato ma il suo uso nel prologo non è ancora verificato in Play Mode.
-- Avviare la scena `Prototype.unity` in Play Mode.
+- Avviare la scena `SCN_Gameplay.unity` in Play Mode.
 - Camminando con W/A/S/D si deve avvertire l'accelerazione graduale e il dondolio della visuale.
 - Al rilascio dei comandi la decelerazione produce uno scivolamento breve.
 - In sprint (Shift) il consumo di O₂ riportato nell'overlay debug cresce proporzionalmente alla velocità.

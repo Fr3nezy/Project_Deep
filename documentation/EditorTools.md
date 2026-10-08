@@ -6,12 +6,12 @@ Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'E
 1. `DeeplonautsLevelBuilder`: Generatore automatico del livello di graybox per la slice prototipale (fossa oceanica, crash site, base DR-04, alloggiamenti energetici, trigger di missione, illuminazione e player setup).
 2. `CreatureProfileCreator`: Utility per istanziare rapidamente i file ScriptableObject `CreatureProfile` dalla Project Window.
 3. `PrologueSmokeCheck`: Controllo parziale eseguibile in Play Mode per input e reset del moto dopo una sequenza del prologo.
-4. `PrologueWave1Builder`: Strumento di setup automatico per la Wave 1 (LocalizationSettings, tabelle stringhe, Timeline intro/exit, allestimento UI Canvas e scena GameplayLoop_Blockout).
-5. `PrologueElevatorSceneBuilder`: Costruttore e setup automatico della scena isolata di prologo `Prologue_Elevator.unity` (cabina ascensore con oblò, slot mesh Blender, player in prima persona e treadmill sottomarino).
+4. `PrologueWave1Builder`: Strumento di setup automatico per la Wave 1 (LocalizationSettings, tabelle stringhe, Timeline intro/exit, allestimento UI Canvas e scena `SCN_Gameplay`).
+5. `PrologueElevatorSceneBuilder`: Costruttore e setup automatico della scena isolata di prologo `SCN_Intro.unity` (cabina ascensore con oblò, slot mesh Blender, player in prima persona e treadmill sottomarino).
 
 ## File e componenti
 - `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs`: Script Editor (disponibile via menu `Tools/Deeplonauts/Build Prototype Graybox Level`) che costruisce l'intera scena prototipo da zero.
-- `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs`: Script Editor (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`) che genera la scena isolata di discesa `Prologue_Elevator.unity`.
+- `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs`: Script Editor (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`) che genera la scena isolata di discesa `SCN_Intro.unity`.
 - `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs`: Script Editor con menu `Deeploration/Tests/Check Prologue Control Restored`.
 - `Assets/_Project/Code/Editor/PrologueWave1Builder.cs`: Script Editor con menu `Deeplonauts/Prologue/Build Wave 1 Prologue Setup`.
 - `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs`: Script Editor con menu `Deeplonauts/Debug/Rock Blend Masks` che mostra le maschere di fusione delle rocce come colori. Documentato in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
@@ -61,11 +61,11 @@ flowchart TD
 - **Limite**: è un controllo manuale e parziale; non verifica Timeline, ripristino degli altri componenti, sottotitoli, scena o input reale.
 
 ### PrologueWave1Builder
-- **Responsabilità**: Allestisce l'intero stack narrativo e cinematico della Wave 1: inizializza `LocalizationSettings` con locale `it`/`en`, genera la String Table Collection `Prologue` con chiavi per portello e 7 battute dell'intro, istanzia i 7 ScriptableObject `SubtitleLine`, genera le Timeline `Intro_Blockout.playable` ed `ExitTitle_Blockout.playable`, e configura la scena `GameplayLoop_Blockout.unity` con `PrologueCanvas`, `SubtitlePanel`, `FadeOverlay`, `Prologue_Hatch` con `SimpleInteractable` e cancelli `CinematicControlGate`. Include dialog di conferma prima di rieseguire su scene già esistenti (nessuna auto-esecuzione all'avvio).
+- **Responsabilità**: Allestisce l'intero stack narrativo e cinematico della Wave 1: inizializza `LocalizationSettings` con locale `it`/`en`, genera la String Table Collection `Prologue` con chiavi per portello e 7 battute dell'intro, istanzia i 7 ScriptableObject `SubtitleLine`, genera le Timeline `Intro_Blockout.playable` ed `ExitTitle_Blockout.playable`, e configura la scena `SCN_Gameplay.unity` con `PrologueCanvas`, `SubtitlePanel`, `FadeOverlay`, `Prologue_Hatch` con `SimpleInteractable` e cancelli `CinematicControlGate`. Include dialog di conferma prima di rieseguire su scene già esistenti (nessuna auto-esecuzione all'avvio).
 - **API pubbliche**: `static void BuildWave1()`, richiamabile dal menu `Deeplonauts/Prologue/Build Wave 1 Prologue Setup`.
 
 ### PrologueElevatorSceneBuilder
-- **Responsabilità**: Genera e allestisce la scena isolata di discesa `Prologue_Elevator.unity`. Ricostruisce la cabina di blocking dell'ascensore `01_Elevator_Rig` con pavimento a collider spesso (5 metri verso il basso per protezione tunneling), pareti con apertura per oblò e vetro (`Porthole_Glass`), punto di ancoraggio vuoto `DROP_BLENDER_MESH_HERE` per la mesh importata da Blender, istanza del prefab `Player` allineata a terra rivolta verso l'oblò, illuminazione interna soffusa/d'emergenza e backdrop esterno `Treadmill_Environment` con pareti abissali, fascio di luce oceanica e `ParticleSystem` a velocità ascensionale per simulare la discesa rapida senza spostare l'ascensore nello spazio world. Configura inoltre la sequenza runtime (`ElevatorPrologueSequence`), il blocco del moto con freelook, i cubi treadmill, i dialoghi UI localizzati, il camera shake e la dissolvenza verso il gameplay. È rigorosamente manuale via MenuItem e protetto da dialogo modale per impedire la sovrascrittura di modifiche manuali o mesh accordate.
+- **Responsabilità**: Genera e allestisce la scena isolata di discesa `SCN_Intro.unity`. Ricostruisce la cabina di blocking dell'ascensore `01_Elevator_Rig` con pavimento a collider spesso (5 metri verso il basso per protezione tunneling), pareti con apertura per oblò e vetro (`Porthole_Glass`), punto di ancoraggio vuoto `DROP_BLENDER_MESH_HERE` per la mesh importata da Blender, istanza del prefab `Player` allineata a terra rivolta verso l'oblò, illuminazione interna soffusa/d'emergenza e backdrop esterno `Treadmill_Environment` con pareti abissali, fascio di luce oceanica e `ParticleSystem` a velocità ascensionale per simulare la discesa rapida senza spostare l'ascensore nello spazio world. Configura inoltre la sequenza runtime (`ElevatorPrologueSequence`), il blocco del moto con freelook, i cubi treadmill, i dialoghi UI localizzati, il camera shake e la dissolvenza verso il gameplay. È rigorosamente manuale via MenuItem e protetto da dialogo modale per impedire la sovrascrittura di modifiche manuali o mesh accordate.
 - **API pubbliche**:
   - `static void BuildElevatorScene()`: Genera la scena da zero (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`, protetta da dialog se la scena esiste).
   - `static void SetupElevatorSceneComponents()`: Configura o aggiorna la sequenza, i dialoghi, il camera shake e i cubi nella scena attiva (menu `Deeplonauts/Prologue/Setup Elevator Sequence & Dialogues`).
@@ -83,15 +83,16 @@ flowchart TD
   2. Selezionare **Create -> Deeploration -> Creature Profile**.
 
 ## Configurazione verificata in prefab e scene
-- La scena [Prototype.unity](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prototype/Prototype.unity) è stata inizialmente impostata tramite `DeeplonautsLevelBuilder` e poi rifinita a mano con volumi post-processing URP e illuminazione ambientale.
+- La scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git) è stata inizialmente impostata tramite `DeeplonautsLevelBuilder` e poi rifinita a mano con volumi post-processing URP e illuminazione ambientale.
 
 ## Limiti e problemi noti
+- I builder `PrologueElevatorSceneBuilder` e `PrologueWave1Builder` e i materiali generati da `DeeplonautsLevelBuilder` puntano ancora a `Assets/_Project/Prototype/` (`Prologue_Elevator.unity`, `GameplayLoop_Blockout.unity`, `M_*.mat`). Il 2026-10-07 le scene sono state spostate in `Assets/_Project/Scenes/` e rinominate `SCN_Intro` (ex `Prologue_Elevator`) e `SCN_Gameplay` (ex `GameplayLoop_Blockout`); `Prototype.unity` è stata rimossa. Rigenerare con i builder crea scene e materiali al vecchio percorso senza toccare quelle attuali: aggiornare le costanti `SCENE_PATH` e `SCENE_DIR` prima di usarli.
 - L'esecuzione di `BuildLevel()` elimina qualsiasi oggetto sotto `_GRAYBOX_ROOT`. Non invocare senza aver preventivamente committato o salvato la scena.
-- Non usare `BuildLevel()` per preparare `GameplayLoop_Blockout.unity`: la Wave 1 deve conservare la mappa importata e le modifiche manuali della scena.
+- Non usare `BuildLevel()` per preparare `SCN_Gameplay.unity`: la Wave 1 deve conservare la mappa importata e le modifiche manuali della scena.
 
 ## Verifica
 - `PrologueSmokeCheck` è stato eseguito in Play Mode con esito positivo (`PASS: controllo Diver e reset input`); verifica che il `DiverController` sia abilitato, gli input di salto funzionino e `ResetMotion()` azzeri `CurrentSpeed`.
-- `PrologueWave1Builder` è stato eseguito con successo, generando asset di localizzazione, Timeline, canali segnali e allestimento della scena `GameplayLoop_Blockout.unity`.
+- `PrologueWave1Builder` è stato eseguito con successo, generando asset di localizzazione, Timeline, canali segnali e allestimento della scena `SCN_Gameplay.unity`.
 
 ## Sistemi collegati
 - [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md)

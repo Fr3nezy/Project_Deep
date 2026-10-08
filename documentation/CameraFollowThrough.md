@@ -54,7 +54,7 @@ flowchart LR
 4. Posizionare le mesh grafiche (visiera, torcia) come figlie di questo pivot.
 
 ## Configurazione verificata in prefab e scene
-- In `GameplayLoop_Blockout.unity` (verificato 2026-10-04): `Player/MainCamera/HelmetVisualPivot` ha `RotationalFollowThrough` con `rotationTarget = PlayerCameraRoot`, `rotationSharpness = 12`, `maxLagAngle = 6`; `PlayerCapsule/TorchPivot` usa lo stesso target.
+- In `SCN_Gameplay.unity` (verificato 2026-10-04): `Player/MainCamera/HelmetVisualPivot` ha `RotationalFollowThrough` con `rotationTarget = PlayerCameraRoot`, `rotationSharpness = 12`, `maxLagAngle = 6`; `PlayerCapsule/TorchPivot` usa lo stesso target.
   - Misura frame per frame del risveglio (200 frame a 50 fps): scarto casco–camera massimo 5,6° (primi frame, a schermo nero), poi sotto 1,5°. Prima del cambio di ordine a 200 lo scarto era ~30° (roll 28° + pitch 12°) e il casco attraversava il near plane.
 - In [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
   - Il nodo `HelmetVisualPivot` ha `RotationalFollowThrough` con `rotationTarget` collegato a `PlayerCameraRoot`.

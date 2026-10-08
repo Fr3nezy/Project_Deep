@@ -5,7 +5,7 @@ using UnityEngine;
 namespace Deeploration.Prologue
 {
     /// <summary>
-    /// Gestisce l'effetto rinvenimento del Diver nella scena GameplayLoop_Blockout:
+    /// Gestisce l'effetto rinvenimento del Diver nella scena SCN_Gameplay:
     /// avvio a schermo nero, camera a terra inclinata (posa stordita), dissolvenza in apertura,
     /// rialzamento progressivo ad altezza eretta, battuta di riavvio tuta e restituzione dei controlli.
     /// </summary>

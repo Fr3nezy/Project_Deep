@@ -2,12 +2,12 @@
 Ultima verifica: 2026-09-13
 
 ## Scopo e confini
-Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `GameplayLoop_Blockout.unity`.
+Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `SCN_Gameplay.unity`.
 
 ## File e componenti
 - `Assets/_Project/Code/Prologue/CinematicControlGate.cs`: Cancello di controllo per disabilitare/ripristinare i componenti del player, congelare il `CharacterController` e azzerare il moto in sincronia con `PlayableDirector`.
-- `Assets/_Project/Code/Prologue/ElevatorPrologueSequence.cs`: Sequencer per la scena isolata dell'ascensore (`Prologue_Elevator.unity`): blocco locomozione con freelook, treadmill di cubi esterni dall'oblò, screenshake continuo e da impatto, sequenza sottotitoli a battute, dissolvenza a nero e caricamento asincrono/sincrono del gameplay loop.
-- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `GameplayLoop_Blockout.unity`: partenza da schermo nero, camera stordita a terra con roll, dissolvenza in apertura, rialzamento progressivo ad altezza occhi, battuta di riavvio tuta e restituzione del controllo al diver.
+- `Assets/_Project/Code/Prologue/ElevatorPrologueSequence.cs`: Sequencer per la scena isolata dell'ascensore (`SCN_Intro.unity`): blocco locomozione con freelook, treadmill di cubi esterni dall'oblò, screenshake continuo e da impatto, sequenza sottotitoli a battute, dissolvenza a nero e caricamento asincrono/sincrono del gameplay loop.
+- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `SCN_Gameplay.unity`: partenza da schermo nero, camera stordita a terra con roll, dissolvenza in apertura, rialzamento progressivo ad altezza occhi, battuta di riavvio tuta e restituzione del controllo al diver.
 - `Assets/_Project/Code/Prologue/SubtitleLine.cs`: ScriptableObject per singola battuta con testi e speaker localizzati tramite Unity Localization.
 - `Assets/_Project/Code/Prologue/SubtitlePanel.cs`: MonoBehaviour per visualizzazione UI a schermo delle battute localizzate.
 - `Assets/_Project/Code/Prologue/SubtitleTrack.cs`: TrackAsset Timeline custom per il binding con `SubtitlePanel` e la creazione del mixer.
@@ -63,12 +63,12 @@ flowchart TD
 
 ### ElevatorPrologueSequence
 - **Responsabilità e ciclo di vita**:
-  - Coordina la discesa della cabina ascensore nella scena `Prologue_Elevator.unity`.
+  - Coordina la discesa della cabina ascensore nella scena `SCN_Intro.unity`.
   - `Awake()`: Risolve i riferimenti al diver, al `cameraTarget` (`PlayerCameraRoot`) e inizializza l'alpha del `fadeOverlay` a 0.
   - `Start()`: Imposta `diver.LockMovement = true` per bloccare la traslazione orizzontale preservando il freelook con mouse/stick, e genera i cubi procedurali del treadmill esterno.
   - `Update()`: Avanza il timer della discesa, attiva le battute di dialogo (`dialogueCues`) su `SubtitlePanel` nei timestamp prefissati, aggiorna la posizione dei cubi esterni (wrap-around ciclico) e gestisce il decadimento dello screenshake.
   - `LateUpdate()`: Applica lo screenshake procedurale continuo su `cameraTarget` (rumore Perlin a frequenza calibrata) e lo scossone violento ad alta frequenza al momento dell'impatto (`TriggerImpact`).
-  - Coroutine `FadeAndLoadSceneRoutine`: Dissolve a nero il `fadeOverlay` e carica la scena target (`GameplayLoop_Blockout`).
+  - Coroutine `FadeAndLoadSceneRoutine`: Dissolve a nero il `fadeOverlay` e carica la scena target (`SCN_Gameplay`).
 - **Campi Inspector**:
   - `DiverController diver`: Riferimento al diver per il lock del moto.
   - `Transform cameraTarget`: Riferimento alla camera del player per l'applicazione degli offset di screenshake.
@@ -82,13 +82,13 @@ flowchart TD
   - `float impactTimestamp` (default: 30.0f): Secondo in cui si verifica l'impatto sul fondale.
   - `float impactShakePos` (default: 0.40f) / `impactShakeRot` (default: 4.0f): Intensità del trauma da impatto.
   - `float fadeDuration` (default: 1.8f): Durata della dissolvenza prima del cambio scena.
-  - `string nextSceneName` (default: `"GameplayLoop_Blockout"`): Scena di gameplay da caricare all'impatto.
+  - `string nextSceneName` (default: `"SCN_Gameplay"`): Scena di gameplay da caricare all'impatto.
 - **API pubbliche**:
   - `public void TriggerImpact()`: Innesca immediatamente il trauma da impatto e la coroutine di dissolvenza/caricamento scena.
 
 ### PlayerWakeUpSequence
 - **Responsabilità e ciclo di vita**:
-  - Esegue la sequenza di rinvenimento del giocatore nella scena di gameplay (`GameplayLoop_Blockout.unity`), sostituendo la vecchia cutscene della discesa.
+  - Esegue la sequenza di rinvenimento del giocatore nella scena di gameplay (`SCN_Gameplay.unity`), sostituendo la vecchia cutscene della discesa.
   - `Awake()`: Risolve i riferimenti al diver, a `cameraTarget` (`PlayerCameraRoot`), `fadeOverlay` e `subtitlePanel`. Forza lo schermo a nero (`fadeOverlay.alpha = 1.0f`), blocca la locomozione del diver (`diver.LockMovement = true`) e colloca la testa/camera al suolo ad altezza ribassata (`initialHeadHeight = 0.25f`) e con inclinazione stordita (`initialRoll = 28°`, `initialPitch = 12°`).
   - `Update()`: Gestisce la dissolvenza in apertura della vista (`Mathf.SmoothStep` dal nero), attiva la battuta di emergenza/riavvio tuta (`wakeUpSubtitle`) e rialza progressivamente la camera fino all'altezza occhi eretta (`standingHeadHeight = 1.375f`) azzerando il roll.
   - `CompleteWakeUp()`: Una volta in piedi, sblocca la locomozione (`diver.LockMovement = false`), invoca `diver.ResetMotion()` per garantire continuità fisica e disabilita il componente.
@@ -186,7 +186,7 @@ flowchart TD
   - Corretto fallback `cameraBasePosition` in `DiverController` ad altezza occhi `(0, 1.375, 0)` per impedire l'abbassamento della telecamera ai piedi del diver durante `ResetMotion()`.
 
 ## Configurazione verificata in prefab e scene
-- Scena `Assets/_Project/Prototype/GameplayLoop_Blockout.unity` completamente allestita e verificata in Play Mode con Unity 6000.3.19f1.
+- Scena `Assets/_Project/Scenes/SCN_Gameplay.unity` completamente allestita e verificata in Play Mode con Unity 6000.3.19f1.
 - Esecuzione fluida della Timeline introduttiva: la camera si risveglia a terra, segue l'arco narrativo e consegna la visuale alla telecamera in prima persona esattamente sulla posa a terra del player a 78 secondi.
 - Durante l'intro: controlli player disabilitati, `CharacterController` congelato, nessun accumulo di gravità o slittamento fisico.
 - Al termine dei 78 secondi: controlli restituiti al giocatore, portello ascensore interagibile via [E] con avvio della sequenza di uscita e titolo `ExitTitle_Blockout`.
@@ -203,7 +203,7 @@ flowchart TD
 - `python documentation/check_catalog.py`: codice 0, 61/61 script catalogati con reference valide.
 - Compilazione Unity (Unity MCP bridge): 0 errori.
 - `PrologueSmokeCheck`: eseguito in Play Mode con esito positivo (`PASS: controllo Diver e reset input`, `SMOKE_CHECK_PASSED`).
-- Verifica runtime in Play Mode su `GameplayLoop_Blockout.unity`:
+- Verifica runtime in Play Mode su `SCN_Gameplay.unity`:
   1. Blocco immediato e congelamento fisico del player con director attivo.
   2. Nessun tunneling o caduta attraverso il pavimento dell'ascensore.
   3. Movimento coerente della camera cinematica e handover senza glitch visivi a `PlayerFollowCamera` a t=78s.

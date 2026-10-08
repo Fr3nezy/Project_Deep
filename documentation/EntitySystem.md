@@ -132,7 +132,7 @@ flowchart TD
    - Collocare `EntitySpawner` nell'area volumetrica per generare banchi o singoli predatori all'interno di volumi definiti.
 
 ## Configurazione verificata in prefab e scene
-- Nella scena `Prototype.unity`:
+- Nella scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git; configurazione non riverificata dopo la rimozione):
   - `EntityPooler` e `EntitySpawner` sono presenti e operativi.
   - La visualizzazione gizmo in debug (`EntityDebugGizmos`) mostra i raggi di percezione e i vettori di steering.
 

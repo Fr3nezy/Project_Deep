@@ -614,7 +614,7 @@ MonoBehaviour:
   impactShakePos: 0.4
   impactShakeRot: 4
   fadeDuration: 1.8
-  nextSceneName: GameplayLoop_Blockout
+  nextSceneName: SCN_Gameplay
 --- !u!4 &268386368
 Transform:
   m_ObjectHideFlags: 0
