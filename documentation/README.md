@@ -1,5 +1,5 @@
 # Project Deep — Indice e Catalogo dell'Architettura del Codice
-Ultima verifica: 2026-10-04
+Ultima verifica: 2026-10-07
 
 Benvenuto nell'hub di documentazione tecnica di *Project Deep / Deeplonauts*.  
 Questo catalogo mappa ogni singolo script C# presente nella codebase, definisce i confini dei sistemi, le relazioni tra i componenti e le regole tassative per gli agenti AI e gli sviluppatori.
@@ -34,12 +34,13 @@ Assets/_Project/Code/
 │   ├── Oxygen/                # Gestione riserva O2, consumo basale e drain da sforzo/stress
 │   └── Stress/                # Calcolo ansia da buio (Darkness) e rotazioni brusche (Look)
 ├── Prologue/                  # Dialoghi, sottotitoli e regia narrativa del prologo
-└── Quests/                    # Tracciamento obiettivi, profilo missioni e trigger di avanzamento
+├── Quests/                    # Tracciamento obiettivi, profilo missioni e trigger di avanzamento
+└── Rendering/                 # Post-processing: override e renderer feature del finish analogico
 ```
 
 ---
 
-## 2. Catalogo Completo degli Script (66 / 66)
+## 2. Catalogo Completo degli Script (71 / 71)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -47,6 +48,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueWave1Builder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
+| `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/EntitySystem/Core/EntityPooler.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/EntitySystem/Core/EntityStateManager.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/EntitySystem/Core/EntityStatus.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
@@ -70,6 +72,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/EntitySystem/States/InspectState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/EntitySystem/States/RestState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
+| `Assets/_Project/Code/Environment/GroundBlendProbe.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
+| `Assets/_Project/Code/Environment/GroundMaterialPublisher.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/Environment/HatchDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/HatchExit.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/MarineSnowFollower.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
@@ -109,6 +113,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Quests/QuestManager.cs` | Quests | [Quests.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Quests.md) |
 | `Assets/_Project/Code/Quests/QuestObjectiveTrigger.cs` | Quests | [Quests.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Quests.md) |
 | `Assets/_Project/Code/Quests/QuestProfile.cs` | Quests | [Quests.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Quests.md) |
+| `Assets/_Project/Code/Rendering/AnalogLook.cs` | Rendering | [Rendering.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Rendering.md) |
+| `Assets/_Project/Code/Rendering/AnalogLookFeature.cs` | Rendering | [Rendering.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Rendering.md) |
 
 ---
 

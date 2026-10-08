@@ -1,5 +1,5 @@
 # Environment Systems
-Ultima verifica: 2026-10-04
+Ultima verifica: 2026-10-07
 
 ## Scopo e confini
 Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appartenenti alla fauna autonoma:
@@ -112,6 +112,10 @@ flowchart TD
 - **Campi Inspector**:
   - `Transform target`: Camera da seguire (se nullo, individua `Camera.main`).
   - `Vector3 offset` (default: `(0f, 1f, 3f)`): Offset locale davanti agli occhi del diver.
+- **Aspetto delle particelle (verificato 2026-10-07 in `SCN_EnvDemo`, oggetto `MarineSnowParticles`)**:
+  - Materiale `Assets/_Project/Materials/Environment/VFX/M_MarineSnow.mat`: shader `Universal Render Pipeline/Particles/Unlit`, superficie trasparente con blend additivo, tinta `(0.85, 0.92, 1, 0.8)`.
+  - Texture `T_MarineSnow_Atlas.png` (512×512, atlas 4×4, bianco con la forma nell'alpha): riga 1 fiocchi soffici, riga 2 aggregati a grappolo, riga 3 filamenti, riga 4 granelli con alone. Generata proceduralmente.
+  - Particle System: `Texture Sheet Animation` in modalità Grid 4×4, `WholeSheet`, frame iniziale casuale; rotazione iniziale casuale 0–360° e `Rotation over Lifetime` tra −0.3 e 0.3 rad/s; `startSize` da 0.02 a 0.09 m; `maxParticles` 600.
 
 ## Setup in Unity
 1. **Airlock**:
@@ -125,6 +129,7 @@ flowchart TD
    - Uscita: figlio della radice della capsula (non del portello, che ruota) con `BoxCollider` trigger appena oltre la faccia esterna del portello chiuso e `HatchExit`. Da portello chiuso il raggio colpisce prima il volume del portello; aperto, colpisce il volume d'uscita. Figli `HatchPassPoint` (centro apertura) e `HatchExitPoint` (fondale, con spazio libero per la capsula del player).
 4. **Marine Snow**:
    - Creare un Particle System con particelle fluttuanti a bassa velocità e assegnare `MarineSnowFollower`.
+   - Per l'aspetto a fiocchi: materiale `M_MarineSnow` sul `ParticleSystemRenderer` e `Texture Sheet Animation` 4×4 (vedi sopra).
 
 ## Configurazione verificata in prefab e scene
 - Nella scena `Prototype.unity`:
@@ -146,6 +151,8 @@ flowchart TD
 - In Play Mode all'avvio la camera del player scende (y ≈ 0.96 contro 1.69 in editor) e il raggio colpisce `MSH_PV_BaseRing`: per vedere il prompt il giocatore deve alzare lo sguardo verso il portello.
 
 ## Sistemi collegati
+- [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md): shader del fondale e delle rocce e fusione tra mesh.
+- [Rendering.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Rendering.md): post-processing e finish analogico.
 - [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)
 - [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md)
 - [Quests.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Quests.md)

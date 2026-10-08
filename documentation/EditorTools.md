@@ -1,5 +1,5 @@
 # Editor Tools & Level Builders
-Ultima verifica: 2026-09-13
+Ultima verifica: 2026-10-07
 
 ## Scopo e confini
 Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'Editor di Unity per accelerare il blockout delle scene, la configurazione dei prefab e la creazione di asset di dati:
@@ -14,6 +14,7 @@ Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'E
 - `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs`: Script Editor (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`) che genera la scena isolata di discesa `Prologue_Elevator.unity`.
 - `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs`: Script Editor con menu `Deeploration/Tests/Check Prologue Control Restored`.
 - `Assets/_Project/Code/Editor/PrologueWave1Builder.cs`: Script Editor con menu `Deeplonauts/Prologue/Build Wave 1 Prologue Setup`.
+- `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs`: Script Editor con menu `Deeplonauts/Debug/Rock Blend Masks` che mostra le maschere di fusione delle rocce come colori. Documentato in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
 - `Assets/_Project/Code/EntitySystem/Editor/CreatureProfileCreator.cs`: Script Editor (menu `Assets/Create/Deeploration/Creature Profile`) per la creazione guidata di asset creatura.
 flowchart TD
     Menu[Menu: Tools/Deeplonauts/Build Prototype Graybox Level] --> Builder[DeeplonautsLevelBuilder]
@@ -68,6 +69,10 @@ flowchart TD
 - **API pubbliche**:
   - `static void BuildElevatorScene()`: Genera la scena da zero (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`, protetta da dialog se la scena esiste).
   - `static void SetupElevatorSceneComponents()`: Configura o aggiorna la sequenza, i dialoghi, il camera shake e i cubi nella scena attiva (menu `Deeplonauts/Prologue/Setup Elevator Sequence & Dialogues`).
+
+### RockBlendDebugMenu
+- **Responsabilità**: strumento di debug per `SG_Rock_Blend`; imposta la globale `_EnvRockBlendDebug` (rosso = contatto col suolo, verde = giuntura con le rocce vicine, blu = sedimento e cavità). Lo stato non è salvato e torna a 0 al riavvio dell'Editor.
+- **API pubbliche**: nessuna (metodi privati). Dettagli completi in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
 
 ## Setup in Unity
 - Per rigenerare il livello prototipo da zero (usare con cautela per non sovrascrivere modifiche manuali alla scena):
