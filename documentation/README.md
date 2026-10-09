@@ -116,6 +116,9 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Rendering/AnalogLook.cs` | Rendering | [Rendering.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Rendering.md) |
 | `Assets/_Project/Code/Rendering/AnalogLookFeature.cs` | Rendering | [Rendering.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Rendering.md) |
 
+Sistemi senza script C# (solo shader e materiali):
+- Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
+
 ---
 
 ## 3. Mappa delle Dipendenze tra Sistemi

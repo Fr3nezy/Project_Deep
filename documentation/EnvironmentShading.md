@@ -1,5 +1,5 @@
 # Environment Shading — fondale, rocce e fusione tra mesh
-Ultima verifica: 2026-10-07
+Ultima verifica: 2026-10-09
 
 ## Scopo e confini
 Fa sì che fondale e rocce condividano lo stesso fango e che rocce che si compenetrano si fondano senza bordo di luce, **senza modificare le mesh**: ogni roccia si può spostare e la fusione si ricalcola da sola.
@@ -95,7 +95,11 @@ La maschera finale è `saturate(max(contatto, giuntura * neighborSediment, sedim
 6. Pareti e cliff: `proxyShape = Box`. Massi: `Ellipsoid`.
 
 ## Configurazione verificata in prefab e scene
-`SCN_EnvDemo` (`Assets/_Project/Scenes/SCN_EnvDemo.unity`): due istanze di `SM_MediumRock_low` con `GroundBlendProbe` e materiale `M_Rock_MediumRock`. Sulla `(1)`: `neighborBlendWidth` 0.12, `neighborNormalBlend` 0.41, `neighborSediment` 0.56; sull'altra i default. Non verificata la configurazione di slope e scarpata pillow.
+`SCN_EnvDemo` (`Assets/_Project/Scenes/SCN_EnvDemo.unity`): due istanze di `SM_MediumRock_low` con `GroundBlendProbe` e materiale `M_Rock_MediumRock`. Sulla `(1)`: `neighborBlendWidth` 0.12, `neighborNormalBlend` 0.41, `neighborSediment` 0.56; sull'altra i default. Il terreno è sul layer `Seafloor`. Non verificata la configurazione di slope e scarpata pillow.
+
+Layer `Seafloor` (10, in `ProjectSettings/TagManager.asset`): ci stanno solo i collider del fondale. I prefab `SM_LargeRock_low`, `SM_MediumRock_low`, `SM_SmallRock_low` e `SM_Slope_low` hanno `groundMask` = solo `Seafloor` (1024), così una roccia appoggiata su un'altra non la scambia per il suolo.
+
+`SCN_Gameplay` (`Assets/_Project/Scenes/SCN_Gameplay.unity`), al 2026-10-09: `MapBlocking/Cliff` e `MapBlocking/Terrain` su layer `Seafloor` con `M_Seafloor_Mud`; `GroundMaterialPublisher` su `MapBlocking/Cliff`. Root vuota `ENV_M1` per le rocce dell'ambiente M1, che non sono ancora piazzate (nessun `GroundBlendProbe` in scena). La torre di blockout usa lo shader landmark (vedi [Landmark.md](Landmark.md)).
 
 ## Estensione del sistema
 - Nuova forma di proxy: aggiungere un valore a `ProxyShape`, la sua SDF in `EnvCommon.hlsl` e il ramo in `EnvNearestRockProxy`. Il valore va codificato nella parte intera di `w` in `_RockProxyR`.
@@ -123,4 +127,5 @@ Non verificato: più di due rocce, `Box`, il comportamento con rocce molto grand
 ## Sistemi collegati
 - [Environment.md](Environment.md): neve marina e oggetti ambientali.
 - [Rendering.md](Rendering.md): post-processing sopra questi shader.
+- [Landmark.md](Landmark.md): shader per oggetti lontani che restano visibili nella nebbia.
 - [EditorTools.md](EditorTools.md): altri strumenti dell'Editor.

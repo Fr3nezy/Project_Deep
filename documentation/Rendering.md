@@ -1,5 +1,5 @@
 # Rendering — post-processing e finish analogico
-Ultima verifica: 2026-10-07
+Ultima verifica: 2026-10-09
 
 ## Scopo e confini
 Il look finale del gioco in due strati, entrambi sul Volume stack di URP:
@@ -10,7 +10,7 @@ Il look finale del gioco in due strati, entrambi sul Volume stack di URP:
 
 Non coperto: gli shader dell'ambiente (vedi [EnvironmentShading.md](EnvironmentShading.md)) e la vignette dinamica legata allo stress (vedi [SuitFeedback.md](SuitFeedback.md)).
 
-Stato: **implementato e verificato in Play Mode** in `SCN_EnvDemo`. **Pianificato**: confronto per il relatore (solo A contro A+B), eventuale integrazione dei Volume nelle scene `SCN_Gameplay` e `SCN_Intro`.
+Stato: **implementato e verificato in Play Mode** in `SCN_EnvDemo`. **Pianificato**: confronto per il relatore (solo A contro A+B), eventuale integrazione dei Volume in `SCN_Intro`. In `SCN_Gameplay` i Volume sono configurati ma il look non è ancora verificato in Play Mode.
 
 ## File e componenti
 - `Assets/_Project/Code/Rendering/AnalogLook.cs`: override di Volume.
@@ -70,7 +70,11 @@ Valori dei profili al 2026-10-07 (misurati con una luminosità media pari a quel
 - B: contrasto 5, saturazione −40, post exposure +0.52, vignette 0.32, aberrazione cromatica 0.35, grana `Medium3` 0.6; `Analog Look` con pixel 3, 24 livelli, dither 0.6, scanline 0.15.
 
 ## Configurazione verificata in prefab e scene
-`SCN_EnvDemo`: i due Volume sopra, con i due `Global Volume` originali (solo Bloom e solo Vignette) disattivati ma non cancellati. Le altre scene non usano ancora questi profili.
+`SCN_EnvDemo`: i due Volume sopra, con i due `Global Volume` originali (solo Bloom e solo Vignette) disattivati ma non cancellati.
+
+`SCN_Gameplay` (al 2026-10-09): gli stessi due Volume (`PostFX_Base_Helmet` priorità 0, `PostFX_Style_Analog` priorità 10); i vecchi Volume globali sono stati rimossi. Camera e luci allineate a `SCN_EnvDemo`: sfondo a tinta unita uguale al colore della nebbia (0, 0.057, 0.113) al posto dello skybox procedurale, nebbia Exponential Squared con densità 0.065, Directional Light a 0.03. Far clip della camera del player a 800, per tenere nel frustum la torre-landmark a circa 600 m (vedi [Landmark.md](Landmark.md)).
+
+`SCN_Intro` non usa ancora questi profili.
 
 ## Estensione del sistema
 - Altre varianti di stile: un nuovo profilo con priorità maggiore di A.
@@ -91,5 +95,6 @@ Eseguita il 2026-10-07 in Unity 6000.3.19f1 (URP 17.3.0):
 
 ## Sistemi collegati
 - [EnvironmentShading.md](EnvironmentShading.md): shader che questi effetti elaborano.
+- [Landmark.md](Landmark.md): torre visibile nella nebbia e luci di segnalazione.
 - [Environment.md](Environment.md): neve marina.
 - [SuitFeedback.md](SuitFeedback.md): vignette dinamica dello stress.
