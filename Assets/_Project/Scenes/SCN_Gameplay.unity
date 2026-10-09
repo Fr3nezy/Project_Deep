@@ -2044,7 +2044,7 @@ ParticleSystem:
   ringBufferLoopRange: {x: 0, y: 1}
   emitterVelocityMode: 1
   looping: 1
-  prewarm: 0
+  prewarm: 1
   playOnAwake: 1
   useUnscaledTime: 0
   autoRandomSeed: 1
@@ -2111,7 +2111,7 @@ ParticleSystem:
     startLifetime:
       serializedVersion: 2
       minMaxState: 0
-      scalar: 12
+      scalar: 24
       minScalar: 5
       maxCurve:
         serializedVersion: 2
@@ -2218,7 +2218,7 @@ ParticleSystem:
       serializedVersion: 2
       minMaxState: 0
       minColor: {r: 1, g: 1, b: 1, a: 1}
-      maxColor: {r: 0.85, g: 0.95, b: 1, a: 0.35}
+      maxColor: {r: 0.85, g: 0.95, b: 1, a: 0.23529412}
       maxGradient:
         serializedVersion: 2
         key0: {r: 1, g: 1, b: 1, a: 1}
@@ -2282,8 +2282,8 @@ ParticleSystem:
     startSize:
       serializedVersion: 2
       minMaxState: 3
-      scalar: 0.09
-      minScalar: 0.02
+      scalar: 0.015
+      minScalar: 0.015
       maxCurve:
         serializedVersion: 2
         m_Curve:
@@ -2440,7 +2440,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startRotationX:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 0
       minScalar: 0
       maxCurve:
@@ -2493,7 +2493,7 @@ ParticleSystem:
         m_RotationOrder: 4
     startRotationY:
       serializedVersion: 2
-      minMaxState: 0
+      minMaxState: 3
       scalar: 0
       minScalar: 0
       maxCurve:
@@ -2599,7 +2599,7 @@ ParticleSystem:
         m_RotationOrder: 4
     randomizeRotationDirection: 0
     gravitySource: 0
-    maxNumParticles: 600
+    maxNumParticles: 800
     customEmitterVelocity: {x: 0, y: 0, z: 0}
     size3D: 0
     rotation3D: 0
@@ -8425,7 +8425,6 @@ MonoBehaviour:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
-  rollRecoveryDuration: 1
   fadeDelay: 0.4
   fadeDuration: 2
   subtitleDelay: 1.2
@@ -13128,6 +13127,10 @@ MonoBehaviour:
   exitPoint: {fileID: 1635013269}
   eyeHeight: 1.375
   promptText: Esci
+  snapExitToGround: 1
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
   crouchDuration: 0.45
   crouchDepth: 0.15
   crouchPitch: 10

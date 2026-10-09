@@ -122,7 +122,8 @@ flowchart TD
 - **Aspetto delle particelle (verificato 2026-10-07 in `SCN_EnvDemo`, oggetto `MarineSnowParticles`)**:
   - Materiale `Assets/_Project/Materials/Environment/VFX/M_MarineSnow.mat`: shader `Universal Render Pipeline/Particles/Unlit`, superficie trasparente con blend additivo, tinta `(0.85, 0.92, 1, 0.8)`.
   - Texture `T_MarineSnow_Atlas.png` (512×512, atlas 4×4, bianco con la forma nell'alpha): riga 1 fiocchi soffici, riga 2 aggregati a grappolo, riga 3 filamenti, riga 4 granelli con alone. Generata proceduralmente.
-  - Particle System: `Texture Sheet Animation` in modalità Grid 4×4, `WholeSheet`, frame iniziale casuale; rotazione iniziale casuale 0–360° e `Rotation over Lifetime` tra −0.3 e 0.3 rad/s; `startSize` da 0.02 a 0.09 m; `maxParticles` 600.
+  - Particle System: `Texture Sheet Animation` in modalità Grid 4×4, `WholeSheet`, frame iniziale casuale; rotazione iniziale casuale 0–360° e `Rotation over Lifetime` tra −0.3 e 0.3 rad/s.
+  - Valori ritoccati da Manu in `SCN_EnvDemo` e copiati il 2026-10-09 in `SCN_Gameplay` (`08_UnderwaterAtmosphere/MarineSnowParticles`, Copy/Paste Component Values del solo `ParticleSystem`; renderer e `MarineSnowFollower` erano già uguali): `prewarm` attivo, `startLifetime` 24 s, `startSize` 0.015 m, alpha massimo di `startColor` 0.235, `startRotationX`/`Y` in modalità `minMaxState` 3, `maxParticles` 800. Prima in `SCN_Gameplay`: senza prewarm, 12 s, 0.02–0.09 m, alpha 0.35, 600 particelle.
 
 ## Setup in Unity
 1. **Airlock**:
