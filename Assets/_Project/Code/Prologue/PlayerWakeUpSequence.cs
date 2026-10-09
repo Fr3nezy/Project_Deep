@@ -95,6 +95,13 @@ namespace Deeploration.Prologue
             if (diver != null)
             {
                 Transform body = diver.transform;
+
+                // Seduto: niente CharacterController (non entra nella capsula) e niente visuale finché la testa non è su
+                controller = diver.GetComponent<CharacterController>();
+                if (controller != null) controller.enabled = false;
+                diver.LockMovement = true;
+                diver.enabled = false;
+
                 if (readPoseFromTransform)
                 {
                     // La posa authorata in scena inclina tutto il diver: la si trasferisce alla testa
@@ -102,14 +109,11 @@ namespace Deeploration.Prologue
                     Vector3 tilt = (Quaternion.Inverse(yawOnly) * body.rotation).eulerAngles;
                     slumpPitch = Mathf.DeltaAngle(0f, tilt.x);
                     slumpRoll = Mathf.DeltaAngle(0f, tilt.z);
-                    body.rotation = yawOnly;
+                    // La posa ruota il diver attorno ai piedi: raddrizzandolo si sposta il corpo
+                    // perché il collo resti dove è stato authorato, altrimenti la testa scivola di lato
+                    Vector3 neckOffset = Vector3.up * neckHeight;
+                    body.SetPositionAndRotation(body.position + body.rotation * neckOffset - neckOffset, yawOnly);
                 }
-
-                // Seduto: niente CharacterController (non entra nella capsula) e niente visuale finché la testa non è su
-                controller = diver.GetComponent<CharacterController>();
-                if (controller != null) controller.enabled = false;
-                diver.LockMovement = true;
-                diver.enabled = false;
             }
 
             ApplyHeadPose(slumpPitch, slumpRoll);
