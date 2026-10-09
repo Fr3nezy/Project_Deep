@@ -105,13 +105,13 @@ MonoBehaviour:
     m_Value: 1
   pixelSize:
     m_OverrideState: 1
-    m_Value: 3
+    m_Value: 3.16
   colorLevels:
     m_OverrideState: 1
-    m_Value: 24
+    m_Value: 20
   dither:
     m_OverrideState: 1
-    m_Value: 0.6
+    m_Value: 1
   scanlines:
     m_OverrideState: 1
     m_Value: 0.15
