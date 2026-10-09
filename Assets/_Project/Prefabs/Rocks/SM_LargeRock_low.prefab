@@ -86,7 +86,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Environment.GroundBlendProbe
   groundMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 1024
   probeStartAbove: 2
   probeDistance: 50
   proxyShape: 2
@@ -98,8 +98,8 @@ MonoBehaviour:
   neighborNormalBlend: 0.63
   neighborSediment: 0.16
   hasGround: 1
-  groundPoint: {x: 9.740435, y: -9.1757015e-17, z: 4.1323686}
-  groundNormal: {x: 0, y: 1, z: 2.2204464e-17}
+  groundPoint: {x: 9.740434, y: 4.554527, z: 4.1323676}
+  groundNormal: {x: -0.38002962, y: 0.9185302, z: 0.10899422}
 --- !u!64 &261209341916670613
 MeshCollider:
   m_ObjectHideFlags: 0
