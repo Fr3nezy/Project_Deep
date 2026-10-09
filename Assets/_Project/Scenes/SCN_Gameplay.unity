@@ -12485,7 +12485,7 @@ Light:
   serializedVersion: 12
   m_Type: 1
   m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_Intensity: 0.025
+  m_Intensity: 0.03
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -12774,12 +12774,40 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_ClearFlags
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
       propertyPath: far clip plane
-      value: 800
+      value: 500
+      objectReference: {fileID: 0}
+    - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_BackGroundColor.a
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_BackGroundColor.b
+      value: 0.113
+      objectReference: {fileID: 0}
+    - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_BackGroundColor.g
+      value: 0.057
+      objectReference: {fileID: 0}
+    - target: {fileID: 2136362581478521679, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_BackGroundColor.r
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4275349516386539884, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
       propertyPath: volume
       value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 4979100799969987480, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_Color.b
+      value: 0.49803922
+      objectReference: {fileID: 0}
+    - target: {fileID: 4979100799969987480, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: m_Color.g
+      value: 0.7254902
       objectReference: {fileID: 0}
     - target: {fileID: 5446934738901400048, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
       propertyPath: m_LocalPosition.x
