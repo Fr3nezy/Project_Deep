@@ -1,5 +1,5 @@
 # Player Movement
-Ultima verifica: 2026-09-13
+Ultima verifica: 2026-10-09
 
 ## Scopo e confini
 Gestisce la locomozione sul fondale marino del diver in scafandro pesante ispirata a *SOMA*. Non prevede salto convenzionale né manovre 6DOF in acqua libera: il movimento è vincolato al contatto col fondale tramite `CharacterController`, con inerzia percepibile, roll/pitch del casco e head-bob sinusoidale legato al passo. L'Hydropack per il traversal verticale è pianificato come componente a sé stante sbloccabile in seguito.
@@ -45,11 +45,15 @@ flowchart LR
 - **API pubbliche**:
   - `bool LockMovement { get; set; }`: Proprietà per attivare/disattivare il blocco della locomozione; quando impostata a `true`, azzera immediatamente `horizontalVelocity` e `currentSpeed`.
   - `Vector3 CameraBasePosition { get; set; }`: Quota e offset base della camera (altezza occhi eretta standard).
+  - `Transform CameraTarget { get; }`: Il `cameraTarget` assegnato in Inspector, per le sequenze scriptate che animano la testa (`PlayerWakeUpSequence`, `HatchExit`).
+  - `float ViewRoll { get; set; }` (default 0): Roll fisso della visuale in gradi, sommato a quello del head-bob in `RotateView()` e in `ResetMotion()`. Usato da seduto sul sedile inclinato della capsula; `HatchExit` lo riporta a 0.
+  - `void SetViewPitch(float pitch)`: Imposta pitch corrente e target della visuale senza smorzamento (limitato da `lookDownLimit`/`lookUpLimit`), per riprendere il controllo dalla posa di una sequenza senza scatti.
   - `event Action OnFootstep`: Invocato a ogni appoggio del piede a terra durante la falcata.
   - `float CurrentSpeed { get; }`: Restituisce `currentSpeed`.
   - `bool IsGrounded { get; }`: Restituisce `grounded`.
   - `float GetOxygenDrainPerSecond()`: Calcola il consumo di O₂ in base a andatura (walk/sprint) e velocità effettiva (`effortDrain * (currentSpeed / profile.sprintSpeed)`).
-  - `public void ResetMotion()`: Azzera velocità orizzontale/verticale, velocità corrente, ciclo/peso/roll del bob e passo pendente; riallinea i target di yaw/pitch allo stato corrente e riporta `cameraTarget.localPosition` alla posa base se assegnato. Non teletrasporta il player.
+  - `public void ResetMotion()`: Azzera velocità orizzontale/verticale, velocità corrente, ciclo/peso/roll del bob e passo pendente; riallinea i target di yaw/pitch allo stato corrente e riporta `cameraTarget` alla posa base (posizione `CameraBasePosition`, rotazione pitch corrente e `ViewRoll`). Non teletrasporta il player.
+  - Con il `CharacterController` disattivato `Move()` non fa nulla (nessuna chiamata a `CharacterController.Move`); gravità, head-bob e rotazione della visuale continuano. È lo stato del diver seduto nella capsula.
   - `CharacterController`: Richiesto tramite `[RequireComponent]`.
   - `profile`: Se nullo genera `Debug.LogError` e disabilita il componente in `Awake()`.
   - `cameraTarget`: Se nullo, l'head-bobbing e il pitch del casco non possono essere applicati.
@@ -113,7 +117,7 @@ flowchart LR
 - Se Cinemachine legge il `PlayerCameraRoot` prima o durante `Update()`, l'ordine dei componenti o dell'execution order può alterare la stabilità della camera. Il fix consolidato applica l'head-bob in `Update()` e la rotazione in `LateUpdate()`.
 
 ## Verifica
-- `ResetMotion()` è implementato ma il suo uso nel prologo non è ancora verificato in Play Mode.
+- 2026-10-09, Play Mode in `SCN_Gameplay` (Unity 6000.3.19f1): `CameraTarget`, `ViewRoll`, `SetViewPitch(0)` e `ResetMotion()` usati da `PlayerWakeUpSequence` e `HatchExit`. Passaggio di controllo senza scatti nei valori di posizione, pitch e roll della camera; da seduto `ViewRoll` 16.8° mantenuto dal controller; nessun errore `CharacterController.Move` con il controller spento. Camminata dopo l'uscita non riverificata con input reale.
 - Avviare la scena `SCN_Gameplay.unity` in Play Mode.
 - Camminando con W/A/S/D si deve avvertire l'accelerazione graduale e il dondolio della visuale.
 - Al rilascio dei comandi la decelerazione produce uno scivolamento breve.

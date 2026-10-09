@@ -1,5 +1,5 @@
 # Prologue
-Ultima verifica: 2026-09-13
+Ultima verifica: 2026-10-09
 
 ## Scopo e confini
 Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `SCN_Gameplay.unity`.
@@ -7,7 +7,7 @@ Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1
 ## File e componenti
 - `Assets/_Project/Code/Prologue/CinematicControlGate.cs`: Cancello di controllo per disabilitare/ripristinare i componenti del player, congelare il `CharacterController` e azzerare il moto in sincronia con `PlayableDirector`.
 - `Assets/_Project/Code/Prologue/ElevatorPrologueSequence.cs`: Sequencer per la scena isolata dell'ascensore (`SCN_Intro.unity`): blocco locomozione con freelook, treadmill di cubi esterni dall'oblò, screenshake continuo e da impatto, sequenza sottotitoli a battute, dissolvenza a nero e caricamento asincrono/sincrono del gameplay loop.
-- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `SCN_Gameplay.unity`: partenza da schermo nero, camera stordita a terra con roll, dissolvenza in apertura, rialzamento progressivo ad altezza occhi, battuta di riavvio tuta e restituzione del controllo al diver.
+- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `SCN_Gameplay.unity`, con il diver agganciato al sedile della capsula: partenza da schermo nero con la testa reclinata, dissolvenza in apertura, battuta di riavvio tuta, testa che si rialza ruotando su X attorno al collo, restituzione della visuale con il diver ancora seduto.
 - `Assets/_Project/Code/Prologue/SubtitleLine.cs`: ScriptableObject per singola battuta con testi e speaker localizzati tramite Unity Localization.
 - `Assets/_Project/Code/Prologue/SubtitlePanel.cs`: MonoBehaviour per visualizzazione UI a schermo delle battute localizzate.
 - `Assets/_Project/Code/Prologue/SubtitleTrack.cs`: TrackAsset Timeline custom per il binding con `SubtitlePanel` e la creazione del mixer.
@@ -88,24 +88,25 @@ flowchart TD
 
 ### PlayerWakeUpSequence
 - **Responsabilità e ciclo di vita**:
-  - Esegue la sequenza di rinvenimento del giocatore nella scena di gameplay (`SCN_Gameplay.unity`), sostituendo la vecchia cutscene della discesa.
-  - `Awake()`: Risolve i riferimenti al diver, a `cameraTarget` (`PlayerCameraRoot`), `fadeOverlay` e `subtitlePanel`. Forza lo schermo a nero (`fadeOverlay.alpha = 1.0f`), blocca la locomozione del diver (`diver.LockMovement = true`) e colloca la testa/camera al suolo ad altezza ribassata (`initialHeadHeight = 0.25f`) e con inclinazione stordita (`initialRoll = 28°`, `initialPitch = 12°`).
-  - `Update()`: Gestisce la dissolvenza in apertura della vista (`Mathf.SmoothStep` dal nero), attiva la battuta di emergenza/riavvio tuta (`wakeUpSubtitle`) e rialza progressivamente la camera fino all'altezza occhi eretta (`standingHeadHeight = 1.375f`) azzerando il roll.
-  - `CompleteWakeUp()`: Una volta in piedi, sblocca la locomozione (`diver.LockMovement = false`), invoca `diver.ResetMotion()` per garantire continuità fisica e disabilita il componente.
+  - Esegue il rinvenimento del giocatore in `SCN_Gameplay.unity` con il diver seduto e agganciato al sedile della capsula schiantata. `[DefaultExecutionOrder(100)]`: scrive `PlayerCameraRoot` in `LateUpdate` dopo `DiverController` (0) e prima di `RotationalFollowThrough` (200), vedi [CameraFollowThrough.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/CameraFollowThrough.md).
+  - La posa da svenuto si authora ruotando il `PlayerCapsule` in scena. Con `readPoseFromTransform`, in `Awake()` la rotazione del diver si scompone rispetto al solo yaw: la componente su X diventa `slumpPitch` (testa reclinata), quella su Z `slumpRoll` (corpo inclinato con il sedile). Poi il diver torna a solo yaw, perché `DiverController` e `CharacterController` lavorano dritti.
+  - `Awake()`: risolve i riferimenti (`cameraTarget` da `DiverController.CameraTarget`, `fadeOverlay` da `FadeOverlay`, `subtitlePanel`), forza il nero, legge la posa, spegne il `CharacterController` (non entra nella capsula), imposta `LockMovement = true`, disabilita `DiverController` (niente visuale finché la testa non è su) e applica la posa.
+  - Posa della testa: rotazione `Euler(pitch, 0, roll)` attorno al perno del collo a `neckHeight`. La camera si sposta anche in posizione: `neck + rot * (0, eyeHeight - neckHeight, 0)`.
+  - `Update()`: dissolvenza dal nero (`SmoothStep`), battuta `wakeUpSubtitle` a `subtitleDelay` (cancellata dopo `subtitleDuration`), completamento quando sono finiti sia il sollevamento sia la dissolvenza.
+  - `LateUpdate()`: solo l'asse X cambia. Il pitch va da `slumpPitch` a 0 secondo `liftCurve`, tra `liftDelay` e `liftDelay + liftDuration`; il roll resta `slumpRoll`.
+  - `CompleteWakeUp()`: posa con pitch 0 e roll `slumpRoll`. Sul diver: `CameraBasePosition` = posizione corrente della camera, `ViewRoll = slumpRoll`, `enabled = true`, `SetViewPitch(0)`, `ResetMotion()`, `LockMovement = true`. Il diver resta seduto: visuale libera con il roll del sedile, locomozione bloccata, `CharacterController` spento. Lo porta fuori `HatchExit` (vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md)). Nasconde l'overlay e si disabilita.
 - **Campi Inspector**:
-  - `DiverController diver`: Riferimento al controller del diver.
-  - `Transform cameraTarget`: Target della camera da rialzare (`PlayerCameraRoot`).
-  - `CanvasGroup fadeOverlay`: Overlay nero per la transizione di risveglio.
-  - `SubtitlePanel subtitlePanel`: Pannello UI per la battuta di riavvio tuta.
-  - `SubtitleLine wakeUpSubtitle`: ScriptableObject della battuta di emergenza (`Subtitle_Beat_7.asset`).
-  - `float wakeUpDuration` (default: `3.5f`): Tempo complessivo di rialzamento.
-  - `float initialHeadHeight` (default: `0.25f`): Quota iniziale della testa a terra.
-  - `float standingHeadHeight` (default: `1.375f`): Quota finale della testa eretta.
-  - `float initialRoll` (default: `28.0f`): Inclinazione roll stordito.
-  - `float initialPitch` (default: `12.0f`): Pitch iniziale verso il pavimento.
-  - `float fadeDelay` (default: `0.4f`): Attesa prima dell'apertura del nero.
-  - `float fadeDuration` (default: `2.0f`): Durata del fade da nero.
-  - `float subtitleDelay` (default: `1.2f`): Secondo di comparsa della battuta di emergenza.
+  - `DiverController diver`, `Transform cameraTarget`, `CanvasGroup fadeOverlay`, `SubtitlePanel subtitlePanel` (tutti `null` → cercati in `Awake()`), `SubtitleLine wakeUpSubtitle` (`Subtitle_Beat_7.asset`).
+  - `bool readPoseFromTransform` (default: `true`): legge la posa dalla rotazione del diver in scena.
+  - `float slumpPitch` (default: `25`): testa reclinata in avanti su X (positivo = in basso). Sovrascritto se `readPoseFromTransform`.
+  - `float slumpRoll` (default: `17`): inclinazione laterale sul sedile, resta anche da sveglio finché il diver è seduto. Sovrascritto se `readPoseFromTransform`.
+  - `float eyeHeight` (default: `1.375`): altezza occhi nello spazio locale del diver.
+  - `float neckHeight` (default: `1.2`): altezza del perno del collo.
+  - `float liftDelay` (default: `1.2`), `float liftDuration` (default: `2.6`): inizio e durata del sollevamento.
+  - `AnimationCurve liftCurve` (default: chiavi (0,0), (0.4,0.34), (0.55,0.38), (1,1)): andamento del sollevamento, con una breve esitazione a metà.
+  - `float fadeDelay` (default: `0.4`), `float fadeDuration` (default: `2.0`), `float subtitleDelay` (default: `1.2`), `float subtitleDuration` (default: `5.0`).
+- **API pubbliche**: nessuna.
+- **Riferimenti obbligatori**: `DiverController` in scena. Senza diver o `cameraTarget` la posa non si applica; senza overlay o pannello mancano dissolvenza o battuta, senza errori.
 
 ### SubtitleLine
 - **Responsabilità e ciclo di vita**:
@@ -186,6 +187,12 @@ flowchart TD
   - Corretto fallback `cameraBasePosition` in `DiverController` ad altezza occhi `(0, 1.375, 0)` per impedire l'abbassamento della telecamera ai piedi del diver durante `ResetMotion()`.
 
 ## Configurazione verificata in prefab e scene
+Stato al 2026-10-09 in `SCN_Gameplay.unity`:
+- `Prologue_WakeUp_Manager` con `PlayerWakeUpSequence`: la posa viene dal `PlayerCapsule` a `(-4.08, 0.26, -2.75)` ruotato `(24.62, 202.63, 16.77)`, cioè testa reclinata di 24.6° e corpo inclinato di 16.8°, quasi come la capsula schiantata (`UnderwaterLander_Crashed`, inclinata di 14.1°).
+- `Prologue_IntroDirector` **disattivato** (non cancellato). La timeline `Intro_Blockout` (78 s, play on awake) aveva tutte le tracce senza binding, perché `Prologue_IntroCamera` e l'ascensore non sono più in questa scena (la discesa è in `SCN_Intro`). Non mostrava nulla, ma il suo `CinematicControlGate` teneva spenti `PlayerInput`, `DiverController`, `PlayerInteraction`, `PlayerHands` e `DiverFlashlight` per 78 s: il portellone non rispondeva.
+- `Prologue_ExitDirector` (`ExitTitle_Blockout`, non in play on awake) attivo con il suo gate; nessun evento persistente di `HatchExit` lo avvia.
+
+Le note sotto sulla timeline intro descrivono la configurazione del 2026-09-13 e non valgono più per `SCN_Gameplay`:
 - Scena `Assets/_Project/Scenes/SCN_Gameplay.unity` completamente allestita e verificata in Play Mode con Unity 6000.3.19f1.
 - Esecuzione fluida della Timeline introduttiva: la camera si risveglia a terra, segue l'arco narrativo e consegna la visuale alla telecamera in prima persona esattamente sulla posa a terra del player a 78 secondi.
 - Durante l'intro: controlli player disabilitati, `CharacterController` congelato, nessun accumulo di gravità o slittamento fisico.
@@ -200,6 +207,13 @@ flowchart TD
 - **Pausa Director**: Durante `director.Pause()`, il cancello mantiene lo stato bloccato finché non viene invocato esplicitamente `director.Stop()`.
 
 ## Verifica
+Il 2026-10-09 in Play Mode su `SCN_Gameplay` (Unity 6000.3.19f1, interazioni chiamate da codice, non con tastiera):
+- con `Prologue_IntroDirector` attivo, dopo 9 s il gate risultava ancora bloccato e `PlayerInteraction` spento: è la causa del portellone che non rispondeva;
+- risveglio: pitch della testa da 24.6° a 0 tra 1.2 e 3.8 s, con l'esitazione a 16–15° a metà; roll fisso a 16.8°; corpo dritto e fermo sul sedile, `CharacterController` spento; poi `DiverController` attivo con `ViewRoll` 16.8, `LockMovement` vero, nessuno scatto di posizione o rotazione della camera nel passaggio;
+- da seduto il raggio di `PlayerInteraction` trova `SimpleInteractable` del portellone, poi `HatchExit` a portellone aperto; uscita completa (vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md));
+- non verificato con input reale da tastiera e mouse; non verificata la battuta `Subtitle_Beat_7` nel replay (sottotitolo escluso).
+
+Verifica precedente (2026-09-13):
 - `python documentation/check_catalog.py`: codice 0, 61/61 script catalogati con reference valide.
 - Compilazione Unity (Unity MCP bridge): 0 errori.
 - `PrologueSmokeCheck`: eseguito in Play Mode con esito positivo (`PASS: controllo Diver e reset input`, `SMOKE_CHECK_PASSED`).

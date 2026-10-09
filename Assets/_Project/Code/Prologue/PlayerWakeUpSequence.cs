@@ -5,9 +5,11 @@ using UnityEngine;
 namespace Deeploration.Prologue
 {
     /// <summary>
-    /// Gestisce l'effetto rinvenimento del Diver nella scena SCN_Gameplay:
-    /// avvio a schermo nero, camera a terra inclinata (posa stordita), dissolvenza in apertura,
-    /// rialzamento progressivo ad altezza eretta, battuta di riavvio tuta e restituzione dei controlli.
+    /// Rinvenimento del Diver nella scena SCN_Gameplay, ancora agganciato al sedile della capsula:
+    /// avvio a schermo nero con la testa reclinata (posa da perdita di sensi), dissolvenza in apertura,
+    /// battuta di riavvio tuta e testa che si rialza ruotando sull'asse X locale attorno al collo.
+    /// A fine sequenza il diver resta seduto: visuale libera, locomozione bloccata e CharacterController
+    /// spento finché l'uscita dal portello (HatchExit) non lo porta fuori.
     /// </summary>
     [DefaultExecutionOrder(100)]
     public class PlayerWakeUpSequence : MonoBehaviour
@@ -19,22 +21,37 @@ namespace Deeploration.Prologue
         [SerializeField] private SubtitlePanel subtitlePanel;
         [SerializeField] private SubtitleLine wakeUpSubtitle;
 
-        [Header("Parametri Rinvenimento")]
-        [SerializeField, Tooltip("Durata complessiva del risveglio e rialzamento in secondi.")]
-        private float wakeUpDuration = 3.5f;
+        [Header("Posa da svenuto")]
+        [SerializeField, Tooltip("Se attivo, pitch e roll della posa si leggono dalla rotazione del diver in scena (che poi torna dritto). Altrimenti si usano i valori sotto.")]
+        private bool readPoseFromTransform = true;
 
-        [SerializeField, Tooltip("Altezza iniziale della camera rispetto al pavimento della capsula.")]
-        private float initialHeadHeight = 0.25f;
+        [SerializeField, Tooltip("Testa reclinata in avanti (gradi su X locale, positivo = verso il basso).")]
+        private float slumpPitch = 25.0f;
 
-        [SerializeField, Tooltip("Altezza finale eretta della camera.")]
-        private float standingHeadHeight = 1.375f;
+        [SerializeField, Tooltip("Inclinazione laterale del corpo sul sedile della capsula schiantata (gradi su Z locale). Resta anche dopo il risveglio, finché il diver è seduto.")]
+        private float slumpRoll = 17.0f;
 
-        [SerializeField, Tooltip("Inclinazione laterale (roll) del casco a terra.")]
-        private float initialRoll = 28.0f;
+        [SerializeField, Tooltip("Altezza degli occhi del diver seduto, nello spazio locale del diver.")]
+        private float eyeHeight = 1.375f;
 
-        [SerializeField, Tooltip("Inclinazione verticale (pitch) iniziale del casco.")]
-        private float initialPitch = 12.0f;
+        [SerializeField, Tooltip("Altezza del perno del collo attorno a cui ruota la testa.")]
+        private float neckHeight = 1.2f;
 
+        [Header("Rialzamento della testa")]
+        [SerializeField, Tooltip("Attesa prima che la testa inizi a sollevarsi (secondi).")]
+        private float liftDelay = 1.2f;
+
+        [SerializeField, Tooltip("Durata del sollevamento sull'asse X.")]
+        private float liftDuration = 2.6f;
+
+        [SerializeField, Tooltip("Andamento del sollevamento (0 = reclinata, 1 = dritta). Il default ha una breve esitazione a metà.")]
+        private AnimationCurve liftCurve = new AnimationCurve(
+            new Keyframe(0f, 0f, 0f, 0f),
+            new Keyframe(0.4f, 0.34f),
+            new Keyframe(0.55f, 0.38f),
+            new Keyframe(1f, 1f, 0f, 0f));
+
+        [Header("Dissolvenza e battuta")]
         [SerializeField, Tooltip("Ritardo prima dell'apertura del nero (secondi).")]
         private float fadeDelay = 0.4f;
 
@@ -47,6 +64,7 @@ namespace Deeploration.Prologue
         [SerializeField, Tooltip("Durata visibilità della battuta di emergenza.")]
         private float subtitleDuration = 5.0f;
 
+        private CharacterController controller;
         private float timer;
         private bool sequenceCompleted;
         private bool subtitleTriggered;
@@ -54,11 +72,7 @@ namespace Deeploration.Prologue
         private void Awake()
         {
             if (diver == null) diver = Object.FindFirstObjectByType<DiverController>();
-            if (cameraTarget == null && diver != null)
-            {
-                var camRoot = diver.transform.Find("PlayerCameraRoot");
-                if (camRoot != null) cameraTarget = camRoot;
-            }
+            if (cameraTarget == null && diver != null) cameraTarget = diver.CameraTarget;
 
             if (fadeOverlay == null)
             {
@@ -80,23 +94,25 @@ namespace Deeploration.Prologue
 
             if (diver != null)
             {
-                diver.LockMovement = true;
-            }
-        }
+                Transform body = diver.transform;
+                if (readPoseFromTransform)
+                {
+                    // La posa authorata in scena inclina tutto il diver: la si trasferisce alla testa
+                    Quaternion yawOnly = Quaternion.Euler(0f, body.eulerAngles.y, 0f);
+                    Vector3 tilt = (Quaternion.Inverse(yawOnly) * body.rotation).eulerAngles;
+                    slumpPitch = Mathf.DeltaAngle(0f, tilt.x);
+                    slumpRoll = Mathf.DeltaAngle(0f, tilt.z);
+                    body.rotation = yawOnly;
+                }
 
-        private void Start()
-        {
-            if (diver != null)
-            {
+                // Seduto: niente CharacterController (non entra nella capsula) e niente visuale finché la testa non è su
+                controller = diver.GetComponent<CharacterController>();
+                if (controller != null) controller.enabled = false;
                 diver.LockMovement = true;
-                diver.CameraBasePosition = new Vector3(0f, standingHeadHeight, 0f);
+                diver.enabled = false;
             }
 
-            if (cameraTarget != null)
-            {
-                cameraTarget.localPosition = new Vector3(0f, initialHeadHeight, 0f);
-                cameraTarget.localRotation = Quaternion.Euler(initialPitch, 0f, initialRoll);
-            }
+            ApplyHeadPose(slumpPitch, slumpRoll);
         }
 
         private void Update()
@@ -109,7 +125,6 @@ namespace Deeploration.Prologue
             if (fadeOverlay != null && timer >= fadeDelay)
             {
                 float fadeProgress = Mathf.Clamp01((timer - fadeDelay) / fadeDuration);
-                // Curva smooth per apertura naturale dello sguardo
                 fadeOverlay.alpha = 1.0f - Mathf.SmoothStep(0f, 1f, fadeProgress);
             }
 
@@ -125,7 +140,8 @@ namespace Deeploration.Prologue
             }
 
             // 3. Completamento sequenza
-            if (timer >= wakeUpDuration)
+            float endTime = Mathf.Max(liftDelay + liftDuration, fadeDelay + fadeDuration);
+            if (timer >= endTime)
             {
                 CompleteWakeUp();
             }
@@ -135,41 +151,37 @@ namespace Deeploration.Prologue
         {
             if (sequenceCompleted) return;
 
-            // Rialzamento del corpo (interpolazione altezza e rotazione casco)
-            float t = Mathf.Clamp01(timer / wakeUpDuration);
-            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+            float lift = liftDuration > 0f ? Mathf.Clamp01((timer - liftDelay) / liftDuration) : 1f;
+            // Solo l'asse X: il roll è l'inclinazione del sedile e resta
+            float pitch = Mathf.LerpUnclamped(slumpPitch, 0f, liftCurve.Evaluate(lift));
+            ApplyHeadPose(pitch, slumpRoll);
+        }
 
-            float currentHeight = Mathf.Lerp(initialHeadHeight, standingHeadHeight, smoothT);
-            float currentRoll = Mathf.Lerp(initialRoll, 0f, smoothT);
-            float currentPitch = Mathf.Lerp(initialPitch, 0f, smoothT);
+        /// <summary>La testa ruota attorno al collo: anche la camera si sposta, non solo si inclina.</summary>
+        private void ApplyHeadPose(float pitch, float roll)
+        {
+            if (cameraTarget == null) return;
 
-            if (diver != null)
-            {
-                diver.CameraBasePosition = new Vector3(0f, currentHeight, 0f);
-            }
-
-            if (cameraTarget != null)
-            {
-                cameraTarget.localPosition = new Vector3(0f, currentHeight, 0f);
-                cameraTarget.localRotation = Quaternion.Euler(currentPitch, cameraTarget.localEulerAngles.y, currentRoll);
-            }
+            Quaternion head = Quaternion.Euler(pitch, 0f, roll);
+            Vector3 neck = new Vector3(0f, neckHeight, 0f);
+            cameraTarget.localPosition = neck + head * new Vector3(0f, eyeHeight - neckHeight, 0f);
+            cameraTarget.localRotation = head;
         }
 
         private void CompleteWakeUp()
         {
             sequenceCompleted = true;
+            ApplyHeadPose(0f, slumpRoll);
 
             if (diver != null)
             {
-                diver.CameraBasePosition = new Vector3(0f, standingHeadHeight, 0f);
+                // Resta seduto: visuale libera con il roll del sedile, locomozione bloccata finché HatchExit non lo porta fuori
+                diver.CameraBasePosition = cameraTarget != null ? cameraTarget.localPosition : new Vector3(0f, eyeHeight, 0f);
+                diver.ViewRoll = slumpRoll;
+                diver.enabled = true;
+                diver.SetViewPitch(0f);
                 diver.ResetMotion();
-                diver.LockMovement = false;
-            }
-
-            if (cameraTarget != null)
-            {
-                cameraTarget.localPosition = new Vector3(0f, standingHeadHeight, 0f);
-                cameraTarget.localRotation = Quaternion.identity;
+                diver.LockMovement = true;
             }
 
             if (fadeOverlay != null)

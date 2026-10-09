@@ -77,6 +77,15 @@ namespace Deeploration.Player
             set => cameraBasePosition = value;
         }
 
+        /// <summary>Target della camera (PlayerCameraRoot) che il controller ruota e posiziona.</summary>
+        public Transform CameraTarget => cameraTarget;
+
+        /// <summary>
+        /// Roll fisso della visuale in gradi, sommato al roll del head bob. Serve quando il diver
+        /// è seduto su un sedile inclinato (capsula schiantata); 0 in piedi.
+        /// </summary>
+        public float ViewRoll { get; set; }
+
         /// <summary>Emesso quando un piede tocca il fondale. Aggancio per il suono dei passi.</summary>
         public event System.Action OnFootstep;
 
@@ -146,6 +155,9 @@ namespace Deeploration.Player
 
         private void Move()
         {
+            // Con il controller spento (diver seduto o mosso da una sequenza) non c'è nulla da muovere
+            if (!controller.enabled) return;
+
             if (lockMovement)
             {
                 horizontalVelocity = Vector3.zero;
@@ -196,7 +208,7 @@ namespace Deeploration.Player
             if (cameraTarget != null)
             {
                 currentPitch = Mathf.Lerp(currentPitch, targetPitch, t);
-                cameraTarget.localRotation = Quaternion.Euler(currentPitch, 0f, bobRoll);
+                cameraTarget.localRotation = Quaternion.Euler(currentPitch, 0f, bobRoll + ViewRoll);
             }
         }
 
@@ -258,6 +270,16 @@ namespace Deeploration.Player
             return effortDrain * (currentSpeed / profile.sprintSpeed);
         }
 
+        /// <summary>
+        /// Imposta il pitch della visuale senza smorzamento, per riprendere il controllo
+        /// dalla posa lasciata da una sequenza scriptata senza scatti.
+        /// </summary>
+        public void SetViewPitch(float pitch)
+        {
+            currentPitch = Mathf.Clamp(pitch, profile.lookDownLimit, profile.lookUpLimit);
+            targetPitch = currentPitch;
+        }
+
         public void ResetMotion()
         {
             horizontalVelocity = Vector3.zero;
@@ -277,7 +299,7 @@ namespace Deeploration.Player
                     cameraBasePosition = new Vector3(0f, 1.375f, 0f);
                 }
                 cameraTarget.localPosition = cameraBasePosition;
-                cameraTarget.localRotation = Quaternion.Euler(currentPitch, 0f, 0f);
+                cameraTarget.localRotation = Quaternion.Euler(currentPitch, 0f, ViewRoll);
             }
         }
 
