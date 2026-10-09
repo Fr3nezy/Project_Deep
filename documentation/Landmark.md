@@ -54,7 +54,7 @@ Sequenza: `phase` va da 0 a `_BeaconTop` a 1 a `_BeaconBottom` (quota mondo del 
 - Riferimenti obbligatori: nessuno. Senza nebbia di scena attiva `visibility` vale 1 e lo shader è un lit semplice.
 
 ### M_Landmark_Tower
-`_BaseColor` (0.3, 0.3, 0.32), `_FarColor` nero, `_MaxFog` 0.5, nessuna emissione.
+`_BaseColor` (0.16, 0.16, 0.16), scurito da Manu il 2026-10-09 (prima 0.3, 0.3, 0.32), `_FarColor` nero, `_MaxFog` 0.5, nessuna emissione.
 
 ### M_Landmark_Beacon
 `_BaseColor` e `_FarColor` (0.1, 0.02, 0.02), `_MaxFog` 0.35, `_EmissionColor` (1, 0.05, 0.03) × 6 HDR, `_BeaconOn` 1, `_BeaconTop` 76.6 (cima della torre), `_BeaconBottom` −62.6 (fondo della torre + 10 m), `_BeaconFade` 10, il resto ai default.
