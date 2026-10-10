@@ -38,6 +38,6 @@ Material:
     m_Colors:
     - _BaseColor: {r: 0.15962088, g: 0.15962088, b: 0.16037738, a: 1}
     - _EmissionColor: {r: 0, g: 0, b: 0, a: 1}
-    - _FarColor: {r: 0, g: 0, b: 0, a: 1}
+    - _FarColor: {r: 0.015686275, g: 0.015686275, b: 0.078431375, a: 1}
   m_BuildTextureStacks: []
   m_AllowLocking: 1

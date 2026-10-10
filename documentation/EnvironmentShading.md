@@ -93,6 +93,7 @@ La maschera finale è `saturate(max(contatto, giuntura * neighborSediment, sedim
 4. Ogni roccia con il componente pubblica anche il proprio proxy: per far fondere due rocce serve il componente su **entrambe**.
 5. Selezionando una roccia, il gizmo arancione mostra il suo proxy (ellissoide o box) e il gizmo azzurro il punto del suolo trovato. Regolare `proxyScale` e `proxyOffset` finché il proxy segue la forma.
 6. Pareti e cliff: `proxyShape = Box`. Massi: `Ellipsoid`.
+7. Rocce piccole sparse: pennello **Polybrush** (pacchetto `com.unity.polybrush` 1.2.1, aggiunto il 2026-10-10), `Tools > Polybrush > Polybrush Window`, modalità Scatter Prefabs, con le mesh del fondale (`MapBlocking/Terrain`, `MapBlocking/Cliff`) selezionate come superficie. Le istanze restano prefab, quindi `GroundBlendProbe` si ricalcola da solo. Con l'opzione di parenting alla superficie le istanze finiscono figlie del fondale: vanno poi spostate sotto `ENV_M1/Scatter`. Dati del pacchetto (brush, palette) in `Assets/Polybrush Data/`.
 
 ## Configurazione verificata in prefab e scene
 `SCN_EnvDemo` (`Assets/_Project/Scenes/SCN_EnvDemo.unity`): due istanze di `SM_MediumRock_low` con `GroundBlendProbe` e materiale `M_Rock_MediumRock`. Sulla `(1)`: `neighborBlendWidth` 0.12, `neighborNormalBlend` 0.41, `neighborSediment` 0.56; sull'altra i default. Il terreno è sul layer `Seafloor`. Non verificata la configurazione di slope e scarpata pillow.
@@ -101,7 +102,7 @@ Layer `Seafloor` (10, in `ProjectSettings/TagManager.asset`): ci stanno solo i c
 
 `SM_PillowSlope_low` (aggiunto 2026-10-10): pillow lava, mesh unica da 3000 triangoli (5.1 × 1.4 × 5.7 m) generata in Blender con `GN_PillowShape`; le varianti (piattaforma, lastra a muro, rocce affioranti, roccia liscia capovolta) si ottengono ruotando e scalando le istanze. Materiale `Materials/Environment/Rocks/PillowRock/M_Rock_MediumRock` su `SG_Rock_Blend` con le mappe di Painter. Non ancora piazzato in `SCN_EnvDemo`.
 
-`SCN_Gameplay` (`Assets/_Project/Scenes/SCN_Gameplay.unity`), al 2026-10-09: `MapBlocking/Cliff` e `MapBlocking/Terrain` su layer `Seafloor` con `M_Seafloor_Mud`; `GroundMaterialPublisher` su `MapBlocking/Cliff`. Root vuota `ENV_M1` per le rocce dell'ambiente M1, che non sono ancora piazzate (nessun `GroundBlendProbe` in scena). La torre di blockout usa lo shader landmark (vedi [Landmark.md](Landmark.md)).
+`SCN_Gameplay` (`Assets/_Project/Scenes/SCN_Gameplay.unity`), al 2026-10-09: `MapBlocking/Cliff` e `MapBlocking/Terrain` su layer `Seafloor` con `M_Seafloor_Mud`; `GroundMaterialPublisher` su `MapBlocking/Cliff`. Root `ENV_M1` per le rocce dell'ambiente M1; al 2026-10-10 composizione iniziale di Manu: `ENV_M1/Rocks` (16 pezzi piazzati a mano, più 4 rocce figlie di un'istanza di `SM_PillowSlope_low`), `ENV_M1/Scatter` (35 rocce dipinte con Polybrush), `ENV_M1/CreviceWalls` (11 pezzi delle pareti del canyon). Il canyon parte dal cratere della capsula e inquadra la torre-landmark in fondo. La torre di blockout usa lo shader landmark (vedi [Landmark.md](Landmark.md)).
 
 ## Estensione del sistema
 - Nuova forma di proxy: aggiungere un valore a `ProxyShape`, la sua SDF in `EnvCommon.hlsl` e il ramo in `EnvNearestRockProxy`. Il valore va codificato nella parte intera di `w` in `_RockProxyR`.
