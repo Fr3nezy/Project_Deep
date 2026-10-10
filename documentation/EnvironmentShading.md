@@ -97,7 +97,9 @@ La maschera finale è `saturate(max(contatto, giuntura * neighborSediment, sedim
 ## Configurazione verificata in prefab e scene
 `SCN_EnvDemo` (`Assets/_Project/Scenes/SCN_EnvDemo.unity`): due istanze di `SM_MediumRock_low` con `GroundBlendProbe` e materiale `M_Rock_MediumRock`. Sulla `(1)`: `neighborBlendWidth` 0.12, `neighborNormalBlend` 0.41, `neighborSediment` 0.56; sull'altra i default. Il terreno è sul layer `Seafloor`. Non verificata la configurazione di slope e scarpata pillow.
 
-Layer `Seafloor` (10, in `ProjectSettings/TagManager.asset`): ci stanno solo i collider del fondale. I prefab `SM_LargeRock_low`, `SM_MediumRock_low`, `SM_SmallRock_low` e `SM_Slope_low` hanno `groundMask` = solo `Seafloor` (1024), così una roccia appoggiata su un'altra non la scambia per il suolo.
+Layer `Seafloor` (10, in `ProjectSettings/TagManager.asset`): ci stanno solo i collider del fondale. I prefab `SM_LargeRock_low`, `SM_MediumRock_low`, `SM_SmallRock_low`, `SM_Slope_low` e `SM_PillowSlope_low` hanno `groundMask` = solo `Seafloor` (1024), così una roccia appoggiata su un'altra non la scambia per il suolo. Tutti hanno un `MeshCollider` convesso.
+
+`SM_PillowSlope_low` (aggiunto 2026-10-10): pillow lava, mesh unica da 3000 triangoli (5.1 × 1.4 × 5.7 m) generata in Blender con `GN_PillowShape`; le varianti (piattaforma, lastra a muro, rocce affioranti, roccia liscia capovolta) si ottengono ruotando e scalando le istanze. Materiale `Materials/Environment/Rocks/PillowRock/M_Rock_MediumRock` su `SG_Rock_Blend` con le mappe di Painter. Non ancora piazzato in `SCN_EnvDemo`.
 
 `SCN_Gameplay` (`Assets/_Project/Scenes/SCN_Gameplay.unity`), al 2026-10-09: `MapBlocking/Cliff` e `MapBlocking/Terrain` su layer `Seafloor` con `M_Seafloor_Mud`; `GroundMaterialPublisher` su `MapBlocking/Cliff`. Root vuota `ENV_M1` per le rocce dell'ambiente M1, che non sono ancora piazzate (nessun `GroundBlendProbe` in scena). La torre di blockout usa lo shader landmark (vedi [Landmark.md](Landmark.md)).
 
@@ -107,6 +109,8 @@ Layer `Seafloor` (10, in `ProjectSettings/TagManager.asset`): ci stanno solo i c
 - Dopo ogni modifica a `EnvCommon.hlsl` forzare il reimport di `SG_Rock_Blend.shadergraph` (e di `SG_Terrain_Lit`): l'include della Custom Function non sempre ricompila da solo.
 
 ## Limiti e problemi noti
+- Le mappe `MetallicSmoothness` di tutte le rocce sono importate in sRGB, mentre una mappa di dati andrebbe in lineare: la smoothness risulta un po' diversa da quella vista in Painter. Lasciato così per coerenza tra le rocce; da correggere tutte insieme se il riflesso della torcia non torna.
+- Il materiale di ogni roccia si chiama `M_Rock_MediumRock` anche nelle cartelle di slope, large e pillow: nomi duplicati, GUID diversi.
 - **Silhouette e ombre non si cancellano.** Dove una roccia sta davanti a un'altra il bordo è un salto di profondità, e la giuntura riceve ombre e SSAO veri. La fusione agisce solo sulla linea di intersezione.
 - Il proxy approssima la forma: su rocce molto irregolari la fascia può allargarsi o sparire in alcuni punti.
 - L'uso di `MaterialPropertyBlock` rende le rocce incompatibili con l'SRP Batcher (accettato).
