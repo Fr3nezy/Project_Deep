@@ -101,7 +101,7 @@ flowchart LR
 2. Assegnare un asset `DiverProfile` nel campo `Profile`.
 3. Assegnare il nodo `PlayerCameraRoot` al campo `Camera Target`.
 4. Assegnare `StarterAssetsInputs` sullo stesso GameObject.
-5. Verificare che il `CharacterController` abbia altezza ~1.8m, raggio ~0.5m e skin width 0.08m.
+5. `CharacterController` del prefab `Player` (verificato 2026-10-10): altezza 2 m, raggio 0.5 m, center (0, 0.93, 0), skin width 0.02 m, slope limit 45°, **step offset 0.45 m** (alzato da 0.25 il 2026-10-10: il diver si bloccava sulle rocce basse del fondale, alte 0.25–0.45 m; 0.45 è circa l'altezza del ginocchio, scavalca i sassi ma non sale sui massi).
 
 ## Configurazione verificata in prefab e scene
 - Nel prefab [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
