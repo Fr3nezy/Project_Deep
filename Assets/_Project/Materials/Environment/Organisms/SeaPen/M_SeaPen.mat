@@ -1,0 +1,103 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_SeaPen
+  m_Shader: {fileID: 4800000, guid: a1e73e399d624e54d94a15658f34da84, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _ALPHATEST_ON
+  - _CORAL_TOUCH_GLOW
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 2450
+  stringTagMap:
+    RenderType: TransparentCutout
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 9fc0f03ebb25ec642a8abc7f9ff59039, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 1ea92c54fa4c4a749b5be64e32868928, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 2800000, guid: 36defa9580d72304e8382c37004c25c1, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaClip: 1
+    - _Branch: 0
+    - _BumpScale: 1
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _GlowStrength: 0
+    - _GradientHeight: 1
+    - _HoleTransmission: 0.6
+    - _InteriorFill: 0.55
+    - _LatticeGlow: 0
+    - _NodeFadeMax: 0.58
+    - _NodeFadeMin: 0.25
+    - _NodeSoftness: 0.02
+    - _NodeWidth: 0.05
+    - _OpacityFacing: 0.55
+    - _OpacityGrazing: 0.95
+    - _PulseSpacing: 3
+    - _PulseSpeed: 0.3
+    - _PulseStrength: 0
+    - _PulseTail: 0.15
+    - _PushRadius: 0.7
+    - _PushStrength: 0.22
+    - _Refraction: 0.02
+    - _RimPower: 3
+    - _RimStrength: 0
+    - _Smoothness: 0.25
+    - _SwayAmount: 0.04
+    - _SwayFrequency: 0.25
+    - _SwayHeight: 0.5
+    - _SwayLean: 0.08
+    - _SwayPhaseUV1: 0.35
+    - _SwayWave: 1.2
+    - _TexScale: 1
+    - _TouchAfterglow: 0.3
+    - _TouchBaseLevel: 0.25
+    - _TouchFlicker: 9
+    - _TouchGlow: 1
+    - _TouchGlowStrength: 1.5
+    - _TouchGradient: 1
+    - _TouchJitter: 0.3
+    - _TouchLifetime: 2.5
+    - _TouchRadius: 1.6
+    - _TouchSpeed: 1.2
+    - _TouchWidth: 0.25
+    - _Translucent: 0
+    m_Colors:
+    - _BackfaceTint: {r: 0.9, g: 0.9, b: 0.9, a: 1}
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BottomColor: {r: 0.7, g: 0.6399999, b: 0.5, a: 1}
+    - _GlowColor: {r: 0.25, g: 0.85, b: 1, a: 1}
+    - _LatticeGlowColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+    - _NodeColor: {r: 0.15999997, g: 0.089999996, b: 0.079999976, a: 1}
+    - _RimColor: {r: 0.85, g: 0.95, b: 1, a: 1}
+    - _SwayDirection: {r: 1, g: 0, b: 0, a: 0}
+    - _TopColor: {r: 0.92, g: 0.9, b: 0.8399999, a: 1}
+    - _TouchGlowBaseColor: {r: 0, g: 0.25, b: 1, a: 1}
+    - _TouchGlowColor: {r: 0.02, g: 1, b: 0.25, a: 1}
+    - _TouchGlowColor2: {r: 0, g: 0.55, b: 1, a: 1}
+    - _TransmissionTint: {r: 0.85, g: 0.92, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

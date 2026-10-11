@@ -40,7 +40,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (71 / 71)
+## 2. Catalogo Completo degli Script (72 / 72)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -78,6 +78,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Environment/HatchExit.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/MarineSnowFollower.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/OxygenRefillStation.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
+| `Assets/_Project/Code/Environment/SeaPenTouchGlow.cs` | Coral | [Coral.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Coral.md) |
 | `Assets/_Project/Code/Environment/StressLightZone.cs` | Darkness Stress | [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md) |
 | `Assets/_Project/Code/Interaction/IInteractable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/ItemPickup.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
@@ -118,7 +119,7 @@ Assets/_Project/Code/
 
 Sistemi senza script C# (solo shader e materiali):
 - Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
-- Coral: `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) e spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia). Reference: [Coral.md](Coral.md).
+- Coral (shader e materiali; l'unico script è `SeaPenTouchGlow`, nel catalogo sopra): `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia) e toppe ibride di penne di mare (steli veri più card con alpha clip, inclinazione e ondeggiamento per stelo con la corrente, bioluminescenza dove passa il sub). Reference: [Coral.md](Coral.md).
 
 ---
 

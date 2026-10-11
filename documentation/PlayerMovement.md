@@ -108,6 +108,7 @@ flowchart LR
   - `DiverController` è configurato con `DiverProfile_Heavy` (`Assets/_Project/Profiles/DiverProfile_Heavy.asset`).
   - `Camera Target` punta a `PlayerCameraRoot`.
   - `ApplyHeadBob` è eseguito in `Update()`, garantendo la sincronizzazione prima di Cinemachine in `LateUpdate()`.
+  - Sul `PlayerCapsule` c'è anche `SeaPenTouchGlow` (dal 2026-10-11): usa il pivot ai piedi per far accendere le penne di mare dove passa il diver, vedi [Coral.md](Coral.md).
 
 ## Estensione del sistema
 - Integrazione modulo Hydropack: creare un componente separato `DiverHydropack` che modifica o sovrascrive la componente verticale della velocità (`verticalVelocity`) consumando risorsa separata (propellente/energia).

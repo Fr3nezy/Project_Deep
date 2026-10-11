@@ -657,6 +657,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 8616685848737228372, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
       insertIndex: -1
       addedObject: {fileID: 6190238896408459994}
+    - targetCorrespondingSourceObject: {fileID: 8616685848737228372, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 404671512499247287}
   m_SourcePrefab: {fileID: 100100000, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
 --- !u!4 &1020819376488995350 stripped
 Transform:
@@ -805,6 +808,19 @@ MonoBehaviour:
   offRelief: 0
   currentMode: 0
   currentRelief: 1
+--- !u!114 &404671512499247287
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673811610790503242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4d5b677dd44bcfc498fc8f39928a184f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Environment.SeaPenTouchGlow
+  stampSpacing: 0.4
 --- !u!4 &5446934738901400048 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8997996947095583982, guid: c5efc39a8aaf6e64ea40e9ad573e9b47, type: 3}
