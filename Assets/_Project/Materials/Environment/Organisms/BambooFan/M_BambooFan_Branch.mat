@@ -1,0 +1,65 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_BambooFan_Branch
+  m_Shader: {fileID: 4800000, guid: a1e73e399d624e54d94a15658f34da84, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _CORAL_BRANCH
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaClip: 0
+    - _Branch: 1
+    - _BumpScale: 1
+    - _Cull: 2
+    - _Cutoff: 0.5
+    - _GlowStrength: 0
+    - _GradientHeight: 1
+    - _NodeFadeMax: 0.58
+    - _NodeFadeMin: 0.25
+    - _NodeSoftness: 0.02
+    - _NodeWidth: 0.05
+    - _Smoothness: 0.3
+    - _SwayAmount: 0.03
+    - _SwayFrequency: 0.2
+    - _SwayHeight: 1
+    - _TexScale: 1
+    m_Colors:
+    - _BaseColor: {r: 1, g: 1, b: 1, a: 1}
+    - _BottomColor: {r: 0.62, g: 0.61, b: 0.57, a: 1}
+    - _GlowColor: {r: 0.25, g: 0.85, b: 1, a: 1}
+    - _NodeColor: {r: 0.15999997, g: 0.089999996, b: 0.079999976, a: 1}
+    - _SwayDirection: {r: 1, g: 0, b: 0, a: 0}
+    - _TopColor: {r: 0.84, g: 0.85, b: 0.84, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

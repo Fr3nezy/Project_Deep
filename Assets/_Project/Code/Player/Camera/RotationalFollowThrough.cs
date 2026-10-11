@@ -11,6 +11,11 @@ namespace Deeploration.Player
         [SerializeField, Min(0.01f)] private float rotationSharpness = 7f;
         [SerializeField, Range(0f, 45f)] private float maxLagAngle = 12f;
 
+        [SerializeField, Tooltip("Rotazione del pivot rispetto al target, catturata in editor dalla posa authorata. " +
+                                 "Non va letta in Awake: altri script (es. PlayerWakeUpSequence) possono aver già ruotato il target.")]
+        private Vector3 rotationOffsetEuler;
+        [SerializeField, HideInInspector] private bool offsetCaptured;
+
         private Quaternion targetOffset;
         private Quaternion smoothedRotation;
 
@@ -21,8 +26,21 @@ namespace Deeploration.Player
 
             smoothedRotation = transform.rotation;
 
-            if (rotationTarget != null)
+            if (offsetCaptured)
+                targetOffset = Quaternion.Euler(rotationOffsetEuler);
+            else if (rotationTarget != null)
                 targetOffset = Quaternion.Inverse(rotationTarget.rotation) * transform.rotation;
+        }
+
+        /// <summary>Salva l'offset attuale tra pivot e target come offset authorato.</summary>
+        [ContextMenu("Capture Rotation Offset")]
+        public void CaptureRotationOffset()
+        {
+            if (rotationTarget == null)
+                return;
+
+            rotationOffsetEuler = (Quaternion.Inverse(rotationTarget.rotation) * transform.rotation).eulerAngles;
+            offsetCaptured = true;
         }
 
         private void LateUpdate()
@@ -44,6 +62,10 @@ namespace Deeploration.Player
         {
             rotationSharpness = Mathf.Max(0.01f, rotationSharpness);
             maxLagAngle = Mathf.Clamp(maxLagAngle, 0f, 45f);
+
+            // In editor la posa è quella authorata: l'offset si ricattura a ogni modifica
+            if (!Application.isPlaying)
+                CaptureRotationOffset();
         }
     }
 }

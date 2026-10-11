@@ -29,3 +29,51 @@ MonoBehaviour:
       m_YScaleBool: 1
       m_ZScaleBool: 1
     name: SM_SmallRock_low
+  - gameObject: {fileID: 2987187326813665877, guid: d32379fabe66a15419639ead208d090a, type: 3}
+    settings:
+      m_Strength: 51
+      m_RotationRangeMin: {x: -5, y: -15, z: -3}
+      m_RotationRangeMax: {x: 5, y: 15, z: 3}
+      m_ScaleRangeMin: {x: 1, y: 1, z: 1}
+      m_ScaleRangeMax: {x: 1, y: 1, z: 1}
+      m_UniformScale: {x: 0.8, y: 1.5}
+      m_UniformBool: 1
+      m_XRotationBool: 1
+      m_YRotationBool: 1
+      m_ZRotationBool: 1
+      m_XScaleBool: 1
+      m_YScaleBool: 1
+      m_ZScaleBool: 1
+    name: SM_BambooFan_A
+  - gameObject: {fileID: 3093263988894022266, guid: fbc503b0a81cb934e909858501f518ef, type: 3}
+    settings:
+      m_Strength: 47.676804
+      m_RotationRangeMin: {x: -5, y: -15, z: -3}
+      m_RotationRangeMax: {x: 5, y: 15, z: 3}
+      m_ScaleRangeMin: {x: 1, y: 1, z: 1}
+      m_ScaleRangeMax: {x: 1, y: 1, z: 1}
+      m_UniformScale: {x: 0.8, y: 1.5}
+      m_UniformBool: 1
+      m_XRotationBool: 1
+      m_YRotationBool: 1
+      m_ZRotationBool: 1
+      m_XScaleBool: 1
+      m_YScaleBool: 1
+      m_ZScaleBool: 1
+    name: SM_BambooFan_B
+  - gameObject: {fileID: 7351961496172904731, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
+    settings:
+      m_Strength: 47.676815
+      m_RotationRangeMin: {x: -5, y: -15, z: -3}
+      m_RotationRangeMax: {x: 5, y: 15, z: 3}
+      m_ScaleRangeMin: {x: 1, y: 1, z: 1}
+      m_ScaleRangeMax: {x: 1, y: 1, z: 1}
+      m_UniformScale: {x: 0.8, y: 1.5}
+      m_UniformBool: 1
+      m_XRotationBool: 1
+      m_YRotationBool: 1
+      m_ZRotationBool: 1
+      m_XScaleBool: 1
+      m_YScaleBool: 1
+      m_ZScaleBool: 1
+    name: SM_BambooFan_C

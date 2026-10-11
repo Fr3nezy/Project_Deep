@@ -1,5 +1,5 @@
 # Camera & Visual Follow-Through
-Ultima verifica: 2026-10-04
+Ultima verifica: 2026-10-11
 
 ## Scopo e confini
 Gestisce il ritardo e l'inerzia rotazionale (lag/follow-through) per elementi solidali alla visuale del diver, come la visiera del casco e la torcia.
@@ -25,14 +25,17 @@ flowchart LR
 ### RotationalFollowThrough
 - **Responsabilità e ciclo di vita**:
   - `[DefaultExecutionOrder(200)]`: gira dopo `CinemachineBrain` (100, impostato nelle Script Execution Order del progetto) e `PlayerWakeUpSequence` (100). Così legge la rotazione finale del target nel frame, dopo che `DiverController.RotateView` (0) e `PlayerWakeUpSequence` l'hanno scritta, e la camera padre è già stata posizionata dal brain.
-  - `Awake()`: Se `rotationTarget` è nullo usa `Camera.main.transform`. Inizializza `smoothedRotation = transform.rotation` e salva `targetOffset = Inverse(rotationTarget.rotation) * transform.rotation`.
+  - `Awake()`: Se `rotationTarget` è nullo usa `Camera.main.transform`. Inizializza `smoothedRotation = transform.rotation`. `targetOffset` = `Quaternion.Euler(rotationOffsetEuler)` se l'offset è stato catturato in editor, altrimenti (componente mai validato) `Inverse(rotationTarget.rotation) * transform.rotation` come prima.
+  - `OnValidate()` (solo fuori dal Play): ricattura l'offset dalla posa authorata in scena o nel prefab.
   - `LateUpdate()`: `desired = rotationTarget.rotation * targetOffset`; `smoothedRotation = Slerp(smoothedRotation, desired, 1 - exp(-rotationSharpness * dt))`; se lo scarto supera `maxLagAngle` lo riporta entro il limite con `RotateTowards`; assegna `transform.rotation`.
 - **Campi Inspector**:
   - `Transform rotationTarget` (default: `null` → `Camera.main`): Transform di riferimento da inseguire.
   - `float rotationSharpness` (default: `7f`, min `0.01`): Rapidità dell'inseguimento esponenziale.
   - `float maxLagAngle` (default: `12f`, range `0–45`): Scarto angolare massimo in gradi rispetto alla rotazione desiderata.
+  - `Vector3 rotationOffsetEuler` (default: `(0,0,0)`, catturato in editor): rotazione del pivot rispetto al target. Non va calcolata in `Awake`, perché `PlayerWakeUpSequence` (ordine 100) ruota già `PlayerCameraRoot` nella posa da svenuto prima che questo componente si svegli.
+  - `bool offsetCaptured` (nascosto): vero quando `rotationOffsetEuler` è valido.
 - **API pubbliche**:
-  - Nessuna; controller autonomo in `LateUpdate`.
+  - `public void CaptureRotationOffset()`: salva l'offset attuale tra pivot e target in `rotationOffsetEuler`. Disponibile anche dal menu contestuale del componente (*Capture Rotation Offset*). Va richiamata (o basta modificare un campo in editor) se si sposta il pivot rispetto al target.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - `rotationTarget`: se nullo e non esiste `Camera.main`, `LateUpdate` non fa nulla.
 
@@ -54,6 +57,7 @@ flowchart LR
 4. Posizionare le mesh grafiche (visiera, torcia) come figlie di questo pivot.
 
 ## Configurazione verificata in prefab e scene
+- Offset catturati il 2026-10-11 in `Player.prefab`: `HelmetVisualPivot` (0, 0, 0), `TorchPivot` (11.53, 0, 0), cioè torcia 11.5° sotto la visuale. In Play, a risveglio finito, la torcia punta 11.2° sotto la vista con 0.5° di scarto laterale.
 - In `SCN_Gameplay.unity` (verificato 2026-10-04): `Player/MainCamera/HelmetVisualPivot` ha `RotationalFollowThrough` con `rotationTarget = PlayerCameraRoot`, `rotationSharpness = 12`, `maxLagAngle = 6`; `PlayerCapsule/TorchPivot` usa lo stesso target.
   - Misura frame per frame del risveglio (200 frame a 50 fps): scarto casco–camera massimo 5,6° (primi frame, a schermo nero), poi sotto 1,5°. Prima del cambio di ordine a 200 lo scarto era ~30° (roll 28° + pitch 12°) e il casco attraversava il near plane.
 - In [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
@@ -64,6 +68,7 @@ flowchart LR
 - Aggiunta di sway laterale/rollio durante i passi agganciandosi all'evento `OnFootstep` di `DiverController`.
 
 ## Limiti e problemi noti
+- Bug risolto 2026-10-11: `targetOffset` era calcolato in `Awake` dopo che `PlayerWakeUpSequence` aveva già chinato `PlayerCameraRoot` (pitch della posa da svenuto, circa 25°, più il roll del sedile). Dopo il risveglio la torcia restava circa 13° sopra la vista e inclinata. Ora l'offset è serializzato e catturato in editor.
 - Bug risolto 2026-10-04: con ordine 100, pari a `CinemachineBrain` e `PlayerWakeUpSequence`, il follow-through poteva leggere `PlayerCameraRoot` dopo che `DiverController.RotateView` ne aveva azzerato il roll e prima che `PlayerWakeUpSequence` lo riapplicasse. La camera prendeva roll e pitch del risveglio, il casco no, e la geometria del casco entrava nel near plane. Un nuovo script che scrive la rotazione di `PlayerCameraRoot` in `LateUpdate` deve avere ordine inferiore a 200.
 - Anche in piedi alcuni vertici del casco ai bordi del campo visivo restano più vicini del near plane (0,14) della camera: comportamento preesistente, non legato al lag.
 - Se il pivot si trova nella stessa gerarchia di Cinemachine, un'inversione nell'ordine di esecuzione dei `LateUpdate` può produrre jitter visivo. Si consiglia di mantenere i nodi grafici follow-through su pivot dedicati non controllati direttamente da Cinemachine.

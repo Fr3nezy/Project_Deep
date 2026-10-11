@@ -48,6 +48,8 @@ MonoBehaviour:
   rotationTarget: {fileID: 1020819376488995350}
   rotationSharpness: 7
   maxLagAngle: 12
+  rotationOffsetEuler: {x: 11.532358, y: 0, z: 0}
+  offsetCaptured: 1
 --- !u!1 &5963854485263641623
 GameObject:
   m_ObjectHideFlags: 0
@@ -131,6 +133,8 @@ MonoBehaviour:
   rotationTarget: {fileID: 1020819376488995350}
   rotationSharpness: 12
   maxLagAngle: 6
+  rotationOffsetEuler: {x: -0, y: 0, z: 0}
+  offsetCaptured: 1
 --- !u!1 &8101501080060020473
 GameObject:
   m_ObjectHideFlags: 0
