@@ -1,0 +1,83 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: M_GlassSponge
+  m_Shader: {fileID: 4800000, guid: a1e73e399d624e54d94a15658f34da84, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords:
+  - _CORAL_TRANSLUCENT
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: 3000
+  stringTagMap:
+    RenderType: Transparent
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _BaseMap:
+        m_Texture: {fileID: 2800000, guid: 0db141e249ea29542aa122cda607deeb, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _BumpMap:
+        m_Texture: {fileID: 2800000, guid: 6f4d14e160b6bf44982b345e9c8bef82, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MaskMap:
+        m_Texture: {fileID: 2800000, guid: d95b9c3914eb2ac4da59db1e9469965f, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _AlphaClip: 0
+    - _Branch: 0
+    - _BumpScale: 1
+    - _Cull: 0
+    - _Cutoff: 0.5
+    - _GlowStrength: 0
+    - _GradientHeight: 1
+    - _HoleTransmission: 0.55
+    - _InteriorFill: 0.7
+    - _LatticeGlow: 0.006
+    - _NodeFadeMax: 0.58
+    - _NodeFadeMin: 0.25
+    - _NodeSoftness: 0.02
+    - _NodeWidth: 0.05
+    - _OpacityFacing: 0.8
+    - _OpacityGrazing: 1
+    - _PulseSpacing: 4
+    - _PulseSpeed: 1
+    - _PulseStrength: 0.08
+    - _PulseTail: 0.07
+    - _Refraction: 0.02
+    - _RimPower: 3
+    - _RimStrength: 1.2
+    - _Smoothness: 0.35
+    - _SwayAmount: 0.05
+    - _SwayFrequency: 0.2
+    - _SwayHeight: 1
+    - _TexScale: 1
+    - _Translucent: 1
+    m_Colors:
+    - _BackfaceTint: {r: 0.78, g: 0.8, b: 0.84, a: 1}
+    - _BaseColor: {r: 0.92, g: 0.94, b: 0.95, a: 1}
+    - _BottomColor: {r: 0.7, g: 0.6399999, b: 0.5, a: 1}
+    - _GlowColor: {r: 0.25, g: 0.85, b: 1, a: 1}
+    - _LatticeGlowColor: {r: 0.55, g: 0.85, b: 1, a: 1}
+    - _NodeColor: {r: 0.15999997, g: 0.089999996, b: 0.079999976, a: 1}
+    - _RimColor: {r: 0.85, g: 0.95, b: 1, a: 1}
+    - _SwayDirection: {r: 1, g: 0, b: 0, a: 0}
+    - _TopColor: {r: 0.92, g: 0.9, b: 0.8399999, a: 1}
+    - _TransmissionTint: {r: 0.85, g: 0.92, b: 1, a: 1}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

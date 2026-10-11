@@ -118,7 +118,7 @@ Assets/_Project/Code/
 
 Sistemi senza script C# (solo shader e materiali):
 - Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
-- Coral: `Assets/_Project/Rendering/Shaders/Coral.shader`, corallo bambù procedurale in tre varianti con LOD (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento). Reference: [Coral.md](Coral.md).
+- Coral: `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) e spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia). Reference: [Coral.md](Coral.md).
 
 ---
 

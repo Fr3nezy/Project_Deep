@@ -37,6 +37,27 @@ Shader "Deeplonauts/Coral"
         [Header(Glow)]
         [HDR] _GlowColor ("Glow Color", Color) = (0.25, 0.85, 1, 1)
         _GlowStrength ("Glow Strength", Range(0, 4)) = 0.15
+        [HDR] _LatticeGlowColor ("Lattice Glow Color (mask B)", Color) = (0.55, 0.85, 1, 1)
+        _LatticeGlow ("Lattice Glow Base", Range(0, 2)) = 0
+        _PulseStrength ("Lattice Pulse Strength", Range(0, 4)) = 0
+        _PulseSpeed ("Pulse Speed (UV0.y per s)", Float) = 0.3
+        _PulseSpacing ("Pulse Spacing (UV0.y)", Float) = 3
+        _PulseTail ("Pulse Tail (fraction of spacing)", Range(0.01, 1)) = 0.15
+
+        [Header(Rim and Back Faces)]
+        _RimColor ("Rim Color", Color) = (0.85, 0.95, 1, 1)
+        _RimStrength ("Rim Strength (x lit light)", Range(0, 4)) = 0
+        _RimPower ("Rim Power", Range(0.5, 8)) = 3
+        _BackfaceTint ("Back Face Tint", Color) = (1, 1, 1, 1)
+
+        [Header(Translucency)]
+        [Toggle(_CORAL_TRANSLUCENT)] _Translucent ("Translucent (Transparent queue, needs Opaque Texture)", Float) = 0
+        _OpacityFacing ("Opacity Facing", Range(0, 1)) = 0.55
+        _OpacityGrazing ("Opacity Grazing", Range(0, 1)) = 0.95
+        _HoleTransmission ("Hole Transmission (mask G)", Range(0, 1)) = 0.6
+        _TransmissionTint ("Transmission Tint", Color) = (0.85, 0.92, 1, 1)
+        _Refraction ("Refraction (screen UV)", Range(0, 0.1)) = 0.02
+        _InteriorFill ("Interior Fill (fake back wall)", Range(0, 1)) = 0.55
 
         [Header(Sway)]
         _SwayDirection ("Current Direction (world)", Vector) = (1, 0, 0, 0)
@@ -73,6 +94,22 @@ Shader "Deeplonauts/Coral"
             half _NodeFadeMax;
             half4 _GlowColor;
             half _GlowStrength;
+            half4 _LatticeGlowColor;
+            half _LatticeGlow;
+            half _PulseStrength;
+            float _PulseSpeed;
+            float _PulseSpacing;
+            half _PulseTail;
+            half4 _RimColor;
+            half _RimStrength;
+            half _RimPower;
+            half4 _BackfaceTint;
+            half _OpacityFacing;
+            half _OpacityGrazing;
+            half _HoleTransmission;
+            half4 _TransmissionTint;
+            half _Refraction;
+            half _InteriorFill;
             float4 _SwayDirection;
             float _SwayAmount;
             float _SwayFrequency;
@@ -122,6 +159,7 @@ Shader "Deeplonauts/Coral"
 
             #pragma shader_feature_local _ALPHATEST_ON
             #pragma shader_feature_local _CORAL_BRANCH
+            #pragma shader_feature_local _CORAL_TRANSLUCENT
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
             #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
@@ -136,6 +174,9 @@ Shader "Deeplonauts/Coral"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #if defined(LOD_FADE_CROSSFADE)
                 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+            #endif
+            #if defined(_CORAL_TRANSLUCENT)
+                #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
             #endif
 
             struct Attributes
@@ -210,8 +251,9 @@ Shader "Deeplonauts/Coral"
                     albedo = lerp(albedo, _NodeColor.rgb, band);
                 #endif
 
-                // tangent-space normal, flipped on back faces (double sided polyps)
+                // tangent-space normal, flipped on back faces (double sided polyps, sponge interiors)
                 half faceSign = IS_FRONT_VFACE(face, 1.0h, -1.0h);
+                albedo *= faceSign > 0 ? half3(1, 1, 1) : _BackfaceTint.rgb;
                 half3 normalTS = UnpackNormalScale(SAMPLE_TEXTURE2D(_BumpMap, sampler_BumpMap, uv), _BumpScale);
                 float3 normalWS = input.normalWS * faceSign;
                 float3 tangentWS = input.tangentWS.xyz;
@@ -236,11 +278,44 @@ Shader "Deeplonauts/Coral"
                 surface.occlusion = 1;
                 surface.alpha = 1;
                 surface.normalTS = normalTS;
-                half glow = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, uv).r;
-                surface.emission = _GlowColor.rgb * (glow * _GlowStrength);
+                half4 mask = SAMPLE_TEXTURE2D(_MaskMap, sampler_MaskMap, uv);
+                surface.emission = _GlowColor.rgb * (mask.r * _GlowStrength);
+
+                // Lattice glow (mask B): faint light along the silica bars plus a pulse that
+                // climbs each tube along UV0.y, sharp front and fading tail. Per-instance phase
+                // from the object origin, per-tube phase from UV1.x (random per tube, baked by
+                // GN_GlassSponge_Skin; on the coral UV1.x is the node phase, harmless there
+                // because the pulse is off).
+                float3 origin = GetObjectToWorldMatrix()._m03_m13_m23;
+                float instPhase = frac(dot(origin, float3(0.131, 0.0, 0.173)));
+                float spacing = max(_PulseSpacing, 1e-3);
+                float pulsePhase = frac(_Time.y * _PulseSpeed / spacing - input.uv0.y / spacing + instPhase + input.uv1.x);
+                half pulse = exp(-pulsePhase / max(_PulseTail, 1e-3));
+                surface.emission += _LatticeGlowColor.rgb * (mask.b * (_LatticeGlow + _PulseStrength * pulse));
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
+                // Rim: bright fringe at grazing angles, scaled by how lit the pixel already is,
+                // so it reads as the spicule halo under the torch and stays dark in the dark.
+                half ndv = saturate(dot(inputData.normalWS, inputData.viewDirectionWS));
+                half rim = pow(1.0h - ndv, _RimPower) * _RimStrength;
+                half litLevel = dot(color.rgb - surface.emission, half3(0.3333h, 0.3333h, 0.3333h));
+                color.rgb += _RimColor.rgb * (rim * max(litLevel, 0.0h));
                 color.rgb = MixFog(color.rgb, input.fogFactor);
+
+                #if defined(_CORAL_TRANSLUCENT)
+                    // Thin translucent wall: the scene behind shows through, more where the wall is
+                    // seen face on and through the lattice holes, less at grazing angles. The scene
+                    // colour already carries its own fog, so it is blended after MixFog.
+                    half opacity = lerp(_OpacityFacing, _OpacityGrazing, (1.0h - ndv) * (1.0h - ndv));
+                    opacity *= 1.0h - mask.g * _HoleTransmission;
+                    float2 sceneUV = inputData.normalizedScreenSpaceUV + normalTS.xy * _Refraction;
+                    half3 behind = SampleSceneColor(sceneUV) * _TransmissionTint.rgb;
+                    // The opaque texture does not contain this object, so through a hole we would
+                    // see the floor instead of the tube's own back wall: fake that wall with the
+                    // lit colour darkened by the back face tint.
+                    behind = lerp(behind, color.rgb * _BackfaceTint.rgb, _InteriorFill);
+                    color.rgb = lerp(behind, color.rgb, saturate(opacity));
+                #endif
                 return half4(color.rgb, 1);
             }
             ENDHLSL
