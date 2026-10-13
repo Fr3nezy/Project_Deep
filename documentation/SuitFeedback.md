@@ -59,7 +59,7 @@ flowchart TD
 1. **Parametri Vitali**:
    - `O₂  XX.X%`
    - `STRESS  XX%`
-   - `TORCH  [FULL / LOW / OFF]` (mostra il singolo stato corrente della torcia in maiuscolo, oppure `[N/A]` se il riferimento a `DiverFlashlight` non è presente)
+   - `TORCH  [FULL / LOW / RED]` (mostra il singolo stato corrente della torcia in maiuscolo, oppure `[N/A]` se il riferimento a `DiverFlashlight` non è presente)
 2. **Stato Oggetto Trasportato**:
    - `MANI: [NOME_OGGETTO] (Premi G per lasciare)` in verde quando occupate.
 3. **Checklist Missione**:

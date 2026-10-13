@@ -15,9 +15,9 @@ namespace Deeploration.Creatures
     public sealed class CreatureManager : MonoBehaviour
     {
         [Header("Riferimenti")]
-        [Tooltip("Transform del sub (PlayerCapsule). Senza, le creature non percepiscono il sub e il livello di " +
-                 "dettaglio si calcola dalla camera.")]
-        [SerializeField] private Transform player;
+        [Tooltip("Sorgente degli stimoli del sub (DiverStimulusSource sul PlayerCapsule). Senza, le creature non " +
+                 "percepiscono il sub e il livello di dettaglio si calcola dalla camera.")]
+        [SerializeField] private DiverStimulusSource player;
 
         [Tooltip("Camera per la visibilità. Vuota = Camera.main all'avvio.")]
         [SerializeField] private Camera viewCamera;
@@ -44,6 +44,8 @@ namespace Deeploration.Creatures
         private readonly Dictionary<CreatureProfile, ObjectPool<Creature>> pools =
             new Dictionary<CreatureProfile, ObjectPool<Creature>>();
         private readonly List<Creature> active = new List<Creature>();
+        private readonly List<IStimulusSource> sources = new List<IStimulusSource>();
+        private readonly List<CreatureStimulus> stimuli = new List<CreatureStimulus>();
         private readonly Plane[] frustum = new Plane[6];
         private readonly int[] lodCounts = new int[3];
         private Transform poolRoot;
@@ -54,6 +56,9 @@ namespace Deeploration.Creatures
 
         /// <summary>Posizione del sub letta all'inizio del frame.</summary>
         public Vector3 PlayerPosition { get; private set; }
+
+        /// <summary>Stimoli raccolti all'inizio di questo frame da tutte le sorgenti registrate.</summary>
+        public IReadOnlyList<CreatureStimulus> Stimuli => stimuli;
 
         /// <summary>Layer che bloccano vista e movimento delle creature.</summary>
         public LayerMask ObstacleMask => obstacleMask;
@@ -68,9 +73,20 @@ namespace Deeploration.Creatures
         {
             poolRoot = new GameObject("CreaturePool").transform;
             poolRoot.SetParent(transform, false);
-            if (player == null)
+            if (player != null)
+                sources.Add(player);
+            else
                 Debug.LogWarning("[CreatureManager] Player non assegnato: le creature non percepiranno il sub.", this);
         }
+
+        /// <summary>Registra una sorgente di stimoli (per esempio una creatura luminosa). Ignora i duplicati.</summary>
+        public void AddSource(IStimulusSource source)
+        {
+            if (source != null && !sources.Contains(source)) sources.Add(source);
+        }
+
+        /// <summary>Toglie una sorgente di stimoli registrata.</summary>
+        public void RemoveSource(IStimulusSource source) => sources.Remove(source);
 
         private void Start()
         {
@@ -166,13 +182,16 @@ namespace Deeploration.Creatures
             Vector3 origin;
             if (player != null)
             {
-                PlayerPosition = player.position;
+                PlayerPosition = player.transform.position;
                 origin = PlayerPosition;
             }
             else
             {
                 origin = viewCamera != null ? viewCamera.transform.position : transform.position;
             }
+
+            stimuli.Clear();
+            for (int i = 0; i < sources.Count; i++) sources[i].EmitStimuli(stimuli);
 
             bool hasCamera = viewCamera != null;
             if (hasCamera) GeometryUtility.CalculateFrustumPlanes(viewCamera, frustum);
@@ -223,7 +242,7 @@ namespace Deeploration.Creatures
 
         private void OnDrawGizmosSelected()
         {
-            Vector3 origin = player != null ? player.position : transform.position;
+            Vector3 origin = player != null ? player.transform.position : transform.position;
             Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
             Gizmos.DrawWireSphere(origin, nearDistance);
             Gizmos.color = new Color(1f, 0.5f, 0f, 0.3f);

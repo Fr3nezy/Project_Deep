@@ -63,7 +63,7 @@ flowchart TD
    - `input.look`: Calcolo di yaw e pitch con damping.
    - `input.sprint`: Modula la velocità (walk/sprint) e il consumo addizionale di O₂.
 2. **DiverFlashlight**:
-   - Tasto F: chiama `CycleMode()`, sequenza Full → Low → Off → Full. Nel ramo legacy il tasto è configurabile tramite `toggleKey`.
+   - Tasto F: un tocco chiama `CycleMode()`, sequenza Full → Low → Red → Full; tenuto premuto per `holdToRedSeconds` (0.35 s) passa subito a Red. Nel ramo legacy il tasto è configurabile tramite `toggleKey`.
 3. **PlayerInteraction**:
    - Tasto E: hardcoded su `Keyboard.current.eKey` nel New Input System; configurabile tramite `interactKey` nel ramo legacy.
 4. **PlayerHands**:

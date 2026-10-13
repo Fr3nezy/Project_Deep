@@ -27,6 +27,12 @@ namespace Deeploration.Environment
                  "si accendono poco prima che il Diver ci arrivi (licenza stilistica).")]
         [SerializeField, Min(0f)] private float lookAhead = 0.8f;
 
+        /// <summary>
+        /// Invocato a ogni nuovo punto di tocco, con la sua posizione. Il punto nasce ovunque cammini il sub: la
+        /// luce si vede solo dove ci sono materiali con Touch Glow, quindi chi ascolta deve filtrare per vicinanza.
+        /// </summary>
+        public event System.Action<Vector3> Touched;
+
         private readonly Vector4[] points = new Vector4[MaxPoints];
         private int next;
         private int count;
@@ -70,6 +76,7 @@ namespace Deeploration.Environment
             count = Mathf.Min(count + 1, MaxPoints);
             Shader.SetGlobalVectorArray(PointsId, points);
             Shader.SetGlobalFloat(CountId, count);
+            Touched?.Invoke(position);
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Deeploration.Creatures
@@ -39,6 +40,7 @@ namespace Deeploration.Creatures
         private CreatureState state;
         private float lastPerceivedTime;
         private Vector3 threatPosition;
+        private StimulusKind perceived;
 
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
@@ -53,6 +55,9 @@ namespace Deeploration.Creatures
 
         /// <summary>Livello di dettaglio assegnato dal manager nell'ultimo frame.</summary>
         public CreatureLod Lod { get; internal set; }
+
+        /// <summary>Tipo dello stimolo percepito nell'ultimo ragionamento; None se nessuno.</summary>
+        public StimulusKind Perceived => perceived;
 
         /// <summary>Velocità attuale (m/s) lungo la rotta.</summary>
         public float Speed => speed;
@@ -79,6 +84,7 @@ namespace Deeploration.Creatures
             speed = profile.cruiseSpeed * 0.5f;
             state = CreatureState.Wander;
             lastPerceivedTime = float.NegativeInfinity;
+            perceived = StimulusKind.None;
             floorY = float.NaN;
             avoidWeight = 0f;
             Lod = CreatureLod.Near;
@@ -97,13 +103,14 @@ namespace Deeploration.Creatures
 
         private void Think()
         {
-            Vector3 position = cachedTransform.position;
-            bool perceived = manager.HasPlayer && Perceives(position, manager.PlayerPosition);
+            perceived = Perceive(cachedTransform.position, out Vector3 source);
 
-            if (perceived)
+            // Reazione provvisoria (task 2 di M2): qualunque stimolo percepito fa scappare. Le reazioni per tipo
+            // e intensità (avvicinarsi alla luce debole, fuggire dal flash) arrivano con la task 4.
+            if (perceived != StimulusKind.None)
             {
                 lastPerceivedTime = Time.time;
-                threatPosition = manager.PlayerPosition;
+                threatPosition = source;
                 state = CreatureState.Flee;
             }
             else if (state == CreatureState.Flee && Time.time - lastPerceivedTime > profile.calmDelay)
@@ -113,25 +120,51 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
-        /// Il sub è percepito se è entro la distanza di fuga e la creatura lo sente (vicino, in ogni direzione)
-        /// oppure lo vede (nel cono visivo, senza ostacoli in mezzo). Il raggio di linea di vista parte solo
-        /// quando tutti i controlli economici sono passati.
+        /// Sceglie fra gli stimoli del frame quello percepito più forte, cioè il più vicino in proporzione alla
+        /// sua portata (scalata dalla sensibilità della specie). Una luce conta solo se la creatura è nel fascio
+        /// o nell'alone e se fra la sorgente e la creatura non ci sono ostacoli; il rumore passa attraverso tutto.
+        /// Il raggio di linea di vista parte solo quando i controlli economici sono passati.
         /// </summary>
-        private bool Perceives(Vector3 position, Vector3 target)
+        private StimulusKind Perceive(Vector3 position, out Vector3 source)
         {
-            Vector3 toTarget = target - position;
-            float sqrDistance = toTarget.sqrMagnitude;
-            if (sqrDistance > profile.fleeDistance * profile.fleeDistance) return false;
-            if (sqrDistance <= profile.hearingRange * profile.hearingRange) return true;
-            if (sqrDistance > profile.sightRange * profile.sightRange) return false;
+            source = default;
+            StimulusKind best = StimulusKind.None;
+            float bestScore = float.MaxValue;
+            IReadOnlyList<CreatureStimulus> stimuli = manager.Stimuli;
 
-            float distance = Mathf.Sqrt(sqrDistance);
-            if (profile.fovAngle < 360f &&
-                Vector3.Dot(heading, toTarget / distance) < Mathf.Cos(profile.fovAngle * 0.5f * Mathf.Deg2Rad))
-                return false;
+            for (int i = 0; i < stimuli.Count; i++)
+            {
+                CreatureStimulus stimulus = stimuli[i];
+                float sensitivity = stimulus.Kind == StimulusKind.Light
+                    ? profile.lightSensitivity
+                    : profile.hearingSensitivity;
+                float reach = stimulus.Radius * sensitivity;
+                if (reach <= 0f) continue;
 
-            return !Physics.Raycast(position, toTarget / distance, distance, manager.ObstacleMask,
-                QueryTriggerInteraction.Ignore);
+                Vector3 fromSource = position - stimulus.Position;
+                float sqrDistance = fromSource.sqrMagnitude;
+                if (sqrDistance > reach * reach) continue;
+
+                float distance = Mathf.Sqrt(sqrDistance);
+                float score = distance / reach;
+                if (score >= bestScore) continue;
+
+                if (stimulus.Kind == StimulusKind.Light && distance > 0.01f)
+                {
+                    Vector3 direction = fromSource / distance;
+                    bool inHalo = distance <= stimulus.HaloRadius * sensitivity;
+                    if (!inHalo && Vector3.Dot(stimulus.Direction, direction) < stimulus.ConeCos) continue;
+                    if (Physics.Raycast(stimulus.Position, direction, distance - profile.bodyRadius,
+                            manager.ObstacleMask, QueryTriggerInteraction.Ignore))
+                        continue;
+                }
+
+                best = stimulus.Kind;
+                bestScore = score;
+                source = stimulus.Position;
+            }
+
+            return best;
         }
 
         private void Probe()
@@ -270,8 +303,11 @@ namespace Deeploration.Creatures
 
             Gizmos.color = state == CreatureState.Flee ? Color.red : Color.cyan;
             Gizmos.DrawLine(position, position + heading * Mathf.Max(1f, speed));
-            Gizmos.color = new Color(1f, 1f, 0f, 0.4f);
-            Gizmos.DrawWireSphere(position, profile.fleeDistance);
+            if (state == CreatureState.Flee)
+            {
+                Gizmos.color = perceived == StimulusKind.Light ? Color.yellow : new Color(1f, 0.5f, 0f);
+                Gizmos.DrawLine(position, threatPosition);
+            }
             Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.4f);
             Gizmos.DrawWireSphere(home, leashRadius);
             if (avoidWeight > 0f)

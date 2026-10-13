@@ -2,14 +2,14 @@
 Ultima verifica: 2026-10-13
 
 ## Scopo e confini
-Fa vivere la fauna della slice: le creature escono dai nidi, vagano attorno a casa evitando rocce e fondale e reagiscono al sub. Il sistema è progettato per molte creature a basso costo: un solo componente per creatura, un solo ciclo di aggiornamento per tutta la scena, livelli di dettaglio dell'intelligenza (LOD) e pool senza allocazioni a regime.
+Fa vivere la fauna della slice: le creature escono dai nidi, vagano attorno a casa evitando rocce e fondale e reagiscono agli stimoli del sub: la luce della torcia, il rumore dei passi e la scia luminosa del prato di penne. Il sistema è progettato per molte creature a basso costo: un solo componente per creatura, un solo ciclo di aggiornamento per tutta la scena, livelli di dettaglio dell'intelligenza (LOD) e pool senza allocazioni a regime.
 
 Sostituisce il vecchio Entity System (`Assets/_Project/Code/EntitySystem/`, 22 script, circa 4500 righe), rimosso il 2026-10-13 nella task 1 di M2 e recuperabile dalla storia di Git. Rispetto al vecchio sistema non c'è più la catena alimentare simulata (salute, fame, stamina, danni tra pesci, `PlayerStatus`/`PlayerProfile`): la "vita propria" delle creature arriverà dallo stesso sistema di stimoli che serve per il sub (vedi *Estensione del sistema*).
 
 Stato:
-- **Implementato e verificato (2026-10-13):** profilo di specie, creatura con stati `Wander` e `Flee`, moto cinematico con evitamento ostacoli e quota sopra il fondale, manager con pool per profilo e LOD, nido base, sonda di benchmark.
-- **Provvisorio:** la fuga scatta solo dalla vicinanza del sub (distanza, udito, cono visivo con linea di vista). Viene sostituita dagli stimoli di luce e rumore nella task 2 di M2.
-- **Pianificato (M2):** stimoli del sub (luce, rumore, scia delle penne di mare), torcia rossa, reazioni alla luce, catena di joint procedurale, nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, viperfish, isopode, stimoli emessi dalle creature stesse.
+- **Implementato e verificato (2026-10-13):** profilo di specie, creatura con stati `Wander` e `Flee`, moto cinematico con evitamento ostacoli, quota sopra il fondale e soffitto per nido, manager con pool per profilo e LOD, nido base, sonda di benchmark (task 1 di M2). Stimoli del sub (task 2, che assorbe la task 3 della torcia rossa): luce del fascio in Full e Low, nessuna luce in Red, rumore dalla velocità e dall'atterraggio, scia del prato di penne; percezione con portata, sensibilità di specie, fascio, alone e linea di vista.
+- **Provvisorio:** qualunque stimolo percepito fa scappare. Le reazioni per tipo e intensità (avvicinarsi alla luce debole, fuggire dal flash) arrivano con la task 4.
+- **Pianificato (M2):** reazioni alla luce, catena di joint procedurale, nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, viperfish, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -17,8 +17,10 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 2. `Creature.cs`: componente unico sul prefab della creatura; percezione, macchina a stati e moto.
 3. `CreatureManager.cs`: uno per scena; pool, lista delle creature attive, LOD, ciclo di aggiornamento.
 4. `CreatureNest.cs`: punto della mappa da cui escono le creature di una specie.
-5. `CreatureEnums.cs`: enum `CreatureState` e `CreatureLod`.
-6. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
+5. `CreatureEnums.cs`: enum `CreatureState`, `StimulusKind` e `CreatureLod`.
+6. `CreatureStimulus.cs`: struct `CreatureStimulus` (uno stimolo del frame) e interfaccia `IStimulusSource`.
+7. `DiverStimulusSource.cs`: sul `PlayerCapsule`, traduce torcia, passi e prato di penne in stimoli.
+8. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
 
 Asset:
 - `Assets/_Project/Entities/Profiles/Creature_TestCube.asset`: profilo di prova (valori di default del codice).
@@ -32,16 +34,20 @@ Licenza di stile (decisa da Manu il 2026-10-13): ogni pesce può essere fino al 
 
 ## Dipendenze e flusso dati
 - `CreatureNest` chiede al manager `Prewarm` e `Spawn` all'avvio, `Despawn` quando si disabilita.
-- `CreatureManager.Update` legge una volta la posizione del sub (riferimento serializzato, mai cercato), calcola i piani della camera e, per ogni creatura attiva, sceglie il LOD e chiama `Creature.Tick(deltaTime, think, probe)`.
+- `CreatureManager.Update` raccoglie gli stimoli del frame chiedendoli una volta a ogni sorgente registrata (`IStimulusSource.EmitStimuli`), legge la posizione del sub (riferimento serializzato, mai cercato), calcola i piani della camera e, per ogni creatura attiva, sceglie il LOD e chiama `Creature.Tick(deltaTime, think, probe)`.
+- `DiverStimulusSource` legge `DiverFlashlight` (modalità, `SpotLight`), `DiverController` (`CurrentSpeed`, `IsGrounded`) e l'evento `SeaPenTouchGlow.Touched`.
 - `Creature.Tick`: se `think`, aggiorna percezione e stato; se `probe`, lancia i raggi verso il fondale e in avanti e ne conserva i risultati; poi muove sempre, usando l'ultimo stato e gli ultimi raggi.
-- Nessuna dipendenza da altri sistemi del progetto. Dalla task 2 il manager leggerà gli stimoli da `DiverFlashlight`, `DiverController` e `SeaPenTouchGlow`.
+- Dipendenze verso altri sistemi: solo `DiverStimulusSource`, che legge `Deeploration.Player` (`DiverFlashlight`, `DiverController`) e `Deeploration.Environment` (`SeaPenTouchGlow`). Nessuno di quei sistemi dipende dalle creature.
 
 ```mermaid
 flowchart TD
     Nest[CreatureNest] -->|Prewarm / Spawn / Despawn| Manager[CreatureManager]
     Profile[CreatureProfile] -->|prefab| Manager
     Manager -->|ObjectPool per profilo| Pool[(Pool)]
-    Player[PlayerCapsule] -.->|posizione, una volta per frame| Manager
+    Flashlight[DiverFlashlight] -.-> Source[DiverStimulusSource]
+    Diver[DiverController] -.-> Source
+    SeaPen[SeaPenTouchGlow.Touched] -.-> Source
+    Source -->|EmitStimuli + posizione, una volta per frame| Manager
     Camera[Camera] -.->|piani di vista| Manager
     Manager -->|Tick: think / probe secondo LOD| Creature[Creature]
     Creature -->|Raycast / SphereCast / OverlapSphere| Physics[Physics: obstacleMask]
@@ -64,11 +70,11 @@ flowchart TD
 | `heightTolerance` | float [0, 10] | 1 | Scarto di quota tollerato prima di correggere (m) |
 | `wanderTurn` | float [0, 360] | 45 | Virata massima del vagare (°/s) |
 | `wanderFrequency` | float [0.01, 2] | 0.15 | Frequenza dei cambi di direzione (Hz) |
-| `sightRange` | float [0, 60] | 12 | Distanza a cui vede il sub nel cono (m) |
-| `fovAngle` | float [10, 360] | 150 | Ampiezza del cono visivo (°); 360 = vista a tutto tondo |
-| `hearingRange` | float [0, 30] | 3 | Distanza a cui sente il sub in ogni direzione (m) |
-| `fleeDistance` | float [0, 30] | 5 | Se percepisce il sub più vicino di così, scappa (m) |
-| `calmDelay` | float [0, 30] | 3 | Secondi senza percepire il sub prima di tornare a vagare |
+| `lightSensitivity` | float [0, 3] | 1 | Moltiplica la portata delle luci percepite; 0 = cieca alla luce |
+| `hearingSensitivity` | float [0, 3] | 1 | Moltiplica la portata dei rumori percepiti; 0 = sorda |
+| `calmDelay` | float [0, 30] | 3 | Secondi senza percepire stimoli prima di tornare a vagare |
+
+I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 sono stati tolti il 2026-10-13 con la task 2: al buio il corpo del sub non si vede, quindi le creature percepiscono solo la sua luce e il suo rumore.
 | `bodyRadius` | float [0.05, 5] | 0.3 | Raggio d'ingombro per ostacoli e spawn (m) |
 | `lookAhead` | float [0.2, 5] | 1.5 | Secondi di strada controllati in avanti |
 
@@ -79,8 +85,8 @@ flowchart TD
 - Responsabilità e ciclo di vita: non ha `Update`. Esce dal pool attivata dal manager, che chiama `OnSpawn` (reset di rotta, velocità a metà crociera, stato `Wander`, quota sconosciuta, seme del rumore casuale) e poi `Tick` a ogni frame. Non ha Rigidbody né collider: si muove scrivendo il transform (`SetPositionAndRotation`), quindi non spinge il sub e non viene spinta.
 - Stati (`CreatureState`):
   - `Wander`: la rotta ruota attorno all'asse verticale secondo un rumore di Perlin (`wanderTurn`, `wanderFrequency`). Oltre il guinzaglio (`leashRadius` del nido) piega verso casa, tanto più quanto più è lontana.
-  - `Flee`: scappa dalla posizione del sub a `fleeSpeed`. Torna a `Wander` dopo `calmDelay` secondi senza percepirlo.
-- Percezione (in `think`, provvisoria): il sub è percepito se è entro `fleeDistance` e (entro `hearingRange`, oppure entro `sightRange` nel cono `fovAngle` senza ostacoli). Il raggio di linea di vista parte solo se i controlli su distanza e angolo sono già passati.
+  - `Flee`: scappa dalla sorgente dello stimolo percepito a `fleeSpeed`, anche oltre il guinzaglio. Torna a `Wander` dopo `calmDelay` secondi senza percepire stimoli.
+- Percezione (in `think`): fra gli stimoli del frame (`CreatureManager.Stimuli`) sceglie il più forte, cioè quello con il rapporto distanza / portata più basso, dove la portata è `Radius` × sensibilità della specie (`lightSensitivity` per le luci, `hearingSensitivity` per i rumori). Un rumore conta se la creatura è entro la portata, attraverso gli ostacoli. Una luce conta se la creatura è entro la portata **e** dentro il fascio (`ConeCos`) o entro l'alone (`HaloRadius` × sensibilità), **e** se il raggio dalla sorgente alla creatura (lungo distanza meno `bodyRadius`) non tocca `obstacleMask`. Il raggio parte solo quando i controlli economici sono passati e lo stimolo batterebbe il migliore trovato. Reazione provvisoria: qualunque stimolo percepito porta in `Flee`.
 - Raggi (in `probe`):
   - raggio verso il basso (100 m) per la quota del fondale. Se non trova niente ma dall'alto c'è una superficie, la creatura è finita sotto il terreno e viene riportata all'altezza preferita (paracadute);
   - `OverlapSphereNonAlloc` sul corpo: se è dentro un ostacolo (per esempio nell'involucro di un collider convesso) esce allontanandosi dal centro del collider e verso l'alto;
@@ -98,9 +104,10 @@ flowchart TD
   - `CreatureProfile Profile { get; }`
   - `CreatureState State { get; }`
   - `CreatureLod Lod { get; }`: livello assegnato dal manager nell'ultimo frame.
+  - `StimulusKind Perceived { get; }`: tipo dello stimolo percepito nell'ultimo ragionamento (`None` se nessuno).
   - `float Speed { get; }`: velocità attuale (m/s).
   - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash, float ceiling)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
-- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`), sfera di `fleeDistance`, guinzaglio attorno a casa, direzione di evitamento (magenta).
+- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), guinzaglio attorno a casa, direzione di evitamento (magenta).
 - Riferimenti obbligatori: va presa dal pool con `CreatureManager.Spawn`. Una `Creature` messa a mano in scena resta ferma, perché nessuno chiama `Tick`.
 
 ### CreatureManager
@@ -115,7 +122,7 @@ flowchart TD
 
 | Campo | Tipo | Default | Significato |
 |---|---|---|---|
-| `player` | `Transform` | null | Transform del sub (`PlayerCapsule`). Senza, nessuna percezione del sub e LOD calcolato dalla camera (warning in `Awake`) |
+| `player` | `DiverStimulusSource` | null | Sorgente degli stimoli del sub, sul `PlayerCapsule`; registrata come prima sorgente in `Awake`. Senza, nessuno stimolo del sub e LOD calcolato dalla camera (warning in `Awake`) |
 | `viewCamera` | `Camera` | null | Camera per la visibilità; vuota = `Camera.main` in `Start` |
 | `obstacleMask` | `LayerMask` | Default, Obstacle, Seafloor (1153) | Layer che bloccano vista e moto. Non includere Player ed Entity |
 | `nearDistance` | float ≥ 1 | 25 | Raggio del livello `Near` (m) |
@@ -127,6 +134,8 @@ flowchart TD
 - API pubbliche:
   - `bool HasPlayer { get; }`
   - `Vector3 PlayerPosition { get; }`: posizione del sub letta all'inizio del frame.
+  - `IReadOnlyList<CreatureStimulus> Stimuli { get; }`: stimoli raccolti all'inizio del frame.
+  - `void AddSource(IStimulusSource source)` / `void RemoveSource(IStimulusSource source)`: registra o toglie altre sorgenti di stimoli (per le creature luminose); i duplicati sono ignorati.
   - `LayerMask ObstacleMask { get; }`
   - `int ActiveCount { get; }`
   - `int CountAtLod(CreatureLod lod)`: creature nel livello durante l'ultimo frame.
@@ -156,7 +165,39 @@ flowchart TD
 
 ### CreatureEnums
 - `CreatureState`: `Wander`, `Flee`. Cresce con le task di M2.
+- `StimulusKind`: `None`, `Light`, `Noise`.
 - `CreatureLod`: `Near`, `Mid`, `Far` (vedi `CreatureManager`).
+
+### CreatureStimulus e IStimulusSource
+- `CreatureStimulus` (struct): `Kind` (`StimulusKind`), `Position`, `Radius` (portata a sensibilità 1), `Direction` e `ConeCos` (fascio; `Omnidirectional` = -2 per un punto), `HaloRadius`, `FromPlayer`. Costruttori statici: `Noise(position, radius, fromPlayer)`, `PointLight(position, radius, fromPlayer)` (alone = portata), `Beam(position, direction, radius, halfAngle°, haloRadius, fromPlayer)`.
+- `IStimulusSource`: `void EmitStimuli(List<CreatureStimulus> output)`, chiamato dal manager una volta per frame; aggiunge zero o più stimoli.
+
+### DiverStimulusSource
+- Responsabilità e ciclo di vita: sul `PlayerCapsule` del prefab `Player`. In `Awake` risolve i riferimenti vuoti con `GetComponent` sullo stesso GameObject. In `Start` costruisce una griglia di celle (lato `seaPenCellSize`) sopra tutti i renderer con un materiale che ha `_CORAL_TOUCH_GLOW` attivo, allargati di `seaPenTouchRadius`: sono le zone dove un tocco accende davvero il prato. In `OnEnable`/`OnDisable` si iscrive a `SeaPenTouchGlow.Touched`. In `Update` registra l'istante in cui il diver atterra (`IsGrounded` da falso a vero). Emette in `EmitStimuli`:
+  - **luce:** se la torcia è in `Full` o `Low`, un fascio dalla posizione di `SpotLight` lungo il suo asse, semi-angolo `spotAngle / 2`, portata `fullLightReach` o `lowLightReach`, alone `portata × haloFraction`. In `Red` niente;
+  - **rumore:** portata `CurrentSpeed × noisePerSpeed` (0 se il `DiverController` è disabilitato, per esempio da seduto nella capsula), oppure il picco dell'atterraggio `landingNoise`, che cala a zero in `landingNoiseDuration`; vale il maggiore. Sotto 0.05 m non emette;
+  - **scia del prato:** ogni tocco che cade in una cella delle penne diventa un punto luce (alzato di 0.3 m dal fondale) con portata `seaPenGlowReach`, che cala a zero in `seaPenGlowDuration`. Ne ricorda al massimo 12, come lo shader.
+- Campi Inspector:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `flashlight` | `DiverFlashlight` | null | Vuoto = `GetComponent` |
+| `diver` | `DiverController` | null | Vuoto = `GetComponent` |
+| `seaPenTouch` | `SeaPenTouchGlow` | null | Vuoto = `GetComponent` |
+| `fullLightReach` | float ≥ 0 | 25 | Portata del fascio Full per le creature (m); più lunga della portata visiva della luce (15) |
+| `lowLightReach` | float ≥ 0 | 8 | Portata del fascio Low (m) |
+| `haloFraction` | float [0, 1] | 0.3 | Frazione della portata entro cui la lampada si vede da fuori del fascio |
+| `noisePerSpeed` | float ≥ 0 | 2.5 | Metri di portata per ogni m/s del diver |
+| `landingNoise` | float ≥ 0 | 8 | Portata del rumore all'atterraggio (m) |
+| `landingNoiseDuration` | float ≥ 0.01 | 1 | Secondi in cui il rumore dell'atterraggio si spegne |
+| `seaPenGlowReach` | float ≥ 0 | 6 | Portata della luce di un tocco appena acceso (m) |
+| `seaPenGlowDuration` | float ≥ 0.01 | 2.5 | Durata della luce di un tocco (s), allineata a `_TouchLifetime` |
+| `seaPenTouchRadius` | float ≥ 0 | 1.6 | Distanza massima tocco-penna perché il tocco accenda il prato (m), allineata a `_TouchRadius` dei materiali delle penne |
+| `seaPenCellSize` | float ≥ 0.25 | 1 | Lato delle celle della griglia (m) |
+
+- API pubbliche: `void EmitStimuli(List<CreatureStimulus> output)` (da `IStimulusSource`), `int SeaPenCellCount { get; }`.
+- Gizmo (selezionato, in Play): i punti luce del prato ancora accesi.
+- Riferimenti obbligatori: nessuno. Senza torcia, controller o `SeaPenTouchGlow` lo stimolo corrispondente non viene emesso. Va assegnato al campo `player` del `CreatureManager` della scena.
 
 ### CreatureBenchmark
 - Responsabilità e ciclo di vita: strumento di sviluppo. `Run(label)` avvia quattro `ProfilerRecorder` (`Main Thread`, `BehaviourUpdate`, `FixedBehaviourUpdate`, `GC Allocated In Frame`). Dopo `warmup` secondi campiona per `duration` secondi, poi scrive le medie in console e in `Logs/CreatureBenchmark.log` (fuori da Assets, ignorato da Git).
@@ -166,14 +207,16 @@ flowchart TD
 
 ## Setup in Unity
 1. Creare un profilo (*Create → Deeploration → Creature Profile*) e assegnargli un prefab con `Creature` alla radice, senza collider.
-2. In scena: un GameObject con `CreatureManager`, con `player` = `PlayerCapsule`.
+2. Sul `PlayerCapsule` del prefab `Player` c'è già `DiverStimulusSource`. In scena: un GameObject con `CreatureManager`, con `player` = il `DiverStimulusSource` dell'istanza del Player.
 3. Uno o più `CreatureNest` con `manager` e `profile` assegnati, appoggiati in acqua libera.
 4. Le rocce devono stare su un layer incluso in `obstacleMask` (oggi sono su Default).
 
 ## Configurazione verificata in prefab e scene
 In `SCN_Gameplay.unity` (2026-10-13):
 - Il vecchio GameObject `EntityPooler` (con `EntityPooler` ed `EntitySpawner`) è stato rimosso.
-- Al suo posto `Creatures` con `CreatureManager` (`player` = `PlayerCapsule`, altri campi ai default) e il figlio `Nest_Lanternfish` in (-5, 2.51, -14), nel corridoio del prato di penne a 11 m dalla capsula, 1.5 m sopra il fondale: profilo `Creature_Lanternfish`, `count` 12, `spawnRadius` 6, `leashRadius` 12, `maxHeightAboveNest` 3 (soffitto a Y 5.5). Il primo giorno si chiamava `Nest_TestCubes`, stava in (0, 2.5, 0) tra le rocce accanto alla capsula e usava `Creature_TestCube`: lì metà del fondale entro 15 m sta sopra Y 6.4 e i pesci salivano lungo le pareti del canyon (mediana Y 8.9 contro il sub a 0.1).
+- Al suo posto `Creatures` con `CreatureManager` (`player` = `DiverStimulusSource` del `PlayerCapsule`, altri campi ai default) e il figlio `Nest_Lanternfish` in (-5, 2.51, -14), nel corridoio del prato di penne a 11 m dalla capsula, 1.5 m sopra il fondale: profilo `Creature_Lanternfish`, `count` 12, `spawnRadius` 6, `leashRadius` 12, `maxHeightAboveNest` 3 (soffitto a Y 5.5). Il primo giorno si chiamava `Nest_TestCubes`, stava in (0, 2.5, 0) tra le rocce accanto alla capsula e usava `Creature_TestCube`: lì metà del fondale entro 15 m sta sopra Y 6.4 e i pesci salivano lungo le pareti del canyon (mediana Y 8.9 contro il sub a 0.1).
+
+Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con i default del codice; spia `PlayerCapsule/TorchPivot/EmergencyLight` assegnata a `DiverFlashlight` (vedi [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)).
 
 ## Estensione del sistema
 - Nuova specie: nuovo `CreatureProfile` con il suo prefab, più un `CreatureNest` che la usa. Niente stringhe né enum da aggiornare.
@@ -186,7 +229,11 @@ In `SCN_Gameplay.unity` (2026-10-13):
 - Le creature `Far` non lanciano raggi: se una creatura nasce lontana, la quota del fondale resta sconosciuta finché non passa a `Mid`.
 - Lo spawn scarta i punti sotto qualsiasi superficie vista dall'alto, quindi anche quelli sotto uno sbalzo di roccia. Un nido in un crepaccio coperto (previsto nella task dei nidi) ripiegherà sul proprio centro: da rivedere in quella task.
 - Il recupero da dentro un ostacolo usa il centro dei bounds del collider: con collider molto grandi o concavi la direzione di uscita è approssimativa.
-- Fuga provvisoria: dipende solo dalla vicinanza del sub; luce e rumore arrivano con la task 2.
+- Reazione provvisoria: ogni stimolo percepito fa scappare, anche la luce debole che nel design dovrebbe incuriosire (task 4).
+- Il rumore non si attenua attraverso la roccia e non ha direzione: chi è entro la portata lo sente comunque.
+- La luce è percepita solo se la creatura sta nel fascio o nell'alone: una creatura lontana, fuori dal fascio, non vede la lampada anche se la guarda. Va bene per il fascio stretto della torcia; per le creature luminose (punti luce) non cambia niente.
+- Il picco dell'atterraggio dura 1 s: le creature `Mid` lo campionano ogni 4 frame, quindi quelle al bordo della portata a volte non lo sentono.
+- La griglia del prato si costruisce una volta in `Start`: penne aggiunte o spostate in Play non vengono viste.
 - Il soffitto è una quota assoluta per nido: in una mappa a canyon funziona se il nido sta nel fondo piano. Un nido sul fianco di una parete ha bisogno di un soffitto più alto.
 - Lo stato `Flee` non ha ancora un costo (stamina rimossa): una creatura scappa finché percepisce il sub.
 
@@ -224,7 +271,14 @@ Le misure sono prese con la Scene view puntata nel vuoto: se inquadra la scena, 
 
 Quota (100 lanternfish dopo 30 s, nido nel corridoio, soffitto e quote del profilo attuali): altezza sopra il fondale mediana 1.3 m (0.3-3.4), Y mediana 2.9 m (massimo 6.1, in discesa verso il soffitto), 0 sepolti e 0 a contatto. Alcuni pesci superano il guinzaglio (massimo 21.7 m dal nido contro 12): il richiamo verso casa è morbido.
 
-Non verificato: build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
+Stimoli (2026-10-13, Play in `SCN_Gameplay`, sub spostato a mano nel corridoio a 10 m dal nido e rivolto verso i pesci, 12 lanternfish):
+- torcia `Full`: i pesci nel fascio scappano in fondo al corridoio, oltre la portata e dietro il terreno; uno a 5 m di lato al sub scappa per l'alone. Passando a `Red`: zero stimoli, in 20 s tutti di nuovo in `Wander` e tornati al nido, alcuni a 3-4 m dal sub senza reagire;
+- atterraggio simulato (istante scritto per reflection): i pesci a 3-4 m scappano;
+- tocco su una penna di mare a 1.5 m dal nido: un punto luce di 6 m che si spegne in 2.5 s, i 4 pesci entro 6 m scappano. Un tocco lontano dalle penne (20, 0, 25) non produce stimoli. La griglia del prato conta 454 celle.
+
+Costo con 300 lanternfish animati, sub nel corridoio: Update 6.8 ms con torcia `Full`, 6.3 ms con `Red` (la percezione costa circa 0.5 ms). Più dei 4.2 ms dei cubi perché con il sub nel corridoio molti più pesci sono vicini e inquadrati (livello `Near`).
+
+Non verificato: tocco lungo su F con la tastiera vera, rumore con il diver che cammina davvero, build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 
 ## Sistemi collegati
 - [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md): `PlayerCapsule`, riferimento del manager; dalla task 2 sorgente del rumore.

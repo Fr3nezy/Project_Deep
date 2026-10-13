@@ -12,7 +12,7 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 
 ```
 Assets/_Project/Code/
-├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi
+├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub
 │   └── Debug/                 # Sonda di benchmark del costo per frame
 ├── Editor/                    # Utility e generatori di livello per Unity Editor
 ├── Environment/               # Oggetti ambientali (paratie, stazioni ricarica O2, neve marina, luci)
@@ -32,7 +32,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (56 / 56)
+## 2. Catalogo Completo degli Script (58 / 58)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -41,7 +41,9 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Creatures/CreatureManager.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureNest.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureProfile.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureStimulus.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/Debug/CreatureBenchmark.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/DiverStimulusSource.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
@@ -137,6 +139,7 @@ flowchart TD
         Nest[CreatureNest]
         CreatureMgr[CreatureManager]
         Creature[Creature]
+        DiverStim[DiverStimulusSource]
     end
 
     %% Input Wiring
@@ -176,7 +179,9 @@ flowchart TD
     %% Fauna
     Nest -->|Spawn / Despawn| CreatureMgr
     CreatureMgr -->|Tick per LOD| Creature
-    Diver -.->|posizione| CreatureMgr
+    DiverStim -->|stimoli e posizione| CreatureMgr
+    Flashlight -.->|modalità, fascio| DiverStim
+    Diver -.->|velocità, atterraggio| DiverStim
 ```
 
 ---

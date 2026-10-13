@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Deeploration.Creatures
 {
     /// <summary>
-    /// Dati di una specie: quale prefab usare, come si muove, cosa percepisce e quando scappa. Un profilo per
+    /// Dati di una specie: quale prefab usare, come si muove e quanto è sensibile a luce e rumore. Un profilo per
     /// specie, condiviso da tutte le istanze; il pool del <see cref="CreatureManager"/> è indicizzato per profilo.
     /// </summary>
     [CreateAssetMenu(fileName = "Creature Profile", menuName = "Deeploration/Creature Profile")]
@@ -48,24 +48,16 @@ namespace Deeploration.Creatures
         public float wanderFrequency = 0.15f;
 
         [Header("Percezione")]
-        [Tooltip("Distanza massima a cui vede il sub dentro il cono visivo (m)")]
-        [Range(0f, 60f)]
-        public float sightRange = 12f;
+        [Tooltip("Moltiplica la portata delle luci percepite (torcia, prato di penne, creature luminose). 0 = cieca alla luce")]
+        [Range(0f, 3f)]
+        public float lightSensitivity = 1f;
 
-        [Tooltip("Ampiezza del cono visivo (gradi)")]
-        [Range(10f, 360f)]
-        public float fovAngle = 150f;
+        [Tooltip("Moltiplica la portata dei rumori percepiti (passi, atterraggi). 0 = sorda")]
+        [Range(0f, 3f)]
+        public float hearingSensitivity = 1f;
 
-        [Tooltip("Distanza a cui sente il sub in ogni direzione, anche senza vederlo (m)")]
-        [Range(0f, 30f)]
-        public float hearingRange = 3f;
-
-        [Header("Paura")]
-        [Tooltip("Se percepisce il sub più vicino di così, scappa (m)")]
-        [Range(0f, 30f)]
-        public float fleeDistance = 5f;
-
-        [Tooltip("Secondi senza percepire il sub prima di tornare a vagare")]
+        [Header("Reazione")]
+        [Tooltip("Secondi senza percepire stimoli prima di tornare a vagare")]
         [Range(0f, 30f)]
         public float calmDelay = 3f;
 

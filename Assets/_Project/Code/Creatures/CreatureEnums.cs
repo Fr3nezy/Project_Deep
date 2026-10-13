@@ -5,8 +5,19 @@ namespace Deeploration.Creatures
     {
         /// <summary>Vaga attorno al punto di casa (il nido) senza meta.</summary>
         Wander,
-        /// <summary>Si allontana dal sub alla velocità di fuga finché non torna calma.</summary>
+        /// <summary>Si allontana dallo stimolo percepito alla velocità di fuga finché non torna calma.</summary>
         Flee
+    }
+
+    /// <summary>Tipo di stimolo percepibile dalle creature.</summary>
+    public enum StimulusKind
+    {
+        /// <summary>Nessuno stimolo percepito.</summary>
+        None,
+        /// <summary>Luce: serve la linea di vista; un fascio si vede dentro il cono o da vicino.</summary>
+        Light,
+        /// <summary>Rumore: si sente in ogni direzione, attraverso gli ostacoli.</summary>
+        Noise
     }
 
     /// <summary>

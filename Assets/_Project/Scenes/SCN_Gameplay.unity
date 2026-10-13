@@ -207551,7 +207551,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 035e0cb6f98b7014692c5f0643cda3ba, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureManager
-  player: {fileID: 2854084060834512313}
+  player: {fileID: 2114518540}
   viewCamera: {fileID: 0}
   obstacleMask:
     serializedVersion: 2
@@ -366189,6 +366189,17 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2112261179}
   m_Mesh: {fileID: 10207, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!114 &2114518540 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 7204199989990012631, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+  m_PrefabInstance: {fileID: 2854084060834512306}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1617198236}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5fbb61a273b53e14e972df9c17d6f4e7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.DiverStimulusSource
 --- !u!1001 &2116304180
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -366874,11 +366885,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 72ece51f2901e7445ab60da3685d6b5f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
---- !u!4 &2854084060834512313 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 5446934738901400048, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
-  m_PrefabInstance: {fileID: 2854084060834512306}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
