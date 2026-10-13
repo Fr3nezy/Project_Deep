@@ -18,6 +18,13 @@ namespace Deeploration.Creatures
         // Buffer condiviso da tutte le creature: il manager le fa avanzare una alla volta sul main thread.
         private static readonly Collider[] OverlapBuffer = new Collider[4];
 
+        [Tooltip("Animator con la clip di nuoto del modello provvisorio (opzionale). La clip accelera e rallenta " +
+                 "con la velocità della creatura. Verrà sostituito dalla catena di joint procedurale.")]
+        [SerializeField] private Animator swimAnimator;
+
+        [Tooltip("Velocità della clip di nuoto alla velocità di crociera; scala in proporzione alla velocità attuale.")]
+        [SerializeField, Min(0f)] private float swimAnimationSpeed = 1f;
+
         private CreatureManager manager;
         private CreatureProfile profile;
         private Transform cachedTransform;
@@ -215,6 +222,9 @@ namespace Deeploration.Creatures
             position += heading * (speed * deltaTime);
             if (!float.IsNaN(floorY)) position.y = Mathf.Max(position.y, floorY + profile.bodyRadius);
             cachedTransform.SetPositionAndRotation(position, Quaternion.LookRotation(heading));
+
+            if (swimAnimator != null)
+                swimAnimator.speed = swimAnimationSpeed * Mathf.Max(0.3f, speed / profile.cruiseSpeed);
         }
 
         /// <summary>Oltre il guinzaglio la rotta piega verso casa, tanto più quanto più si è lontani.</summary>

@@ -167868,7 +167868,7 @@ GameObject:
   - component: {fileID: 556942549}
   - component: {fileID: 556942550}
   m_Layer: 0
-  m_Name: Nest_TestCubes
+  m_Name: Nest_Lanternfish
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -167902,7 +167902,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureNest
   manager: {fileID: 589838369}
-  profile: {fileID: 11400000, guid: 29092df8574f4d44cb70788d15a05dc6, type: 2}
+  profile: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
   count: 12
   spawnRadius: 8
   leashRadius: 15
