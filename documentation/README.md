@@ -1,5 +1,5 @@
 # Project Deep — Indice e Catalogo dell'Architettura del Codice
-Ultima verifica: 2026-10-07
+Ultima verifica: 2026-10-13
 
 Benvenuto nell'hub di documentazione tecnica di *Project Deep / Deeplonauts*.  
 Questo catalogo mappa ogni singolo script C# presente nella codebase, definisce i confini dei sistemi, le relazioni tra i componenti e le regole tassative per gli agenti AI e gli sviluppatori.
@@ -12,17 +12,9 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 
 ```
 Assets/_Project/Code/
+├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi
+│   └── Debug/                 # Sonda di benchmark del costo per frame
 ├── Editor/                    # Utility e generatori di livello per Unity Editor
-├── EntitySystem/              # Simulazione fauna marina autonoma (FSM, Steering, Sensori, Pooler)
-│   ├── Core/                  # Pooler, StateManager, EntityStatus, PlayerStatus
-│   ├── Debug/                 # Gizmos di debug per entità e player
-│   ├── Editor/                # Tooling editor per creazione profili creatura
-│   ├── Enums/                 # Tipi di entità, stati, stili di moto
-│   ├── Movement/              # Controller di moto, avoidance ostacoli e steering behaviors
-│   ├── ScriptableObjects/     # Profili creatura e profilo percezione player
-│   ├── Sensors/               # Campo visivo 3D e scansione sensoriale
-│   ├── States/                # Implementazioni di IEntityState (Idle, Hunt, Flee, Inspect, Bite, Rest)
-│   └── _Documentation/        # Archivio storico (rimando alla documentazione canonica)
 ├── Environment/               # Oggetti ambientali (paratie, stazioni ricarica O2, neve marina, luci)
 ├── Interaction/               # Raycast interazione, trasporto oggetti (mani) e alloggiamenti (socket)
 ├── Player/                    # Sistemi dedicati al Diver e alla tuta da palombaro
@@ -40,37 +32,21 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (72 / 72)
+## 2. Catalogo Completo degli Script (56 / 56)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
+| `Assets/_Project/Code/Creatures/Creature.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureEnums.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureManager.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureNest.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureProfile.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/Debug/CreatureBenchmark.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueWave1Builder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
-| `Assets/_Project/Code/EntitySystem/Core/EntityPooler.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Core/EntityStateManager.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Core/EntityStatus.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Core/PlayerStatus.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Debug/EntityDebugGizmos.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Debug/PlayerStatusGizmos.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Editor/CreatureProfileCreator.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
-| `Assets/_Project/Code/EntitySystem/EntitySpawner.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Enums/EntityEnums.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Movement/MovementController.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Movement/ObstacleAvoidance.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Movement/SteeringBehaviors.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/ScriptableObjects/CreatureProfile.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/ScriptableObjects/PlayerProfile.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/Sensors/SenseController.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/BiteState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/FleeState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/HuntState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/IEntityState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/IdleState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/InspectState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
-| `Assets/_Project/Code/EntitySystem/States/RestState.cs` | Entity System | [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/GroundBlendProbe.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/Environment/GroundMaterialPublisher.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
@@ -157,13 +133,10 @@ flowchart TD
         Quests[QuestManager]
     end
 
-    subgraph Fauna [Entity & Fauna Simulation]
-        Spawner[EntitySpawner]
-        Pooler[EntityPooler]
-        FaunaFSM[EntityStateManager]
-        FaunaSense[SenseController]
-        FaunaMove[MovementController]
-        PlayerPrcp[PlayerStatus]
+    subgraph Fauna [Creatures]
+        Nest[CreatureNest]
+        CreatureMgr[CreatureManager]
+        Creature[Creature]
     end
 
     %% Input Wiring
@@ -200,8 +173,10 @@ flowchart TD
     Hands --> Feedback
     Quests --> Feedback
 
-    %% Fauna to Player
-    PlayerPrcp -.-> FaunaSense
+    %% Fauna
+    Nest -->|Spawn / Despawn| CreatureMgr
+    CreatureMgr -->|Tick per LOD| Creature
+    Diver -.->|posizione| CreatureMgr
 ```
 
 ---

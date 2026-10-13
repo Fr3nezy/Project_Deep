@@ -1,13 +1,12 @@
 # Editor Tools & Level Builders
-Ultima verifica: 2026-10-07
+Ultima verifica: 2026-10-13
 
 ## Scopo e confini
 Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'Editor di Unity per accelerare il blockout delle scene, la configurazione dei prefab e la creazione di asset di dati:
 1. `DeeplonautsLevelBuilder`: Generatore automatico del livello di graybox per la slice prototipale (fossa oceanica, crash site, base DR-04, alloggiamenti energetici, trigger di missione, illuminazione e player setup).
-2. `CreatureProfileCreator`: Utility per istanziare rapidamente i file ScriptableObject `CreatureProfile` dalla Project Window.
-3. `PrologueSmokeCheck`: Controllo parziale eseguibile in Play Mode per input e reset del moto dopo una sequenza del prologo.
-4. `PrologueWave1Builder`: Strumento di setup automatico per la Wave 1 (LocalizationSettings, tabelle stringhe, Timeline intro/exit, allestimento UI Canvas e scena `SCN_Gameplay`).
-5. `PrologueElevatorSceneBuilder`: Costruttore e setup automatico della scena isolata di prologo `SCN_Intro.unity` (cabina ascensore con oblò, slot mesh Blender, player in prima persona e treadmill sottomarino).
+2. `PrologueSmokeCheck`: Controllo parziale eseguibile in Play Mode per input e reset del moto dopo una sequenza del prologo.
+3. `PrologueWave1Builder`: Strumento di setup automatico per la Wave 1 (LocalizationSettings, tabelle stringhe, Timeline intro/exit, allestimento UI Canvas e scena `SCN_Gameplay`).
+4. `PrologueElevatorSceneBuilder`: Costruttore e setup automatico della scena isolata di prologo `SCN_Intro.unity` (cabina ascensore con oblò, slot mesh Blender, player in prima persona e treadmill sottomarino).
 
 ## File e componenti
 - `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs`: Script Editor (disponibile via menu `Tools/Deeplonauts/Build Prototype Graybox Level`) che costruisce l'intera scena prototipo da zero.
@@ -15,7 +14,9 @@ Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'E
 - `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs`: Script Editor con menu `Deeploration/Tests/Check Prologue Control Restored`.
 - `Assets/_Project/Code/Editor/PrologueWave1Builder.cs`: Script Editor con menu `Deeplonauts/Prologue/Build Wave 1 Prologue Setup`.
 - `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs`: Script Editor con menu `Deeplonauts/Debug/Rock Blend Masks` che mostra le maschere di fusione delle rocce come colori. Documentato in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
-- `Assets/_Project/Code/EntitySystem/Editor/CreatureProfileCreator.cs`: Script Editor (menu `Assets/Create/Deeploration/Creature Profile`) per la creazione guidata di asset creatura.
+- `CreatureProfileCreator` (ex `Assets/_Project/Code/EntitySystem/Editor/`) è stato rimosso il 2026-10-13 con il vecchio sistema creature: duplicava il `CreateAssetMenu` già presente su `CreatureProfile`.
+
+```mermaid
 flowchart TD
     Menu[Menu: Tools/Deeplonauts/Build Prototype Graybox Level] --> Builder[DeeplonautsLevelBuilder]
     Builder --> Terrain[Scogliera / Gola / Pavimentazione]
@@ -24,8 +25,6 @@ flowchart TD
     Builder --> Station[OxygenRefillStation]
     Builder --> Quests[QuestManager & QuestProfile]
     Builder --> Player[Player Setup & Positioning]
-    MenuAsset[Menu: Assets/Create/.../Creature Profile] --> Creator[CreatureProfileCreator]
-    Creator --> Asset[CreatureProfile.asset]
 ```
 
 ## Componenti
@@ -48,12 +47,6 @@ flowchart TD
   - `static void BuildLevel()`: Punto di ingresso invocato dall'editor.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - Cerca `PlayerCapsule` o GameObject con tag `"Player"`. Se non trovato, genera l'ambiente ma avvisa sulla console per il posizionamento del player.
-
-### CreatureProfileCreator
-- **Responsabilità e ciclo di vita**:
-  - Classe statica con menu `[MenuItem("Assets/Create/Deeploration/Creature Profile", false, 1)]`.
-  - Individua la cartella selezionata in Project Window via `AssetDatabase.GetAssetPath(Selection.activeObject)`.
-  - Genera un nome file univoco (`New Creature Profile.asset`), istanzia l'asset e lo seleziona automaticamente per la modifica nell'Inspector.
 
 ### PrologueSmokeCheck
 - **Responsabilità**: in Play Mode trova il primo `DiverController`, verifica che sia abilitato e che abbia `StarterAssetsInputs`, forza e poi azzera `jump`/`jumpDown`, chiama `ResetMotion()` e verifica `CurrentSpeed == 0`.
@@ -78,9 +71,7 @@ flowchart TD
 - Per rigenerare il livello prototipo da zero (usare con cautela per non sovrascrivere modifiche manuali alla scena):
   1. Aprire la scena desiderata.
   2. Cliccare sulla barra dei menu di Unity: **Tools -> Deeplonauts -> Build Prototype Graybox Level**.
-- Per creare un nuovo profilo creatura:
-  1. Nella Project Window, fare clic destro su una cartella (es. `Assets/_Project/Entities/Profiles/`).
-  2. Selezionare **Create -> Deeploration -> Creature Profile**.
+- Per creare un nuovo profilo creatura: **Create -> Deeploration -> Creature Profile** (dal `CreateAssetMenu` di `CreatureProfile`, vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)).
 
 ## Configurazione verificata in prefab e scene
 - La scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git) è stata inizialmente impostata tramite `DeeplonautsLevelBuilder` e poi rifinita a mano con volumi post-processing URP e illuminazione ambientale.
@@ -98,4 +89,4 @@ flowchart TD
 - [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md)
 - [Quests.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Quests.md)
 - [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)
-- [EntitySystem.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EntitySystem.md)
+- [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)
