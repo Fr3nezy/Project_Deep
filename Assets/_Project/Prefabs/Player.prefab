@@ -816,7 +816,9 @@ MonoBehaviour:
   seaPenTouch: {fileID: 0}
   fullLightReach: 25
   lowLightReach: 8
-  haloFraction: 0.3
+  haloFraction: 0.4
+  flashDuration: 0.4
+  flashHaloFraction: 0.6
   noisePerSpeed: 2.5
   landingNoise: 8
   landingNoiseDuration: 1

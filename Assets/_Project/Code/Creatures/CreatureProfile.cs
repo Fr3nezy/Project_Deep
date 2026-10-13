@@ -3,7 +3,7 @@ using UnityEngine;
 namespace Deeploration.Creatures
 {
     /// <summary>
-    /// Dati di una specie: quale prefab usare, come si muove e quanto è sensibile a luce e rumore. Un profilo per
+    /// Dati di una specie: quale prefab usare, come si muove e quanto è sensibile a luce e rumore e come reagisce a ogni stimolo. Un profilo per
     /// specie, condiviso da tutte le istanze; il pool del <see cref="CreatureManager"/> è indicizzato per profilo.
     /// </summary>
     [CreateAssetMenu(fileName = "Creature Profile", menuName = "Deeploration/Creature Profile")]
@@ -56,8 +56,24 @@ namespace Deeploration.Creatures
         [Range(0f, 3f)]
         public float hearingSensitivity = 1f;
 
-        [Header("Reazione")]
-        [Tooltip("Secondi senza percepire stimoli prima di tornare a vagare")]
+        [Header("Reazioni")]
+        [Tooltip("Reazione alla luce debole: torcia bassa, scia del prato di penne, creature luminose")]
+        public StimulusReaction weakLightReaction = StimulusReaction.Approach;
+
+        [Tooltip("Reazione alla luce forte e stabile: torcia piena")]
+        public StimulusReaction strongLightReaction = StimulusReaction.Flee;
+
+        [Tooltip("Reazione al flash: l'istante in cui si accende una luce forte")]
+        public StimulusReaction flashReaction = StimulusReaction.Flee;
+
+        [Tooltip("Reazione al rumore: passi, atterraggi")]
+        public StimulusReaction noiseReaction = StimulusReaction.Flee;
+
+        [Tooltip("Distanza (m) a cui si ferma dalla sorgente quando si avvicina per osservarla")]
+        [Range(0.5f, 15f)]
+        public float inspectDistance = 2.5f;
+
+        [Tooltip("Secondi senza percepire stimoli prima di calmarsi (da Flee a Inspect o Wander, da Inspect a Wander)")]
         [Range(0f, 30f)]
         public float calmDelay = 3f;
 
@@ -69,5 +85,15 @@ namespace Deeploration.Creatures
         [Tooltip("Quanti secondi di strada guarda avanti per gli ostacoli")]
         [Range(0.2f, 5f)]
         public float lookAhead = 1.5f;
+
+        /// <summary>Reazione della specie alla categoria di stimolo indicata.</summary>
+        public StimulusReaction ReactionTo(StimulusCategory category) => category switch
+        {
+            StimulusCategory.WeakLight => weakLightReaction,
+            StimulusCategory.StrongLight => strongLightReaction,
+            StimulusCategory.Flash => flashReaction,
+            StimulusCategory.Noise => noiseReaction,
+            _ => StimulusReaction.Ignore
+        };
     }
 }

@@ -38,9 +38,12 @@ namespace Deeploration.Creatures
         private Vector3 heading;
         private float speed;
         private CreatureState state;
-        private float lastPerceivedTime;
+        private float lastFearTime;
+        private float lastInterestTime;
         private Vector3 threatPosition;
-        private StimulusKind perceived;
+        private Vector3 interestPosition;
+        private float orbitSign;
+        private StimulusCategory perceived;
 
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
@@ -56,8 +59,8 @@ namespace Deeploration.Creatures
         /// <summary>Livello di dettaglio assegnato dal manager nell'ultimo frame.</summary>
         public CreatureLod Lod { get; internal set; }
 
-        /// <summary>Tipo dello stimolo percepito nell'ultimo ragionamento; None se nessuno.</summary>
-        public StimulusKind Perceived => perceived;
+        /// <summary>Categoria dello stimolo che ha deciso la reazione nell'ultimo ragionamento; None se nessuno.</summary>
+        public StimulusCategory Perceived => perceived;
 
         /// <summary>Velocità attuale (m/s) lungo la rotta.</summary>
         public float Speed => speed;
@@ -79,12 +82,14 @@ namespace Deeploration.Creatures
             leashRadius = leash;
             ceilingY = ceiling;
             noiseSeed = Random.value * 1000f;
+            orbitSign = Random.value < 0.5f ? -1f : 1f;
 
             heading = cachedTransform.forward;
             speed = profile.cruiseSpeed * 0.5f;
             state = CreatureState.Wander;
-            lastPerceivedTime = float.NegativeInfinity;
-            perceived = StimulusKind.None;
+            lastFearTime = float.NegativeInfinity;
+            lastInterestTime = float.NegativeInfinity;
+            perceived = StimulusCategory.None;
             floorY = float.NaN;
             avoidWeight = 0f;
             Lod = CreatureLod.Near;
@@ -103,41 +108,53 @@ namespace Deeploration.Creatures
 
         private void Think()
         {
-            perceived = Perceive(cachedTransform.position, out Vector3 source);
+            float now = Time.time;
+            StimulusReaction reaction = Perceive(cachedTransform.position, out Vector3 source, out perceived);
 
-            // Reazione provvisoria (task 2 di M2): qualunque stimolo percepito fa scappare. Le reazioni per tipo
-            // e intensità (avvicinarsi alla luce debole, fuggire dal flash) arrivano con la task 4.
-            if (perceived != StimulusKind.None)
+            if (reaction == StimulusReaction.Flee)
             {
-                lastPerceivedTime = Time.time;
+                lastFearTime = now;
                 threatPosition = source;
                 state = CreatureState.Flee;
             }
-            else if (state == CreatureState.Flee && Time.time - lastPerceivedTime > profile.calmDelay)
+            else if (reaction == StimulusReaction.Approach)
             {
-                state = CreatureState.Wander;
+                lastInterestTime = now;
+                interestPosition = source;
+                // La paura vince: chi sta scappando si avvicina solo dopo essersi calmato.
+                if (state != CreatureState.Flee) state = CreatureState.Inspect;
             }
+
+            if (state == CreatureState.Flee && now - lastFearTime > profile.calmDelay)
+                state = now - lastInterestTime <= profile.calmDelay ? CreatureState.Inspect : CreatureState.Wander;
+            else if (state == CreatureState.Inspect && now - lastInterestTime > profile.calmDelay)
+                state = CreatureState.Wander;
         }
 
         /// <summary>
-        /// Sceglie fra gli stimoli del frame quello percepito più forte, cioè il più vicino in proporzione alla
-        /// sua portata (scalata dalla sensibilità della specie). Una luce conta solo se la creatura è nel fascio
-        /// o nell'alone e se fra la sorgente e la creatura non ci sono ostacoli; il rumore passa attraverso tutto.
+        /// Valuta gli stimoli del frame. Per ognuno: portata = <c>Radius</c> × sensibilità della specie; una luce
+        /// conta solo se la creatura è nel fascio o nell'alone e se fra la sorgente e la creatura non ci sono
+        /// ostacoli, il rumore passa attraverso tutto. Fra gli stimoli percepiti a cui la specie reagisce sceglie
+        /// il più forte (il più vicino in proporzione alla portata), con la fuga che vince sull'avvicinamento.
         /// Il raggio di linea di vista parte solo quando i controlli economici sono passati.
         /// </summary>
-        private StimulusKind Perceive(Vector3 position, out Vector3 source)
+        private StimulusReaction Perceive(Vector3 position, out Vector3 source, out StimulusCategory category)
         {
             source = default;
-            StimulusKind best = StimulusKind.None;
+            category = StimulusCategory.None;
+            StimulusReaction best = StimulusReaction.Ignore;
             float bestScore = float.MaxValue;
             IReadOnlyList<CreatureStimulus> stimuli = manager.Stimuli;
 
             for (int i = 0; i < stimuli.Count; i++)
             {
                 CreatureStimulus stimulus = stimuli[i];
-                float sensitivity = stimulus.Kind == StimulusKind.Light
-                    ? profile.lightSensitivity
-                    : profile.hearingSensitivity;
+                StimulusReaction reaction = profile.ReactionTo(stimulus.Category);
+                if (reaction == StimulusReaction.Ignore) continue;
+                // Uno stimolo che attira non può battere uno che spaventa già trovato.
+                if (reaction == StimulusReaction.Approach && best == StimulusReaction.Flee) continue;
+
+                float sensitivity = stimulus.IsLight ? profile.lightSensitivity : profile.hearingSensitivity;
                 float reach = stimulus.Radius * sensitivity;
                 if (reach <= 0f) continue;
 
@@ -147,9 +164,10 @@ namespace Deeploration.Creatures
 
                 float distance = Mathf.Sqrt(sqrDistance);
                 float score = distance / reach;
-                if (score >= bestScore) continue;
+                bool upgradesToFlee = reaction == StimulusReaction.Flee && best != StimulusReaction.Flee;
+                if (!upgradesToFlee && score >= bestScore) continue;
 
-                if (stimulus.Kind == StimulusKind.Light && distance > 0.01f)
+                if (stimulus.IsLight && distance > 0.01f)
                 {
                     Vector3 direction = fromSource / distance;
                     bool inHalo = distance <= stimulus.HaloRadius * sensitivity;
@@ -159,9 +177,10 @@ namespace Deeploration.Creatures
                         continue;
                 }
 
-                best = stimulus.Kind;
+                best = reaction;
                 bestScore = score;
                 source = stimulus.Position;
+                category = stimulus.Category;
             }
 
             return best;
@@ -227,10 +246,25 @@ namespace Deeploration.Creatures
             float targetSpeed;
             Vector3 desired;
 
+            float targetY = float.IsNaN(floorY) ? position.y : floorY + profile.heightAboveFloor;
+
             if (state == CreatureState.Flee)
             {
                 targetSpeed = profile.fleeSpeed;
                 desired = position - threatPosition;
+            }
+            else if (state == CreatureState.Inspect)
+            {
+                // Si avvicina fino a inspectDistance e poi gira attorno alla sorgente, rallentando man mano che è
+                // alla distanza giusta; la quota segue quella della sorgente.
+                Vector3 toInterest = interestPosition - position;
+                toInterest.y = 0f;
+                float distance = toInterest.magnitude;
+                Vector3 radial = distance > 0.01f ? toInterest / distance : heading;
+                float gap = distance - profile.inspectDistance;
+                desired = radial * Mathf.Clamp(gap, -1f, 1f) + Vector3.Cross(Vector3.up, radial) * (orbitSign * 0.6f);
+                targetSpeed = profile.cruiseSpeed * Mathf.Clamp(Mathf.Abs(gap), 0.35f, 1f);
+                targetY = interestPosition.y;
             }
             else
             {
@@ -243,7 +277,7 @@ namespace Deeploration.Creatures
             desired.y = 0f;
             if (desired.sqrMagnitude < 0.0001f) desired = new Vector3(heading.x, 0f, heading.z);
             desired.Normalize();
-            desired.y = Mathf.Clamp(HeightCorrection(position.y), -MaxClimb, MaxClimb);
+            desired.y = Mathf.Clamp(HeightCorrection(position.y, targetY), -MaxClimb, MaxClimb);
 
             // Vicino a un ostacolo rallenta e vira più forte, così non ci entra mentre gira.
             float turnRate = profile.turnRate;
@@ -284,13 +318,13 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
-        /// Componente verticale della rotta: resta all'altezza preferita sopra il fondale, ma mai sopra il soffitto
-        /// del nido. Sopra il soffitto scende sempre, anche dentro la tolleranza.
+        /// Componente verticale della rotta verso <paramref name="targetY"/> (di solito l'altezza preferita sopra il
+        /// fondale, in Inspect la quota della sorgente), ma mai sopra il soffitto del nido. Sopra il soffitto scende
+        /// sempre, anche dentro la tolleranza.
         /// </summary>
-        private float HeightCorrection(float y)
+        private float HeightCorrection(float y, float targetY)
         {
-            float target = float.IsNaN(floorY) ? y : floorY + profile.heightAboveFloor;
-            target = Mathf.Min(target, ceilingY);
+            float target = Mathf.Min(targetY, ceilingY);
             float error = target - y;
             if (y <= ceilingY && Mathf.Abs(error) <= profile.heightTolerance) return 0f;
             return error * 0.5f;
@@ -301,12 +335,18 @@ namespace Deeploration.Creatures
             if (profile == null) return;
             Vector3 position = transform.position;
 
-            Gizmos.color = state == CreatureState.Flee ? Color.red : Color.cyan;
+            Gizmos.color = state == CreatureState.Flee ? Color.red : state == CreatureState.Inspect ? Color.green : Color.cyan;
             Gizmos.DrawLine(position, position + heading * Mathf.Max(1f, speed));
             if (state == CreatureState.Flee)
             {
-                Gizmos.color = perceived == StimulusKind.Light ? Color.yellow : new Color(1f, 0.5f, 0f);
+                Gizmos.color = perceived == StimulusCategory.Noise ? new Color(1f, 0.5f, 0f) : Color.yellow;
                 Gizmos.DrawLine(position, threatPosition);
+            }
+            else if (state == CreatureState.Inspect)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawLine(position, interestPosition);
+                Gizmos.DrawWireSphere(interestPosition, profile.inspectDistance);
             }
             Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.4f);
             Gizmos.DrawWireSphere(home, leashRadius);

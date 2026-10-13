@@ -6,18 +6,38 @@ namespace Deeploration.Creatures
         /// <summary>Vaga attorno al punto di casa (il nido) senza meta.</summary>
         Wander,
         /// <summary>Si allontana dallo stimolo percepito alla velocità di fuga finché non torna calma.</summary>
-        Flee
+        Flee,
+        /// <summary>Si avvicina a uno stimolo che la attira, si ferma a distanza e ci gira attorno osservandolo.</summary>
+        Inspect
     }
 
-    /// <summary>Tipo di stimolo percepibile dalle creature.</summary>
-    public enum StimulusKind
+    /// <summary>
+    /// Categoria di uno stimolo: ogni specie sceglie nel profilo come reagire a ciascuna. Le luci richiedono la
+    /// linea di vista, il rumore no.
+    /// </summary>
+    public enum StimulusCategory
     {
         /// <summary>Nessuno stimolo percepito.</summary>
         None,
-        /// <summary>Luce: serve la linea di vista; un fascio si vede dentro il cono o da vicino.</summary>
-        Light,
-        /// <summary>Rumore: si sente in ogni direzione, attraverso gli ostacoli.</summary>
+        /// <summary>Luce debole e stabile: torcia bassa, scia del prato di penne, creature luminose.</summary>
+        WeakLight,
+        /// <summary>Luce forte e stabile: torcia piena.</summary>
+        StrongLight,
+        /// <summary>Accensione improvvisa di una luce forte (pochi decimi di secondo).</summary>
+        Flash,
+        /// <summary>Rumore: passi, atterraggi.</summary>
         Noise
+    }
+
+    /// <summary>Reazione di una specie a una categoria di stimolo.</summary>
+    public enum StimulusReaction
+    {
+        /// <summary>Non reagisce.</summary>
+        Ignore,
+        /// <summary>Si avvicina alla sorgente fino a una distanza di sicurezza e la osserva (stato Inspect).</summary>
+        Approach,
+        /// <summary>Scappa dalla sorgente (stato Flee). Vince su Approach.</summary>
+        Flee
     }
 
     /// <summary>

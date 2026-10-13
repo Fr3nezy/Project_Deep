@@ -21,10 +21,13 @@ MonoBehaviour:
   heightTolerance: 0.75
   wanderTurn: 45
   wanderFrequency: 0.15
-  sightRange: 12
-  fovAngle: 150
-  hearingRange: 3
-  fleeDistance: 5
+  lightSensitivity: 1
+  hearingSensitivity: 1
+  weakLightReaction: 1
+  strongLightReaction: 1
+  flashReaction: 2
+  noiseReaction: 2
+  inspectDistance: 2.5
   calmDelay: 3
   bodyRadius: 0.125
   lookAhead: 1.5

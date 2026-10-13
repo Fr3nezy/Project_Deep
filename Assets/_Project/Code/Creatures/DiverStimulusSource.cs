@@ -9,11 +9,12 @@ namespace Deeploration.Creatures
     /// Traduce lo stato del sub in stimoli per le creature, una volta per frame su richiesta del
     /// <see cref="CreatureManager"/>:
     /// <list type="bullet">
-    /// <item>luce: il fascio della torcia in Full o Low (in Red le luci dello scafandro sono spente e la spia rossa
-    /// è invisibile alle creature);</item>
+    /// <item>luce: il fascio della torcia, forte in Full e debole in Low (in Red le luci dello scafandro sono spente e
+    /// la spia rossa è invisibile alle creature);</item>
+    /// <item>flash: per un attimo dopo ogni passaggio a Full da un'altra modalità;</item>
     /// <item>rumore: dalla velocità del diver, con un picco quando atterra;</item>
     /// <item>scia del prato di penne: ogni tocco di <see cref="SeaPenTouchGlow"/> vicino a una penna di mare
-    /// diventa un punto luce che si spegne come il glow dello shader.</item>
+    /// diventa un punto luce debole che si spegne come il glow dello shader.</item>
     /// </list>
     /// Va sul <c>PlayerCapsule</c>, accanto a <see cref="DiverFlashlight"/>, <see cref="DiverController"/> e
     /// <see cref="SeaPenTouchGlow"/>. Le portate sono per una creatura con sensibilità 1.
@@ -37,7 +38,14 @@ namespace Deeploration.Creatures
         [SerializeField, Min(0f)] private float lowLightReach = 8f;
 
         [Tooltip("Frazione della portata entro cui la lampada si vede anche da fuori del fascio.")]
-        [SerializeField, Range(0f, 1f)] private float haloFraction = 0.3f;
+        [SerializeField, Range(0f, 1f)] private float haloFraction = 0.4f;
+
+        [Header("Flash")]
+        [Tooltip("Secondi per cui il passaggio a Full conta come flash.")]
+        [SerializeField, Min(0.05f)] private float flashDuration = 0.4f;
+
+        [Tooltip("Frazione della portata di Full entro cui il flash si vede anche da fuori del fascio.")]
+        [SerializeField, Range(0f, 1f)] private float flashHaloFraction = 0.6f;
 
         [Header("Rumore")]
         [Tooltip("Metri di portata del rumore per ogni m/s di velocità del diver.")]
@@ -70,6 +78,8 @@ namespace Deeploration.Creatures
 
         private bool wasGrounded = true;
         private float landingTime = float.NegativeInfinity;
+        private FlashlightMode lastMode;
+        private float flashTime = float.NegativeInfinity;
 
         /// <summary>Celle della griglia (lato <c>seaPenCellSize</c>) in cui un tocco accende il prato.</summary>
         public int SeaPenCellCount => seaPenCells.Count;
@@ -87,11 +97,23 @@ namespace Deeploration.Creatures
         private void OnEnable()
         {
             if (seaPenTouch != null) seaPenTouch.Touched += HandleTouched;
+            if (flashlight != null)
+            {
+                lastMode = flashlight.CurrentMode;
+                flashlight.OnModeChanged += HandleModeChanged;
+            }
         }
 
         private void OnDisable()
         {
             if (seaPenTouch != null) seaPenTouch.Touched -= HandleTouched;
+            if (flashlight != null) flashlight.OnModeChanged -= HandleModeChanged;
+        }
+
+        private void HandleModeChanged(FlashlightMode mode)
+        {
+            if (mode == FlashlightMode.Full && lastMode != FlashlightMode.Full) flashTime = Time.time;
+            lastMode = mode;
         }
 
         private void Update()
@@ -110,9 +132,15 @@ namespace Deeploration.Creatures
             if (flashlight != null && flashlight.SpotLight != null && flashlight.CurrentMode != FlashlightMode.Red)
             {
                 Transform lamp = flashlight.SpotLight.transform;
-                float reach = flashlight.CurrentMode == FlashlightMode.Full ? fullLightReach : lowLightReach;
-                output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, reach,
-                    flashlight.SpotLight.spotAngle * 0.5f, reach * haloFraction, true));
+                bool full = flashlight.CurrentMode == FlashlightMode.Full;
+                float reach = full ? fullLightReach : lowLightReach;
+                float halfAngle = flashlight.SpotLight.spotAngle * 0.5f;
+                output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, reach, halfAngle, reach * haloFraction,
+                    full ? StimulusCategory.StrongLight : StimulusCategory.WeakLight, true));
+
+                if (full && Time.time - flashTime < flashDuration)
+                    output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
+                        fullLightReach * flashHaloFraction, StimulusCategory.Flash, true));
             }
 
             float noise = 0f;
@@ -127,7 +155,7 @@ namespace Deeploration.Creatures
                 float age = Time.time - glowTimes[i];
                 if (age >= seaPenGlowDuration) continue;
                 output.Add(CreatureStimulus.PointLight(glowPositions[i],
-                    seaPenGlowReach * (1f - age / seaPenGlowDuration), true));
+                    seaPenGlowReach * (1f - age / seaPenGlowDuration), StimulusCategory.WeakLight, true));
             }
         }
 
