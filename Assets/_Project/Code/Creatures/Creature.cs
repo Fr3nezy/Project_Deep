@@ -41,8 +41,15 @@ namespace Deeploration.Creatures
         private float lastFearTime;
         private float lastInterestTime;
         private Vector3 threatPosition;
-        private Vector3 interestPosition;
-        private float orbitSign;
+        private CreatureStimulus interest;
+
+        // Posto personale in Inspect, relativo alla sorgente: frazioni del semi-angolo del fascio (yaw, pitch),
+        // direzione per le luci omnidirezionali, fattore sulla distanza preferita, prossimo cambio di posto.
+        private float spotYaw;
+        private float spotPitch;
+        private Vector3 spotDirection;
+        private float spotDistanceFactor;
+        private float nextRepositionTime;
         private StimulusCategory perceived;
 
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
@@ -82,7 +89,6 @@ namespace Deeploration.Creatures
             leashRadius = leash;
             ceilingY = ceiling;
             noiseSeed = Random.value * 1000f;
-            orbitSign = Random.value < 0.5f ? -1f : 1f;
 
             heading = cachedTransform.forward;
             speed = profile.cruiseSpeed * 0.5f;
@@ -109,24 +115,35 @@ namespace Deeploration.Creatures
         private void Think()
         {
             float now = Time.time;
-            StimulusReaction reaction = Perceive(cachedTransform.position, out Vector3 source, out perceived);
+            StimulusReaction reaction = Perceive(cachedTransform.position, out CreatureStimulus chosen);
+            perceived = reaction == StimulusReaction.Ignore ? StimulusCategory.None : chosen.Category;
 
             if (reaction == StimulusReaction.Flee)
             {
                 lastFearTime = now;
-                threatPosition = source;
+                threatPosition = chosen.Position;
                 state = CreatureState.Flee;
             }
             else if (reaction == StimulusReaction.Approach)
             {
                 lastInterestTime = now;
-                interestPosition = source;
+                interest = chosen;
                 // La paura vince: chi sta scappando si avvicina solo dopo essersi calmato.
-                if (state != CreatureState.Flee) state = CreatureState.Inspect;
+                if (state != CreatureState.Flee && state != CreatureState.Inspect)
+                {
+                    state = CreatureState.Inspect;
+                    PickSpot(now);
+                }
             }
 
+            if (state == CreatureState.Inspect && now >= nextRepositionTime) PickSpot(now);
+
             if (state == CreatureState.Flee && now - lastFearTime > profile.calmDelay)
-                state = now - lastInterestTime <= profile.calmDelay ? CreatureState.Inspect : CreatureState.Wander;
+            {
+                bool stillCurious = now - lastInterestTime <= profile.calmDelay;
+                state = stillCurious ? CreatureState.Inspect : CreatureState.Wander;
+                if (stillCurious) PickSpot(now);
+            }
             else if (state == CreatureState.Inspect && now - lastInterestTime > profile.calmDelay)
                 state = CreatureState.Wander;
         }
@@ -138,10 +155,9 @@ namespace Deeploration.Creatures
         /// il più forte (il più vicino in proporzione alla portata), con la fuga che vince sull'avvicinamento.
         /// Il raggio di linea di vista parte solo quando i controlli economici sono passati.
         /// </summary>
-        private StimulusReaction Perceive(Vector3 position, out Vector3 source, out StimulusCategory category)
+        private StimulusReaction Perceive(Vector3 position, out CreatureStimulus chosen)
         {
-            source = default;
-            category = StimulusCategory.None;
+            chosen = default;
             StimulusReaction best = StimulusReaction.Ignore;
             float bestScore = float.MaxValue;
             IReadOnlyList<CreatureStimulus> stimuli = manager.Stimuli;
@@ -179,11 +195,46 @@ namespace Deeploration.Creatures
 
                 best = reaction;
                 bestScore = score;
-                source = stimulus.Position;
-                category = stimulus.Category;
+                chosen = stimulus;
             }
 
             return best;
+        }
+
+        /// <summary>
+        /// Sceglie un nuovo posto da cui osservare la sorgente: dentro il fascio (fino all'80% del semi-angolo) per
+        /// una luce direzionale, su un guscio sopra la sorgente per una luce omnidirezionale, a una distanza fra il
+        /// 75% e il 130% di quella preferita. Il posto è relativo alla sorgente, quindi la segue se si muove.
+        /// </summary>
+        private void PickSpot(float now)
+        {
+            spotYaw = Random.Range(-0.8f, 0.8f);
+            spotPitch = Random.Range(-0.8f, 0.8f);
+            Vector2 flat = Random.insideUnitCircle.normalized;
+            spotDirection = new Vector3(flat.x, Random.Range(0.15f, 0.8f), flat.y).normalized;
+            spotDistanceFactor = Random.Range(0.75f, 1.3f);
+            float interval = profile.inspectRepositionInterval;
+            nextRepositionTime = now + Random.Range(interval * 0.5f, interval * 1.5f);
+        }
+
+        /// <summary>Posizione attuale del posto personale rispetto alla sorgente che la creatura osserva.</summary>
+        private Vector3 SpotPosition()
+        {
+            bool strong = interest.Category == StimulusCategory.StrongLight || interest.Category == StimulusCategory.Flash;
+            float distance = profile.inspectDistance * spotDistanceFactor * (strong ? profile.strongLightDistanceScale : 1f);
+
+            Vector3 direction;
+            if (interest.ConeCos <= -1f || interest.Direction.sqrMagnitude < 0.5f)
+            {
+                direction = spotDirection;
+            }
+            else
+            {
+                float halfAngle = Mathf.Acos(Mathf.Clamp(interest.ConeCos, -1f, 1f)) * Mathf.Rad2Deg;
+                direction = Quaternion.LookRotation(interest.Direction) *
+                            Quaternion.Euler(spotPitch * halfAngle, spotYaw * halfAngle, 0f) * Vector3.forward;
+            }
+            return interest.Position + direction * distance;
         }
 
         private void Probe()
@@ -255,16 +306,17 @@ namespace Deeploration.Creatures
             }
             else if (state == CreatureState.Inspect)
             {
-                // Si avvicina fino a inspectDistance e poi gira attorno alla sorgente, rallentando man mano che è
-                // alla distanza giusta; la quota segue quella della sorgente.
-                Vector3 toInterest = interestPosition - position;
-                toInterest.y = 0f;
-                float distance = toInterest.magnitude;
-                Vector3 radial = distance > 0.01f ? toInterest / distance : heading;
-                float gap = distance - profile.inspectDistance;
-                desired = radial * Mathf.Clamp(gap, -1f, 1f) + Vector3.Cross(Vector3.up, radial) * (orbitSign * 0.6f);
-                targetSpeed = profile.cruiseSpeed * Mathf.Clamp(Mathf.Abs(gap), 0.35f, 1f);
-                targetY = interestPosition.y;
+                // Va al suo posto rallentando; arrivato, gira il muso verso la luce e ci scivola contro piano, così
+                // si allontana dal posto e ci torna: l'andirivieni di un pesce attirato dalla luce, non un'orbita.
+                Vector3 spot = SpotPosition();
+                if (!float.IsNaN(floorY)) spot.y = Mathf.Max(spot.y, floorY + profile.bodyRadius * 2f);
+                Vector3 toSpot = spot - position;
+                float spotDistance = toSpot.magnitude;
+                Vector3 toLight = interest.Position - position;
+                float arrive = Mathf.Clamp01(spotDistance / 1f);
+                desired = Vector3.Lerp(toLight.normalized, toSpot / Mathf.Max(spotDistance, 0.01f), arrive);
+                targetSpeed = profile.cruiseSpeed * Mathf.Clamp(spotDistance / 1.5f, 0.2f, 1f);
+                targetY = spot.y;
             }
             else
             {
@@ -345,8 +397,11 @@ namespace Deeploration.Creatures
             else if (state == CreatureState.Inspect)
             {
                 Gizmos.color = Color.green;
-                Gizmos.DrawLine(position, interestPosition);
-                Gizmos.DrawWireSphere(interestPosition, profile.inspectDistance);
+                Vector3 spot = SpotPosition();
+                Gizmos.DrawLine(position, spot);
+                Gizmos.DrawWireSphere(spot, 0.15f);
+                Gizmos.color = new Color(0f, 1f, 0f, 0.3f);
+                Gizmos.DrawLine(spot, interest.Position);
             }
             Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.4f);
             Gizmos.DrawWireSphere(home, leashRadius);

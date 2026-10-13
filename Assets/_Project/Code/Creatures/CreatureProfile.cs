@@ -69,9 +69,19 @@ namespace Deeploration.Creatures
         [Tooltip("Reazione al rumore: passi, atterraggi")]
         public StimulusReaction noiseReaction = StimulusReaction.Flee;
 
-        [Tooltip("Distanza (m) a cui si ferma dalla sorgente quando si avvicina per osservarla")]
+        [Tooltip("Distanza preferita (m) da una luce debole quando si avvicina: ogni creatura sceglie il suo posto " +
+                 "fra il 75% e il 130% di questa distanza")]
         [Range(0.5f, 15f)]
         public float inspectDistance = 2.5f;
+
+        [Tooltip("Moltiplica la distanza preferita per la luce forte e il flash: una luce più intensa si osserva da " +
+                 "più lontano, dove la luminosità è quella preferita")]
+        [Range(1f, 5f)]
+        public float strongLightDistanceScale = 2.2f;
+
+        [Tooltip("Ogni quanti secondi, in media, cambia posto mentre osserva (±50%)")]
+        [Range(0.5f, 30f)]
+        public float inspectRepositionInterval = 5f;
 
         [Tooltip("Secondi senza percepire stimoli prima di calmarsi (da Flee a Inspect o Wander, da Inspect a Wander)")]
         [Range(0f, 30f)]
