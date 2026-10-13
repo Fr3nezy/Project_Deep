@@ -32,7 +32,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (58 / 58)
+## 2. Catalogo Completo degli Script (59 / 59)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -47,6 +47,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
+| `Assets/_Project/Code/Editor/PlayerPrefabValidator.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueWave1Builder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |

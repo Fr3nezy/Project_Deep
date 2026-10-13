@@ -130,7 +130,7 @@ flowchart TD
 
 ## Configurazione verificata in prefab e scene
 - Nel prefab [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
-  - `PlayerInteraction` e `PlayerHands` sono preconfigurati.
+  - `PlayerInteraction` e `PlayerHands` stanno sul `PlayerCapsule` dal 2026-10-13 (prima esistevano solo come componenti aggiunti nell'istanza di `SCN_Gameplay`): `interactionDistance` 2.6, `interactionLayers` tutti, `playerCamera` e `holdPoint` vuoti, risolti in `Awake()`.
 - Nella scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git; configurazione non riverificata dopo la rimozione):
   - Le celle energetiche (`ItemPickup`) con `itemId = "power_cell"` e gli alloggiamenti del generatore (`ItemSocket`) con `acceptedItemId = "power_cell"` sono disposti nel settore d'inizio.
 

@@ -86,7 +86,7 @@ flowchart TD
     - `fullIntensity: 55`, `fullRange: 15`, `fullRelief: 1`.
     - `lowIntensity: 8`, `lowRange: 4`, `lowRelief: 0.4`.
     - `redRelief: 0`.
-    - `emergencyLight`: `PlayerCapsule/TorchPivot/EmergencyLight`, Light Point rossa (1, 0.08, 0.04), range 3, intensità 1.5, senza ombre, componente disabilitato (aggiunta il 2026-10-13, valori provvisori da tarare a vista).
+    - `emergencyLight`: `MainCamera/HelmetVisualPivot/EmergencyLight`, dentro il casco poco sopra e davanti all'occhio (locale (0.001, 0.236, -0.177), inclinata di 5.5° verso l'alto): Light Spot rossa (1, 0.08, 0.04), angolo 113°, interno 23.4°, range 0.3, intensità 0.5, senza ombre, componente disabilitato. Illumina la visiera dall'interno e segue la testa. Valori e posa authorati da Manu in `SCN_Gameplay` il 2026-10-13; la prima versione (Point, range 3, intensità 1.5 sotto `TorchPivot`) seguiva il ritardo della torcia.
 - In `SCN_Gameplay` l'istanza del Player ha `initialMode: 2`, quindi dal 2026-10-13 il risveglio nella capsula parte in `Red` (spia rossa accesa).
 
 ## Estensione del sistema

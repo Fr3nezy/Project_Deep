@@ -71,6 +71,7 @@ flowchart LR
 - Bug risolto 2026-10-11: `targetOffset` era calcolato in `Awake` dopo che `PlayerWakeUpSequence` aveva già chinato `PlayerCameraRoot` (pitch della posa da svenuto, circa 25°, più il roll del sedile). Dopo il risveglio la torcia restava circa 13° sopra la vista e inclinata. Ora l'offset è serializzato e catturato in editor.
 - Bug risolto 2026-10-04: con ordine 100, pari a `CinemachineBrain` e `PlayerWakeUpSequence`, il follow-through poteva leggere `PlayerCameraRoot` dopo che `DiverController.RotateView` ne aveva azzerato il roll e prima che `PlayerWakeUpSequence` lo riapplicasse. La camera prendeva roll e pitch del risveglio, il casco no, e la geometria del casco entrava nel near plane. Un nuovo script che scrive la rotazione di `PlayerCameraRoot` in `LateUpdate` deve avere ordine inferiore a 200.
 - Anche in piedi alcuni vertici del casco ai bordi del campo visivo restano più vicini del near plane (0,14) della camera: comportamento preesistente, non legato al lag.
+- `OnValidate()` ricattura l'offset dalla posa in scena: in `SCN_Gameplay` questo lascia un override di `rotationOffsetEuler` su `TorchPivot` che differisce dal prefab di un milionesimo di grado. È innocuo e torna anche dopo un revert.
 - Se il pivot si trova nella stessa gerarchia di Cinemachine, un'inversione nell'ordine di esecuzione dei `LateUpdate` può produrre jitter visivo. Si consiglia di mantenere i nodi grafici follow-through su pivot dedicati non controllati direttamente da Cinemachine.
 
 ## Sistemi collegati

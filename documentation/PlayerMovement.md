@@ -110,6 +110,18 @@ flowchart LR
   - `ApplyHeadBob` è eseguito in `Update()`, garantendo la sincronizzazione prima di Cinemachine in `LateUpdate()`.
   - Sul `PlayerCapsule` c'è anche `SeaPenTouchGlow` (dal 2026-10-11): usa il pivot ai piedi per far accendere le penne di mare dove passa il diver, vedi [Coral.md](Coral.md).
 
+### Struttura del prefab Player (ricostruita il 2026-10-13)
+Fino al 2026-10-13 `Player.prefab` era un contenitore di quattro prefab annidati di *Starter Assets* (`MainCamera`, `PlayerFollowCamera`, `PlayerCapsule`, `UI_EventSystem`) con i figli spostati di (9.37, 14.11) dalla radice, cioè la posizione della loro demo: il pivot della radice stava a 17 m dal diver e ogni scena compensava con decine di override (57 in `SCN_Gameplay`). In più `CinemachineBrain` (`[ExecuteAlways]`) spostava `MainCamera` sulla camera virtuale anche in Editor, quindi aprendo il prefab il casco, figlio della camera, saltava. Ora:
+- i quattro prefab sono spacchettati di un livello: il Player è autonomo, solo il modello `Helmet.fbx` resta collegato;
+- la radice coincide con i piedi del diver: `PlayerCapsule` e `UI_EventSystem` in (0, 0, 0), `MainCamera` e `PlayerFollowCamera` in (0, 1.375, 0), cioè sul `PlayerCameraRoot`. Il brain sposta la camera dove già si trova, quindi in Editor non salta più niente;
+- portati nel prefab i valori che esistevano solo nelle scene: `PlayerInteraction` e `PlayerHands` sul `PlayerCapsule`, colore ambra della torcia (1, 0.725, 0.498), camera con sfondo a tinta unita (0, 0.057, 0.113) e far clip 800 (anche sulla lente di `PlayerFollowCamera`, che è quella che conta);
+- tolti il `Rigidbody` del `PlayerCapsule` (nessuno script lo usa; due scene su tre lo avevano già tolto) e il figlio `Capsule` spento;
+- la spia rossa `EmergencyLight` sta sotto `MainCamera/HelmetVisualPivot` (vedi [Flashlight.md](Flashlight.md)).
+
+Gerarchia: `Player` → `MainCamera` (Camera, CinemachineBrain) → `HelmetVisualPivot` (`RotationalFollowThrough`) → `Helmet` (FBX), `EmergencyLight`; `UI_EventSystem`; `PlayerFollowCamera` (camera virtuale) → `cm`; `PlayerCapsule` (controller e sistemi della tuta) → `PlayerCameraRoot`, `TorchPivot` (`RotationalFollowThrough`) → `PlayerGameLight`.
+
+Istanze nelle scene (2026-10-13): radice dritta, solo rotazione sull'asse verticale, nella posizione dei piedi. Override oltre la posa della radice: `SCN_Gameplay` `DiverFlashlight.initialMode` = Red e `rotationOffsetEuler` di `TorchPivot` (lo riscrive l'`OnValidate` di `RotationalFollowThrough` con scarti di un milionesimo di grado, innocuo); `SCN_Intro` posizione della `PlayerGameLight`; `SCN_EnvDemo` nessuno. Tutti i riferimenti delle scene verso il player (cancelli e timeline del prologo, risveglio, neve marina, `CreatureManager`, sequenza dell'ascensore) sono sopravvissuti allo spacchettamento. Per controllare che resti così: *Deeplonauts → Validate Player* (vedi [EditorTools.md](EditorTools.md)).
+
 ## Estensione del sistema
 - Integrazione modulo Hydropack: creare un componente separato `DiverHydropack` che modifica o sovrascrive la componente verticale della velocità (`verticalVelocity`) consumando risorsa separata (propellente/energia).
 - Emissione suoni passi: sottoscrivere `OnFootstep` da un modulo audio per instanziare o riprodurre clip di passi metallici/fangosi sul fondale.
@@ -118,6 +130,7 @@ flowchart LR
 - Se Cinemachine legge il `PlayerCameraRoot` prima o durante `Update()`, l'ordine dei componenti o dell'execution order può alterare la stabilità della camera. Il fix consolidato applica l'head-bob in `Update()` e la rotazione in `LateUpdate()`.
 
 ## Verifica
+- 2026-10-13, dopo la ricostruzione del prefab (Play Mode): `SCN_Gameplay` risveglio completo, camera sull'occhio, roll del sedile mantenuto, torcia in Red con la spia accesa; `SCN_Intro` sequenza dell'ascensore fino al caricamento di `SCN_Gameplay`; `SCN_EnvDemo` diver a terra e camera sull'occhio. Nessun errore in console. *Validate Player*: 0 problemi (solo gli avvisi sulla scala delle mesh del casco).
 - 2026-10-09, Play Mode in `SCN_Gameplay` (Unity 6000.3.19f1): `CameraTarget`, `ViewRoll`, `SetViewPitch(0)` e `ResetMotion()` usati da `PlayerWakeUpSequence` e `HatchExit`. Passaggio di controllo senza scatti nei valori di posizione, pitch e roll della camera; da seduto `ViewRoll` 16.8° mantenuto dal controller; nessun errore `CharacterController.Move` con il controller spento. Camminata dopo l'uscita non riverificata con input reale.
 - Avviare la scena `SCN_Gameplay.unity` in Play Mode.
 - Camminando con W/A/S/D si deve avvertire l'accelerazione graduale e il dondolio della visuale.

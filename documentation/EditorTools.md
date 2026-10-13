@@ -13,6 +13,7 @@ Raggruppa gli strumenti di automazione, generazione procedurale e utility dell'E
 - `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs`: Script Editor (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`) che genera la scena isolata di discesa `SCN_Intro.unity`.
 - `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs`: Script Editor con menu `Deeploration/Tests/Check Prologue Control Restored`.
 - `Assets/_Project/Code/Editor/PrologueWave1Builder.cs`: Script Editor con menu `Deeplonauts/Prologue/Build Wave 1 Prologue Setup`.
+- `Assets/_Project/Code/Editor/PlayerPrefabValidator.cs`: Script Editor con menu `Deeplonauts/Validate Player` che controlla il prefab `Player` e le sue istanze nelle scene di `Assets/_Project/Scenes`. Solo lettura.
 - `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs`: Script Editor con menu `Deeplonauts/Debug/Rock Blend Masks` che mostra le maschere di fusione delle rocce come colori. Documentato in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
 - `CreatureProfileCreator` (ex `Assets/_Project/Code/EntitySystem/Editor/`) è stato rimosso il 2026-10-13 con il vecchio sistema creature: duplicava il `CreateAssetMenu` già presente su `CreatureProfile`.
 
@@ -63,6 +64,13 @@ flowchart TD
   - `static void BuildElevatorScene()`: Genera la scena da zero (menu `Deeplonauts/Prologue/Build Elevator Prologue Scene`, protetta da dialog se la scena esiste).
   - `static void SetupElevatorSceneComponents()`: Configura o aggiorna la sequenza, i dialoghi, il camera shake e i cubi nella scena attiva (menu `Deeplonauts/Prologue/Setup Elevator Sequence & Dialogues`).
 
+### PlayerPrefabValidator
+- **Responsabilità**: controllo da menu (`Deeplonauts/Validate Player`), nato il 2026-10-13 dopo la ricostruzione del prefab per non doverla ripetere. Non modifica niente: scrive il resoconto in console (warning se ci sono problemi) e mostra una finestra con il conteggio.
+  - Prefab `Assets/_Project/Prefabs/Player.prefab`: radice con rotazione zero e scala 1; figli diretti senza spostamento orizzontale dalla radice (stanno sopra i piedi); nessuno script mancante; nessun prefab annidato tranne i modelli (FBX); scala non uniforme segnalata come avviso, non come problema.
+  - Ogni scena in `Assets/_Project/Scenes` (aperta in additivo e chiusa senza salvare se non è già aperta): radice dell'istanza senza inclinazione su X e Z e a scala 1; elenco degli override oltre la posa della radice, problema oltre 6; componenti od oggetti aggiunti o tolti solo in scena.
+- **API pubbliche**: nessuna (metodi privati). Costanti: `PrefabPath`, `ScenesFolder`, `OverrideWarningThreshold` (6).
+- **Limite**: la finestra di dialogo è modale, quindi da automazione vanno chiamati i metodi interni (`CheckPrefab`, `CheckScene`) via reflection.
+
 ### RockBlendDebugMenu
 - **Responsabilità**: strumento di debug per `SG_Rock_Blend`; imposta la globale `_EnvRockBlendDebug` (rosso = contatto col suolo, verde = giuntura con le rocce vicine, blu = sedimento e cavità). Lo stato non è salvato e torna a 0 al riavvio dell'Editor.
 - **API pubbliche**: nessuna (metodi privati). Dettagli completi in [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md).
@@ -82,6 +90,7 @@ flowchart TD
 - Non usare `BuildLevel()` per preparare `SCN_Gameplay.unity`: la Wave 1 deve conservare la mappa importata e le modifiche manuali della scena.
 
 ## Verifica
+- `PlayerPrefabValidator` (2026-10-13): prima della correzione del controllo segnalava il casco FBX come prefab annidato (il tipo va chiesto all'asset sorgente, non all'istanza); dopo, 0 problemi su prefab e tre scene, con 3 avvisi di scala non uniforme sulle mesh del casco (scala 89.8/100/100 dall'export FBX).
 - `PrologueSmokeCheck` è stato eseguito in Play Mode con esito positivo (`PASS: controllo Diver e reset input`); verifica che il `DiverController` sia abilitato, gli input di salto funzionino e `ResetMotion()` azzeri `CurrentSpeed`.
 - `PrologueWave1Builder` è stato eseguito con successo, generando asset di localizzazione, Timeline, canali segnali e allestimento della scena `SCN_Gameplay.unity`.
 
