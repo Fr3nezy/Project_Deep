@@ -23,10 +23,12 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 Asset:
 - `Assets/_Project/Entities/Profiles/Creature_TestCube.asset`: profilo di prova (valori di default del codice).
 - `Assets/_Project/Entities/Prefabs/Creature_TestCube.prefab`: cubo 0.3 × 0.2 × 0.6 sul layer `Entity`, senza collider, con `Creature`. Resta per i benchmark.
-- `Assets/_Project/Entities/Profiles/Creature_Lanternfish.asset`: profilo del lanternfish (default del codice, `bodyRadius` 0.1).
-- `Assets/_Project/Entities/Prefabs/Creature_Lanternfish_Placeholder.prefab`: `Creature` alla radice e come figlio il prefab annidato `fish_1_v1` del pacchetto *Backrock Studios / LowPoly-Animals* (428 triangoli, Animator con `Fish_1_Swim_clip` in loop). Il figlio è scalato a 0.0378, lungo 25 cm e centrato sul pivot, con l'Animator in `CullCompletely` e tutto sul layer `Entity`. È provvisorio: il modello definitivo e la catena di joint lo sostituiscono.
+- `Assets/_Project/Entities/Profiles/Creature_Lanternfish.asset`: profilo del lanternfish (default del codice tranne `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.125).
+- `Assets/_Project/Entities/Prefabs/Creature_Lanternfish_Placeholder.prefab`: `Creature` alla radice e come figlio il prefab annidato `fish_1_v1` del pacchetto *Backrock Studios / LowPoly-Animals* (428 triangoli, Animator con `Fish_1_Swim_clip` in loop). Il figlio è scalato a 0.0472, lungo 31 cm (25 cm più la licenza del 25%) e centrato sul pivot, con l'Animator in `CullCompletely` e tutto sul layer `Entity`. È provvisorio: il modello definitivo e la catena di joint lo sostituiscono.
 
 Placeholder scelti il 2026-10-13 tra i pesci del pacchetto, per sagoma: lanternfish = Fish-1, pesce ascia = Fish-3 o Fish-5, tripode = Fish-6, viperfish = Shark; per l'isopode non c'è niente. Sono da barriera corallina e low-poly, con scale incoerenti (Fish-1 e Fish-2 lunghi circa 6.5 m, gli altri 4-16 cm). Fish-4 e Fish-6 hanno circa 10k triangoli. La testa punta a +Z. Fish-3 non ha Animator. Solo il lanternfish è montato; gli altri entrano con le task delle loro specie.
+
+Licenza di stile (decisa da Manu il 2026-10-13): ogni pesce può essere fino al 25% più grande della sua taglia reale, per leggersi meglio nel buio. Vale per i placeholder e per i modelli definitivi.
 
 ## Dipendenze e flusso dati
 - `CreatureNest` chiede al manager `Prewarm` e `Spawn` all'avvio, `Despawn` quando si disabilita.
@@ -82,8 +84,8 @@ flowchart TD
 - Raggi (in `probe`):
   - raggio verso il basso (100 m) per la quota del fondale. Se non trova niente ma dall'alto c'è una superficie, la creatura è finita sotto il terreno e viene riportata all'altezza preferita (paracadute);
   - `OverlapSphereNonAlloc` sul corpo: se è dentro un ostacolo (per esempio nell'involucro di un collider convesso) esce allontanandosi dal centro del collider e verso l'alto;
-  - altrimenti `SphereCast` in avanti lungo `bodyRadius + max(1, speed × lookAhead)`: se colpisce, scivola lungo la superficie staccandosene, con peso crescente man mano che si avvicina.
-- Moto (ogni frame): la rotta orizzontale viene dallo stato, la componente verticale dalla correzione di quota (limitata a ±0.5). Vicino a un ostacolo la velocità scende fino al 40% e la virata sale fino al triplo. La rotta ruota verso quella desiderata a `turnRate`, la velocità tende al bersaglio con `acceleration`, la posizione non scende mai sotto `fondale + bodyRadius`.
+  - altrimenti `SphereCast` in avanti lungo `bodyRadius + max(1, speed × lookAhead)`: se colpisce, scivola lungo la superficie staccandosene, solo sul piano orizzontale e con peso crescente man mano che si avvicina. La quota resta decisa dalla correzione di quota: così un pendio che sale oltre il soffitto diventa una parete da aggirare, non una rampa.
+- Moto (ogni frame): la rotta orizzontale viene dallo stato, la componente verticale dalla correzione di quota (limitata a ±0.5). La correzione punta a `fondale + heightAboveFloor`, ma mai sopra il soffitto ricevuto dal nido; sopra il soffitto la creatura scende sempre, anche dentro `heightTolerance`. Vicino a un ostacolo la velocità scende fino al 40% e la virata sale fino al triplo. La rotta ruota verso quella desiderata a `turnRate`, la velocità tende al bersaglio con `acceleration`, la posizione non scende mai sotto `fondale + bodyRadius`.
 - Campi Inspector (solo per il modello provvisorio; tutto il resto arriva da profilo e nido):
 
 | Campo | Tipo | Default | Significato |
@@ -97,7 +99,7 @@ flowchart TD
   - `CreatureState State { get; }`
   - `CreatureLod Lod { get; }`: livello assegnato dal manager nell'ultimo frame.
   - `float Speed { get; }`: velocità attuale (m/s).
-  - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
+  - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash, float ceiling)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
 - Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`), sfera di `fleeDistance`, guinzaglio attorno a casa, direzione di evitamento (magenta).
 - Riferimenti obbligatori: va presa dal pool con `CreatureManager.Spawn`. Una `Creature` messa a mano in scena resta ferma, perché nessuno chiama `Tick`.
 
@@ -129,12 +131,12 @@ flowchart TD
   - `int ActiveCount { get; }`
   - `int CountAtLod(CreatureLod lod)`: creature nel livello durante l'ultimo frame.
   - `void Prewarm(CreatureProfile profile, int count)`: porta a `count` le istanze inattive della specie.
-  - `Creature Spawn(CreatureProfile profile, Vector3 position, Quaternion rotation, Vector3 home, float leashRadius)`: ritorna null (con errore in console) se il profilo è nullo o senza prefab.
+  - `Creature Spawn(CreatureProfile profile, Vector3 position, Quaternion rotation, Vector3 home, float leashRadius, float ceilingY = float.PositiveInfinity)`: `ceilingY` è la quota assoluta che la creatura non supera. Ritorna null (con errore in console) se il profilo è nullo o senza prefab.
   - `void Despawn(Creature creature)`: ignora creature nulle o già nel pool.
 - Gizmo (selezionato): sfere di `nearDistance` e `farDistance` attorno al sub.
 
 ### CreatureNest
-- Responsabilità e ciclo di vita: in `Start` fa uscire `count` creature (dopo `Prewarm`); se viene riabilitato le rifà uscire; in `OnDisable` le rimette nel pool. Ogni punto di spawn è scelto a caso nella sfera `spawnRadius` e scartato se è sepolto (guardando dall'alto la prima superficie sta sopra il punto meno `bodyRadius`) o se il corpo tocca un ostacolo. Dopo 8 tentativi falliti usa il centro del nido. Versione base: spawn fuori vista, uscita a nuoto e despawn per distanza arrivano con la task dei nidi.
+- Responsabilità e ciclo di vita: in `Start` fa uscire `count` creature (dopo `Prewarm`); se viene riabilitato le rifà uscire; in `OnDisable` le rimette nel pool. Ogni punto di spawn è scelto a caso nella sfera `spawnRadius`, abbassato sotto il soffitto e scartato se è sepolto (guardando dall'alto la prima superficie sta sopra il punto meno `bodyRadius`) o se il corpo tocca un ostacolo. Dopo 8 tentativi falliti usa il centro del nido. Versione base: spawn fuori vista, uscita a nuoto e despawn per distanza arrivano con la task dei nidi.
 - Campi Inspector:
 
 | Campo | Tipo | Default | Significato |
@@ -144,11 +146,12 @@ flowchart TD
 | `count` | int ≥ 0 | 5 | Creature fatte uscire all'avvio |
 | `spawnRadius` | float ≥ 0 | 3 | Sfera di spawn attorno al nido (m) |
 | `leashRadius` | float ≥ 1 | 20 | Oltre questa distanza dal nido le creature tornano indietro (m) |
+| `maxHeightAboveNest` | float ≥ 0 | 4 | Soffitto: quota massima delle creature sopra il nido (m). Dove il fondale sale oltre, lo aggirano |
 
 - API pubbliche:
   - `int SpawnedCount { get; }`
   - `void Respawn(int newCount)`: cambia il numero e rifà uscire il nido da capo (usato per i benchmark).
-- Gizmo: sfera di spawn (sempre), guinzaglio (selezionato).
+- Gizmo: sfera di spawn (sempre); guinzaglio e piano del soffitto (selezionato).
 - Riferimenti obbligatori: `manager` e `profile`. Se mancano, errore in console e nessuno spawn.
 
 ### CreatureEnums
@@ -170,7 +173,7 @@ flowchart TD
 ## Configurazione verificata in prefab e scene
 In `SCN_Gameplay.unity` (2026-10-13):
 - Il vecchio GameObject `EntityPooler` (con `EntityPooler` ed `EntitySpawner`) è stato rimosso.
-- Al suo posto `Creatures` con `CreatureManager` (`player` = `PlayerCapsule`, altri campi ai default) e il figlio `Nest_Lanternfish` in (0, 2.5, 0): profilo `Creature_Lanternfish`, `count` 12, `spawnRadius` 8, `leashRadius` 15. Fino al 2026-10-13 si chiamava `Nest_TestCubes` e usava `Creature_TestCube`.
+- Al suo posto `Creatures` con `CreatureManager` (`player` = `PlayerCapsule`, altri campi ai default) e il figlio `Nest_Lanternfish` in (-5, 2.51, -14), nel corridoio del prato di penne a 11 m dalla capsula, 1.5 m sopra il fondale: profilo `Creature_Lanternfish`, `count` 12, `spawnRadius` 6, `leashRadius` 12, `maxHeightAboveNest` 3 (soffitto a Y 5.5). Il primo giorno si chiamava `Nest_TestCubes`, stava in (0, 2.5, 0) tra le rocce accanto alla capsula e usava `Creature_TestCube`: lì metà del fondale entro 15 m sta sopra Y 6.4 e i pesci salivano lungo le pareti del canyon (mediana Y 8.9 contro il sub a 0.1).
 
 ## Estensione del sistema
 - Nuova specie: nuovo `CreatureProfile` con il suo prefab, più un `CreatureNest` che la usa. Niente stringhe né enum da aggiornare.
@@ -184,6 +187,7 @@ In `SCN_Gameplay.unity` (2026-10-13):
 - Lo spawn scarta i punti sotto qualsiasi superficie vista dall'alto, quindi anche quelli sotto uno sbalzo di roccia. Un nido in un crepaccio coperto (previsto nella task dei nidi) ripiegherà sul proprio centro: da rivedere in quella task.
 - Il recupero da dentro un ostacolo usa il centro dei bounds del collider: con collider molto grandi o concavi la direzione di uscita è approssimativa.
 - Fuga provvisoria: dipende solo dalla vicinanza del sub; luce e rumore arrivano con la task 2.
+- Il soffitto è una quota assoluta per nido: in una mappa a canyon funziona se il nido sta nel fondo piano. Un nido sul fianco di una parete ha bisogno di un soffitto più alto.
 - Lo stato `Flee` non ha ancora un costo (stamina rimossa): una creatura scappa finché percepisce il sub.
 
 ## Verifica
@@ -217,6 +221,8 @@ Letture:
 - Provato e scartato: togliere il padre comune (`CreaturePool`) alle istanze non cambia il costo, quindi la gerarchia resta ordinata.
 
 Le misure sono prese con la Scene view puntata nel vuoto: se inquadra la scena, il suo rendering entra nel main thread (con 50 pesci animati e la Scene view sulla scena: 44.4 ms). Con il placeholder animato, durante il prologo, quasi tutti i pesci sono fuori inquadratura e il loro Animator è fermo (`CullCompletely`): il costo dell'animazione con molti pesci inquadrati non è ancora misurato.
+
+Quota (100 lanternfish dopo 30 s, nido nel corridoio, soffitto e quote del profilo attuali): altezza sopra il fondale mediana 1.3 m (0.3-3.4), Y mediana 2.9 m (massimo 6.1, in discesa verso il soffitto), 0 sepolti e 0 a contatto. Alcuni pesci superano il guinzaglio (massimo 21.7 m dal nido contro 12): il richiamo verso casa è morbido.
 
 Non verificato: build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 

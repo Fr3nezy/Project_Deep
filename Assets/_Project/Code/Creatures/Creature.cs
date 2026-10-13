@@ -31,6 +31,7 @@ namespace Deeploration.Creatures
 
         private Vector3 home;
         private float leashRadius;
+        private float ceilingY;
         private float noiseSeed;
 
         private Vector3 heading;
@@ -63,13 +64,15 @@ namespace Deeploration.Creatures
         internal int Slot { get; set; }
 
         /// <summary>Prepara la creatura appena uscita dal pool.</summary>
-        internal void OnSpawn(CreatureManager owner, CreatureProfile creatureProfile, Vector3 homePosition, float leash)
+        internal void OnSpawn(CreatureManager owner, CreatureProfile creatureProfile, Vector3 homePosition, float leash,
+            float ceiling)
         {
             manager = owner;
             profile = creatureProfile;
             cachedTransform = transform;
             home = homePosition;
             leashRadius = leash;
+            ceilingY = ceiling;
             noiseSeed = Random.value * 1000f;
 
             heading = cachedTransform.forward;
@@ -168,11 +171,15 @@ namespace Deeploration.Creatures
             if (Physics.SphereCast(position, profile.bodyRadius, heading, out RaycastHit hit, lookDistance, mask,
                     QueryTriggerInteraction.Ignore))
             {
-                // Scivola lungo la superficie e se ne stacca un po': con l'ostacolo di fronte la proiezione è
-                // quasi nulla, allora gira di lato.
-                Vector3 slide = Vector3.ProjectOnPlane(heading, hit.normal);
-                if (slide.sqrMagnitude < 0.01f) slide = Vector3.Cross(hit.normal, Vector3.up);
-                avoidDirection = (slide.normalized + hit.normal * 0.5f).normalized;
+                // Scivola lungo la superficie e se ne stacca un po', solo in orizzontale: la quota la decide
+                // HeightCorrection, così un pendio sopra il soffitto diventa una parete da aggirare invece di una
+                // rampa. Con l'ostacolo di fronte la proiezione è quasi nulla, allora gira di lato.
+                Vector3 normal = new Vector3(hit.normal.x, 0f, hit.normal.z);
+                Vector3 slide = Vector3.ProjectOnPlane(new Vector3(heading.x, 0f, heading.z), normal);
+                if (slide.sqrMagnitude < 0.01f) slide = Vector3.Cross(Vector3.up, normal);
+                avoidDirection = slide.normalized + normal.normalized * 0.5f;
+                if (avoidDirection.sqrMagnitude < 0.0001f) avoidDirection = new Vector3(heading.x, 0f, heading.z);
+                avoidDirection.Normalize();
                 avoidWeight = 1f - hit.distance / lookDistance;
             }
             else
@@ -209,7 +216,11 @@ namespace Deeploration.Creatures
             float turnRate = profile.turnRate;
             if (avoidWeight > 0f)
             {
-                desired = Vector3.Lerp(desired.normalized, avoidDirection, avoidWeight);
+                // Lo scarto agisce sul piano; la quota resta quella decisa da HeightCorrection, più la spinta
+                // verso l'alto del recupero quando la creatura è dentro un ostacolo.
+                float climb = desired.y;
+                desired = Vector3.Lerp(new Vector3(desired.x, 0f, desired.z), avoidDirection, avoidWeight);
+                desired.y = climb + avoidDirection.y * avoidWeight;
                 targetSpeed *= 1f - 0.6f * avoidWeight;
                 turnRate *= 1f + 2f * avoidWeight;
             }
@@ -239,12 +250,16 @@ namespace Deeploration.Creatures
             return Vector3.Lerp(desired.normalized, toHome / distance, pull);
         }
 
-        /// <summary>Componente verticale della rotta per restare all'altezza preferita sopra il fondale.</summary>
+        /// <summary>
+        /// Componente verticale della rotta: resta all'altezza preferita sopra il fondale, ma mai sopra il soffitto
+        /// del nido. Sopra il soffitto scende sempre, anche dentro la tolleranza.
+        /// </summary>
         private float HeightCorrection(float y)
         {
-            if (float.IsNaN(floorY)) return 0f;
-            float error = floorY + profile.heightAboveFloor - y;
-            if (Mathf.Abs(error) <= profile.heightTolerance) return 0f;
+            float target = float.IsNaN(floorY) ? y : floorY + profile.heightAboveFloor;
+            target = Mathf.Min(target, ceilingY);
+            float error = target - y;
+            if (y <= ceilingY && Mathf.Abs(error) <= profile.heightTolerance) return 0f;
             return error * 0.5f;
         }
 

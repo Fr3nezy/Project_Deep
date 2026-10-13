@@ -99,9 +99,11 @@ namespace Deeploration.Creatures
 
         /// <summary>
         /// Prende una creatura dal pool della specie e la attiva. <paramref name="home"/> e
-        /// <paramref name="leashRadius"/> definiscono la zona entro cui vaga. Ritorna null se il profilo non ha prefab.
+        /// <paramref name="leashRadius"/> definiscono la zona entro cui vaga, <paramref name="ceilingY"/> la quota
+        /// assoluta che non supera. Ritorna null se il profilo non ha prefab.
         /// </summary>
-        public Creature Spawn(CreatureProfile profile, Vector3 position, Quaternion rotation, Vector3 home, float leashRadius)
+        public Creature Spawn(CreatureProfile profile, Vector3 position, Quaternion rotation, Vector3 home, float leashRadius,
+            float ceilingY = float.PositiveInfinity)
         {
             if (profile == null || profile.prefab == null)
             {
@@ -114,7 +116,7 @@ namespace Deeploration.Creatures
             creature.Slot = nextSlot++;
             creature.ActiveIndex = active.Count;
             active.Add(creature);
-            creature.OnSpawn(this, profile, home, leashRadius);
+            creature.OnSpawn(this, profile, home, leashRadius, ceilingY);
             return creature;
         }
 

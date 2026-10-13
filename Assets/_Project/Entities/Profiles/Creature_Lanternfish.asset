@@ -17,8 +17,8 @@ MonoBehaviour:
   fleeSpeed: 4
   acceleration: 3
   turnRate: 90
-  heightAboveFloor: 2.5
-  heightTolerance: 1
+  heightAboveFloor: 1.5
+  heightTolerance: 0.75
   wanderTurn: 45
   wanderFrequency: 0.15
   sightRange: 12
@@ -26,5 +26,5 @@ MonoBehaviour:
   hearingRange: 3
   fleeDistance: 5
   calmDelay: 3
-  bodyRadius: 0.1
+  bodyRadius: 0.125
   lookAhead: 1.5

@@ -30,6 +30,10 @@ namespace Deeploration.Creatures
         [Tooltip("Oltre questa distanza dal nido le creature piegano per tornare indietro (m)")]
         [SerializeField, Min(1f)] private float leashRadius = 20f;
 
+        [Tooltip("Quota massima delle creature sopra il nido (m): dove il fondale sale oltre, lo aggirano invece di " +
+                 "seguirlo. Tiene i pesci all'altezza del sub sui pendii.")]
+        [SerializeField, Min(0f)] private float maxHeightAboveNest = 4f;
+
         private readonly List<Creature> spawned = new List<Creature>();
         private bool started;
 
@@ -68,11 +72,12 @@ namespace Deeploration.Creatures
 
             manager.Prewarm(profile, count);
             Vector3 center = transform.position;
+            float ceiling = center.y + maxHeightAboveNest;
             for (int i = spawned.Count; i < count; i++)
             {
                 Vector3 position = FindFreePoint(center);
                 Quaternion rotation = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
-                Creature creature = manager.Spawn(profile, position, rotation, center, leashRadius);
+                Creature creature = manager.Spawn(profile, position, rotation, center, leashRadius, ceiling);
                 if (creature != null) spawned.Add(creature);
             }
         }
@@ -84,9 +89,11 @@ namespace Deeploration.Creatures
         private Vector3 FindFreePoint(Vector3 center)
         {
             float clearance = profile.bodyRadius;
+            float ceiling = center.y + maxHeightAboveNest - clearance;
             for (int attempt = 0; attempt < MaxSpawnAttempts; attempt++)
             {
                 Vector3 candidate = center + Random.insideUnitSphere * spawnRadius;
+                candidate.y = Mathf.Min(candidate.y, ceiling);
                 Vector3 above = candidate + Vector3.up * FreeCheckHeight;
                 if (Physics.Raycast(above, Vector3.down, out RaycastHit hit, FreeCheckHeight, manager.ObstacleMask,
                         QueryTriggerInteraction.Ignore) && hit.point.y > candidate.y - clearance)
@@ -115,6 +122,9 @@ namespace Deeploration.Creatures
         {
             Gizmos.color = new Color(0.3f, 0.6f, 1f, 0.4f);
             Gizmos.DrawWireSphere(transform.position, leashRadius);
+            Gizmos.color = new Color(1f, 0.3f, 0.3f, 0.4f);
+            Gizmos.DrawWireCube(transform.position + Vector3.up * maxHeightAboveNest,
+                new Vector3(leashRadius * 2f, 0f, leashRadius * 2f));
         }
     }
 }

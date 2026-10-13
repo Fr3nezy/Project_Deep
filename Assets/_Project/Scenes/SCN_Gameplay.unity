@@ -167883,7 +167883,7 @@ Transform:
   m_GameObject: {fileID: 556942548}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 2.5, z: 0}
+  m_LocalPosition: {x: -5, y: 2.506503, z: -14}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -167904,8 +167904,9 @@ MonoBehaviour:
   manager: {fileID: 589838369}
   profile: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
   count: 12
-  spawnRadius: 8
-  leashRadius: 15
+  spawnRadius: 6
+  leashRadius: 12
+  maxHeightAboveNest: 3
 --- !u!1 &562769346
 GameObject:
   m_ObjectHideFlags: 0
