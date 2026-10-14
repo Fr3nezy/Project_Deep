@@ -10,7 +10,8 @@ Stato:
 - **Implementato e verificato (2026-10-13):** profilo di specie, creatura con stati `Wander` e `Flee`, moto cinematico con evitamento ostacoli, quota sopra il fondale e soffitto per nido, manager con pool per profilo e LOD, nido base, sonda di benchmark (task 1 di M2). Stimoli del sub (task 2, che assorbe la task 3 della torcia rossa): luce del fascio in Full e Low, nessuna luce in Red, rumore dalla velocità e dall'atterraggio, scia del prato di penne; percezione con portata, sensibilità di specie, fascio, alone e linea di vista. Reazioni per specie (task 4): quattro categorie di stimolo (luce debole, luce forte, flash, rumore), ognuna con la sua reazione nel profilo (ignora, avvicinati, scappa); nuovo stato `Inspect`.
 - **Implementato e verificato (2026-10-14, task 7a):** lanternfish con il modello definitivo di Manu e nuoto nello shader `Deeplonauts/Fish` (onda laterale dalla testa alla coda, piega in virata), fase e ampiezza per istanza da `Creature`.
 - **Implementato e verificato (2026-10-14, task 7b):** banco e spavento. Banco: le creature della stessa specie entro `schoolRadius` si tengono a distanza (separazione), restano insieme (coesione) e nuotano nella stessa direzione (allineamento), con una griglia spaziale nel manager. Spavento: All'ingresso in fuga la creatura scatta (virata e accelerazione ×6 per `startleDuration`, corpo piegato a C), i fotofori lampeggiano e il lampo diventa uno stimolo `Flash` per le altre creature: l'allarme si propaga nel banco.
-- **Pianificato (M2):** catena di joint procedurale, nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, viperfish, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
+- **Implementato e verificato (2026-10-14, task 5):** catena di joint procedurale `SwimChain` (follow the leader con limite di piega e onda di nuoto), provata su una capsula a segmenti.
+- **Pianificato (M2):** nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, viperfish, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -21,13 +22,16 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 5. `CreatureEnums.cs`: enum `CreatureState`, `StimulusCategory`, `StimulusReaction` e `CreatureLod`.
 6. `CreatureStimulus.cs`: struct `CreatureStimulus` (uno stimolo del frame) e interfaccia `IStimulusSource`.
 7. `DiverStimulusSource.cs`: sul `PlayerCapsule`, traduce torcia, passi e prato di penne in stimoli.
-8. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
+8. `SwimChain.cs`: catena di joint procedurale per i corpi lunghi (viperfish, Pelican Eel).
+9. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
 
 Shader: `Assets/_Project/Rendering/Shaders/Fish.shader` (`Deeplonauts/Fish`), per i pesci ambientali senza ossa (vedi *Shader Deeplonauts/Fish*).
 
 Asset:
 - `Assets/_Project/Entities/Profiles/Creature_TestCube.asset`: profilo di prova (valori di default del codice).
 - `Assets/_Project/Entities/Prefabs/Creature_TestCube.prefab`: cubo 0.3 × 0.2 × 0.6 sul layer `Entity`, senza collider, con `Creature`. Resta per i benchmark.
+- `Assets/_Project/Entities/Prefabs/Creature_ChainTest.prefab` (2026-10-14): capsula a segmenti per provare `SwimChain` finché non c'è il rig del viperfish. Radice con `Creature` e `SwimChain`; dieci ossa annidate (`Head`, `Seg_01` … `Seg_09`) a 0.1 m l'una dall'altra lungo -Z (catena lunga 0.9 m), ognuna con un figlio `Visual` (sfera, raggio da 0.13 alla testa a 0.04 in coda, materiale `M_ChainTest`, URP Lit grigio caldo). `visibilityRenderer` = la sfera della testa. Nessun collider, layer `Entity`.
+- `Assets/_Project/Entities/Profiles/Creature_ChainTest.asset`: profilo della capsula (default del codice tranne `cruiseSpeed` 1, `fleeSpeed` 3, `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.15, `strongLightReaction` Approach, `inspectDistance` 3). Nessun nido in scena: per provarla si fa uscire dal pool con `CreatureManager.Spawn`.
 - `Assets/_Project/Entities/Profiles/Creature_Lanternfish.asset`: profilo del lanternfish (default del codice tranne `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.125, `strongLightReaction` Approach). Reazioni: luce debole e forte → si avvicina (i mictofidi vanno verso la luce, per questo si pescano con le lampade), flash e rumore → scappa. Banco e spavento (dal 2026-10-14): `schoolRadius` 2.5, `separationDistance` 0.6 (circa due lunghezze del corpo), `cohesionWeight` 0.5, `alignmentWeight` 0.5, `startleGlow` 4, `alarmRadius` 4, il resto ai default (i lanternfish veri lampeggiano con i fotofori quando si spaventano).
 - `Assets/_Project/Entities/Prefabs/Creature_Lanternfish.prefab` (dal 2026-10-14): alla radice `Creature` (`swimRenderers` = `Body` e `Body_LOD1`, `swimFrequency` 2.5, `fullBendTurnRate` 120) e `LODGroup` (Cross Fade animato, `size` 0.31, LOD0 `Body` fino a 0.13 dell'altezza dello schermo, LOD1 `Body_LOD1` fino a 0.03, poi niente). Con la camera del sub (FOV 32.9°) e `lodBias` 2 il passaggio è a circa 8 m e la scomparsa a circa 35 m, dove la nebbia esponenziale (densità 0.065) ha già coperto quasi tutto. Figli `Body` (`MSH_LanternFish`) e `Body_LOD1` (`MSH_LanternFish_LOD1`), entrambi con `MeshFilter` + `MeshRenderer`, `M_LanternFish`, ombre e probe spenti; tutto sul layer `Entity`. Ha sostituito `Creature_Lanternfish_Placeholder` (Fish-1 del pacchetto Backrock con Animator), rimosso lo stesso giorno e recuperabile dalla storia di Git.
 - `Assets/_Project/Assets/Creatures/LanternFish/`: modello di Manu.
@@ -246,6 +250,30 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Gizmo (selezionato, in Play): i punti luce del prato ancora accesi.
 - Riferimenti obbligatori: nessuno. Senza torcia, controller o `SeaPenTouchGlow` lo stimolo corrispondente non viene emesso. Va assegnato al campo `player` del `CreatureManager` della scena.
 
+### SwimChain
+- Responsabilità e ciclo di vita: anima i corpi lunghi senza clip né Animator. Sta sulla radice della creatura, accanto a `Creature`. In `Awake` legge dalla posa di riposo le lunghezze dei segmenti fra ossa consecutive e, per ogni osso, la rotazione rispetto alla direzione verso l'osso davanti: così l'asse delle ossa del rig può essere qualsiasi. `OnEnable` (anche all'uscita dal pool) chiede di ridistendere la catena. In `LateUpdate`, quindi dopo che il `CreatureManager` ha mosso la creatura:
+  1. se serve ridistenderla, o se la testa si è spostata più della lunghezza della catena (teletrasporto), mette i punti in fila dietro la testa;
+  2. **follow the leader**: il primo punto è la posizione del primo osso (che segue la creatura per gerarchia e non viene mai scritto); ogni punto successivo resta sulla retta verso la sua posizione precedente, a distanza fissa dal punto davanti, e la sua direzione non si scosta più di `maxBend` da quella del segmento davanti (per il primo segmento, dalla direzione opposta al muso). Il corpo ripercorre quindi la traiettoria della testa;
+  3. la fase dell'onda avanza di `waveFrequency × clamp(speed / cruiseSpeed, 0.3, 3) × 2π × dt`;
+  4. se `visibilityRenderer` è assegnato e non visibile si ferma qui: la simulazione avanza ma le ossa non vengono scritte;
+  5. scrive le ossa: posizione = punto simulato più l'onda laterale (perpendicolare al segmento e all'alto della creatura) `waveAmplitude × lunghezza catena × clamp(speed / cruiseSpeed, 0.3, 1.5) × lerp(headAmplitude, 1, u²) × sin(fase - u × waveCount × 2π)`, con u da 0 alla testa a 1 in coda; rotazione = guarda verso l'osso davanti già spostato, per la rotazione di riposo. L'onda non entra nei punti simulati, altrimenti si accumulerebbe.
+- Campi Inspector:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `bones` | `Transform[]` | vuoto | Ossa in ordine dalla testa alla coda. La prima segue la creatura e non viene toccata |
+| `maxBend` | float [1, 90] | 30 | Piega massima fra due segmenti consecutivi (gradi) |
+| `waveAmplitude` | float [0, 0.5] | 0.08 | Ampiezza laterale dell'onda in coda, alla velocità di crociera, in frazione della lunghezza della catena |
+| `headAmplitude` | float [0, 1] | 0.1 | Ampiezza alla testa, in frazione di quella in coda |
+| `waveCount` | float [0, 3] | 0.9 | Onde lungo il corpo (1 = un'onda intera, da anguilla) |
+| `waveFrequency` | float ≥ 0 | 1.2 | Onde al secondo alla velocità di crociera (Hz) |
+| `visibilityRenderer` | `Renderer` | null | Se assegnato, le ossa si scrivono solo quando è visibile. Per un rig vero: lo `SkinnedMeshRenderer` |
+
+- API pubbliche: `float ChainLength { get; }` (lunghezza a riposo, m).
+- Gizmo (selezionata, in Play): la catena simulata in ciano.
+- Riferimenti obbligatori: `bones` con almeno 2 ossa, altrimenti non fa niente. Senza `Creature` sullo stesso GameObject l'onda va sempre al ritmo di crociera.
+- Ordine con la gerarchia: le ossa possono essere annidate (come in un rig) perché vengono scritte in ordine dalla testa alla coda, in coordinate del mondo.
+
 ### CreatureBenchmark
 - Responsabilità e ciclo di vita: strumento di sviluppo. `Run(label)` avvia quattro `ProfilerRecorder` (`Main Thread`, `BehaviourUpdate`, `FixedBehaviourUpdate`, `GC Allocated In Frame`). Dopo `warmup` secondi campiona per `duration` secondi, poi scrive le medie in console e in `Logs/CreatureBenchmark.log` (fuori da Assets, ignorato da Git).
 - Campi Inspector: `warmup` (float, 3 s), `duration` (float, 10 s), `label` (string, "creature"), `runOnEnable` (bool, false).
@@ -281,6 +309,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 3. Uno o più `CreatureNest` con `manager` e `profile` assegnati, appoggiati in acqua libera.
 4. Le rocce devono stare su un layer incluso in `obstacleMask` (oggi sono su Default).
 5. Pesce senza ossa con nuoto nello shader: mesh unica lungo +Z, materiale `Deeplonauts/Fish` con GPU instancing acceso, `_HeadZ` e `_BodyLength` sulle misure della mesh, renderer (uno per livello di LOD) in `swimRenderers` della `Creature`. Con un LOD: `LODGroup` sulla radice in Cross Fade, mesh dei livelli allineate fra loro, soglie calcolate per la camera del sub (FOV stretto e `lodBias` 2 spostano molto le distanze).
+6. Corpo lungo con `SwimChain`: `SwimChain` sulla radice accanto a `Creature`, `bones` in ordine dalla testa alla coda con la prima figlia della radice nell'origine (è il punto che guida), corpo dritto lungo -Z nella posa di riposo, `visibilityRenderer` = lo `SkinnedMeshRenderer`. Requisiti del modello del viperfish concordati con Manu il 2026-10-14: corpo dritto lungo -Y in Blender con la testa in avanti, 24-30 loop regolari, ossa `Head`, `Spine_01` … `Spine_09`, `Tail` a distanza regolare, osso `Jaw` figlio di `Head` con il pivot sulla cerniera della mandibola, mesh e materiale unici, interno della bocca modellato.
 
 ## Configurazione verificata in prefab e scene
 In `SCN_Gameplay.unity` (2026-10-13):
@@ -303,6 +332,8 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - La soglia del LOD era a 6 m fino al 2026-10-14 sera: con la torcia piena i pesci stazionano a 4.1-7.2 m dalla lampada e alcuni restavano sulla soglia, cambiando livello più volte mentre il giocatore li guardava (misurato: LOD0 → dissolvenza → LOD1 → dissolvenza in 3 frame a 6.00 m). A 8 m i pesci che osservano la torcia restano al LOD0.
 - Con migliaia di pesci in un solo banco la coesione comprime il banco: con 2000 lanternfish circa il 5% dei pesci ha un compagno a meno di 0.25 m (con 30 nessuno).
 - Le soglie del LOD sono calcolate per la camera del sub e per `lodBias` 2: se cambia il livello di qualità, cambiano le distanze.
+- `SwimChain` muove solo le ossa: la testa e la sua evitamento degli ostacoli sono quelli della `Creature`, quindi la coda può strisciare dentro una roccia in una curva stretta.
+- Con `visibilityRenderer` sulla sola testa (capsula di prova), se la testa esce dall'inquadratura il corpo smette di ondeggiare e resta rigido finché la testa non torna visibile; con uno `SkinnedMeshRenderer` unico il problema non c'è.
 - Il nuoto nello shader sposta solo su X (laterale): niente beccheggio, e le pinne pettorali non battono per conto loro.
 - **Collider convesso enorme:** `SM_LargeRock_low (2)` in `SCN_Gameplay` ha un `MeshCollider` convesso con bounds di circa 52 × 42 × 32 m, molto più grande della roccia visibile. Per la fisica (creature e sub) quello spazio è roccia piena. Le creature lo aggirano ed escono se ci finiscono dentro, ma il buco nell'acqua resta. Da valutare un collider concavo o più convessi quando si sistemano i collider dell'ambiente.
 - **Rocce sul layer Default:** nessun oggetto usa il layer `Obstacle`. Per questo `obstacleMask` include Default. Ogni collider su Default (anche non roccia) blocca le creature.
@@ -424,6 +455,12 @@ Pop dei pesci vicini (2026-10-14 sera, Editor in primo piano, 100 lanternfish, s
 - con lo spazio personale (`diverClearance` 1): in 20 s, con tutti e 100 in `Inspect`, nessun pesce sotto 0.6 m dalla camera; minimo 0.65 m dalla camera e 0.57 m dal corpo.
 
 Corretta anche la dissolvenza per istanza del LOD (`instancing_options lodfade`, vedi *Shader*), trovata cercando lo stesso problema.
+
+
+Catena di joint (2026-10-14, task 5, Play in `SCN_Gameplay` accanto ai 100 lanternfish, 5 capsule `Creature_ChainTest` fatte uscire dal pool vicino al nido):
+- in `Wander` a 1 m/s: segmenti lunghi 0.1 m con scarto massimo 0.018 m (dovuto all'onda), piega massima fra segmenti 9-17° (limite 30), coda che oscilla di ±0.04-0.07 m attorno all'asse;
+- virata di 180° in fuga (minaccia messa davanti al muso, scatto compreso), vista dall'alto a 0, 0.1, 0.25 e 0.45 s: il corpo passa da dritto a U ripercorrendo la curva della testa e poi si distende nella nuova direzione, senza spigoli né segmenti allungati;
+- 20 capsule: `LateBehaviourUpdate` medio 0.22 ms su 120 frame (comprende gli altri script in `LateUpdate` della scena); console senza errori.
 
 Non verificato: costo del lanternfish con lo shader (draw call e instancing) degli impulsi d'allarme e della griglia dei vicini con centinaia di pesci (benchmark con l'Editor in primo piano), tocco lungo su F con la tastiera vera, rumore con il diver che cammina davvero, build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 
