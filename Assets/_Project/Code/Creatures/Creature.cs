@@ -26,6 +26,24 @@ namespace Deeploration.Creatures
         [Tooltip("Velocità della clip di nuoto alla velocità di crociera; scala in proporzione alla velocità attuale.")]
         [SerializeField, Min(0f)] private float swimAnimationSpeed = 1f;
 
+        [Tooltip("Renderer con lo shader Deeplonauts/Fish (opzionale): il nuoto è un'onda nello shader e la " +
+                 "creatura gli passa fase, ampiezza e curva della virata a ogni frame in cui è visibile.")]
+        [SerializeField] private Renderer swimRenderer;
+
+        [Tooltip("Colpi di coda al secondo alla velocità di crociera (Hz).")]
+        [SerializeField, Min(0f)] private float swimFrequency = 2.5f;
+
+        [Tooltip("Velocità di virata (°/s) a cui il corpo è piegato del tutto (_SwimBend = ±1).")]
+        [SerializeField, Min(1f)] private float fullBendTurnRate = 120f;
+
+        private static readonly int SwimPhaseId = Shader.PropertyToID("_SwimPhase");
+        private static readonly int SwimAmountId = Shader.PropertyToID("_SwimAmount");
+        private static readonly int SwimBendId = Shader.PropertyToID("_SwimBend");
+        private static MaterialPropertyBlock swimBlock;
+
+        private float swimPhase;
+        private float swimBend;
+
         private CreatureManager manager;
         private CreatureProfile profile;
         private Transform cachedTransform;
@@ -99,6 +117,8 @@ namespace Deeploration.Creatures
             floorY = float.NaN;
             avoidWeight = 0f;
             Lod = CreatureLod.Near;
+            swimPhase = Random.value * 2f * Mathf.PI;
+            swimBend = 0f;
         }
 
         /// <summary>
@@ -344,6 +364,7 @@ namespace Deeploration.Creatures
                 turnRate *= 1f + 2f * avoidWeight;
             }
 
+            Vector3 previousHeading = heading;
             heading = Vector3.RotateTowards(heading, desired.normalized, turnRate * Mathf.Deg2Rad * deltaTime, 0f);
             heading.y = Mathf.Clamp(heading.y, -MaxClimb, MaxClimb);
             heading.Normalize();
@@ -355,6 +376,35 @@ namespace Deeploration.Creatures
 
             if (swimAnimator != null)
                 swimAnimator.speed = swimAnimationSpeed * Mathf.Max(0.3f, speed / profile.cruiseSpeed);
+            if (swimRenderer != null)
+                UpdateSwim(previousHeading, deltaTime);
+        }
+
+        /// <summary>
+        /// Nuoto nello shader: la fase avanza con la velocità (più veloce = colpi di coda più rapidi e ampi),
+        /// la curva segue la virata orizzontale (corpo a C, coda verso l'interno della curva come sull'arco
+        /// percorso). Scrive il blocco solo se il renderer è visibile; la fase avanza comunque, così non salta
+        /// quando torna in vista.
+        /// </summary>
+        private void UpdateSwim(Vector3 previousHeading, float deltaTime)
+        {
+            float pace = speed / profile.cruiseSpeed;
+            swimPhase += swimFrequency * Mathf.Clamp(pace, 0.35f, 3f) * 2f * Mathf.PI * deltaTime;
+            if (swimPhase > 1000f) swimPhase -= 2f * Mathf.PI * 159f;
+
+            float yawRate = deltaTime > 0f
+                ? Vector3.SignedAngle(new Vector3(previousHeading.x, 0f, previousHeading.z),
+                    new Vector3(heading.x, 0f, heading.z), Vector3.up) / deltaTime
+                : 0f;
+            float targetBend = Mathf.Clamp(yawRate / fullBendTurnRate, -1f, 1f);
+            swimBend = Mathf.MoveTowards(swimBend, targetBend, 4f * deltaTime);
+
+            if (!swimRenderer.isVisible) return;
+            swimBlock ??= new MaterialPropertyBlock();
+            swimBlock.SetFloat(SwimPhaseId, swimPhase);
+            swimBlock.SetFloat(SwimAmountId, Mathf.Clamp(0.6f + 0.4f * pace, 0.5f, 1.4f));
+            swimBlock.SetFloat(SwimBendId, swimBend);
+            swimRenderer.SetPropertyBlock(swimBlock);
         }
 
         /// <summary>Oltre il guinzaglio la rotta piega verso casa, tanto più quanto più si è lontani.</summary>

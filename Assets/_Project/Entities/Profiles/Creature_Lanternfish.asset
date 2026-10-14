@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a097bd643e797594ab41876fbfe2287d, type: 3}
   m_Name: Creature_Lanternfish
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureProfile
-  prefab: {fileID: 4684261581221242280, guid: 148e04bfbfa487b4fbf4341bc077dd2a, type: 3}
+  prefab: {fileID: 3710522335650957888, guid: b8beefc0b3c98eb4fbb24947e12bf2c3, type: 3}
   cruiseSpeed: 1.2
   fleeSpeed: 4
   acceleration: 3
@@ -28,6 +28,8 @@ MonoBehaviour:
   flashReaction: 2
   noiseReaction: 2
   inspectDistance: 2.5
+  strongLightDistanceScale: 2.2
+  inspectRepositionInterval: 5
   calmDelay: 3
   bodyRadius: 0.125
   lookAhead: 1.5
