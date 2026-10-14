@@ -41,8 +41,9 @@ namespace Deeploration.Creatures
         [Tooltip("Margine attorno all'inquadratura entro cui una creatura conta come visibile (m)")]
         [SerializeField, Min(0f)] private float visibilityMargin = 1f;
 
-        [Tooltip("Lato delle celle della griglia dei vicini (m). Il raggio del banco di una specie non lo supera")]
-        [SerializeField, Min(0.5f)] private float neighbourCellSize = 3f;
+        [Tooltip("Lato delle celle della griglia dei vicini (m). Non deve essere più piccolo della separationDistance " +
+                 "delle specie; il raggio del banco arriva al massimo a 3 celle")]
+        [SerializeField, Min(0.25f)] private float neighbourCellSize = 1f;
 
         private readonly Dictionary<CreatureProfile, ObjectPool<Creature>> pools =
             new Dictionary<CreatureProfile, ObjectPool<Creature>>();
@@ -63,6 +64,8 @@ namespace Deeploration.Creatures
         private Vector3Int[] entryCell = new Vector3Int[32];
         private Vector3[] entryPosition = new Vector3[32];
         private int gridCount;
+        // Anelli di celle guardati al massimo attorno a una creatura: il raggio del banco arriva a 3 celle.
+        private const int MaxRings = 3;
 
         /// <summary>True se il manager ha un riferimento al sub.</summary>
         public bool HasPlayer => player != null;
@@ -315,45 +318,60 @@ namespace Deeploration.Creatures
         private static int HashCell(Vector3Int cell) => (cell.x * 73856093) ^ (cell.y * 19349663) ^ (cell.z * 83492791);
 
         /// <summary>
-        /// Vicini della stessa specie entro <paramref name="radius"/> (al massimo il lato della cella), con le
-        /// posizioni di inizio frame. Ritorna il numero di vicini e, sommati su di loro: la spinta di separazione
-        /// (lontano da chi è più vicino di <paramref name="separationDistance"/>, più forte quanto più è vicino),
-        /// il baricentro e la media delle rotte. Baricentro e rotte usano al massimo <paramref name="maxNeighbours"/>
-        /// vicini; la separazione li conta tutti, perché il più vicino può arrivare dopo il limite.
+        /// Vicini della stessa specie entro <paramref name="radius"/>, con le posizioni di inizio frame. Ritorna il
+        /// numero di vicini usati e, sommati su di loro: la spinta di separazione (lontano da chi è più vicino di
+        /// <paramref name="separationDistance"/>, più forte quanto più è vicino), il baricentro e la media delle
+        /// rotte. Cerca ad anelli di celle dal centro verso l'esterno: il primo anello (27 celle) contiene tutti i
+        /// vicini troppo vicini, purché <paramref name="separationDistance"/> non superi il lato della cella, e la
+        /// separazione li conta tutti; baricentro e rotte si fermano a <paramref name="maxNeighbours"/> vicini e,
+        /// raggiunti quelli, gli anelli esterni non vengono guardati. Così in un banco fitto ogni pesce esamina
+        /// solo le celle attorno a sé invece dell'intero banco.
         /// </summary>
         internal int Flock(Creature self, Vector3 position, float radius, float separationDistance, int maxNeighbours,
             out Vector3 separation, out Vector3 centre, out Vector3 alignment)
         {
             separation = centre = alignment = Vector3.zero;
-            radius = Mathf.Min(radius, neighbourCellSize);
             float sqrRadius = radius * radius;
+            float sqrSeparation = separationDistance * separationDistance;
+            int rings = Mathf.Clamp(Mathf.CeilToInt(radius / neighbourCellSize), 1, MaxRings);
             Vector3Int home = CellOf(position);
+            CreatureProfile species = self.Profile;
             int mask = bucketHead.Length - 1;
             int count = 0;
 
-            for (int dx = -1; dx <= 1; dx++)
-            for (int dy = -1; dy <= 1; dy++)
-            for (int dz = -1; dz <= 1; dz++)
+            for (int ring = 1; ring <= rings; ring++)
             {
-                Vector3Int cell = new Vector3Int(home.x + dx, home.y + dy, home.z + dz);
-                for (int j = bucketHead[HashCell(cell) & mask]; j >= 0; j = entryNext[j])
+                if (ring > 1 && count >= maxNeighbours) break;
+                for (int dx = -ring; dx <= ring; dx++)
+                for (int dy = -ring; dy <= ring; dy++)
+                for (int dz = -ring; dz <= ring; dz++)
                 {
-                    // Il secchio può contenere altre celle con lo stesso hash: conta solo quella cercata.
-                    if (entryCell[j] != cell || j >= active.Count) continue;
-                    Creature other = active[j];
-                    if (ReferenceEquals(other, self) || other.Profile != self.Profile) continue;
+                    // Il primo giro copre il cubo 3x3x3, i successivi solo il guscio esterno del cubo.
+                    if (ring > 1 && Mathf.Max(Mathf.Abs(dx), Mathf.Max(Mathf.Abs(dy), Mathf.Abs(dz))) != ring)
+                        continue;
+                    Vector3Int cell = new Vector3Int(home.x + dx, home.y + dy, home.z + dz);
+                    for (int j = bucketHead[HashCell(cell) & mask]; j >= 0; j = entryNext[j])
+                    {
+                        // Il secchio può contenere altre celle con lo stesso hash: conta solo quella cercata.
+                        if (entryCell[j] != cell || j >= active.Count) continue;
+                        Vector3 offset = position - entryPosition[j];
+                        float sqrDistance = offset.sqrMagnitude;
+                        if (sqrDistance > sqrRadius || sqrDistance < 1e-6f) continue;
+                        bool close = sqrDistance < sqrSeparation;
+                        if (!close && count >= maxNeighbours) continue;
+                        Creature other = active[j];
+                        if (ReferenceEquals(other, self) || !ReferenceEquals(other.Profile, species)) continue;
 
-                    Vector3 offset = position - entryPosition[j];
-                    float sqrDistance = offset.sqrMagnitude;
-                    if (sqrDistance > sqrRadius || sqrDistance < 1e-6f) continue;
-
-                    float distance = Mathf.Sqrt(sqrDistance);
-                    if (distance < separationDistance)
-                        separation += offset / distance * (1f - distance / separationDistance);
-                    if (count >= maxNeighbours) continue;
-                    centre += entryPosition[j];
-                    alignment += other.Heading;
-                    count++;
+                        if (close)
+                        {
+                            float distance = Mathf.Sqrt(sqrDistance);
+                            separation += offset / distance * (1f - distance / separationDistance);
+                        }
+                        if (count >= maxNeighbours) continue;
+                        centre += entryPosition[j];
+                        alignment += other.Heading;
+                        count++;
+                    }
                 }
             }
             return count;

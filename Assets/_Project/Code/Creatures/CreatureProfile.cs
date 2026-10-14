@@ -89,7 +89,7 @@ namespace Deeploration.Creatures
 
         [Header("Banco")]
         [Tooltip("Raggio (m) entro cui vede i compagni della stessa specie. 0 = solitaria, niente regole di banco. " +
-                 "Non supera neighbourCellSize del CreatureManager")]
+                 "Arriva al massimo a 3 celle della griglia del CreatureManager (neighbourCellSize)")]
         [Range(0f, 10f)]
         public float schoolRadius = 0f;
 
