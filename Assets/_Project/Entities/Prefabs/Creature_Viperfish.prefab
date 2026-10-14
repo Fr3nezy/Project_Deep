@@ -137,18 +137,6 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 9
       objectReference: {fileID: 0}
-    - target: {fileID: -5869092611696459537, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 0.89330035
-      objectReference: {fileID: 0}
-    - target: {fileID: -5869092611696459537, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: -0.44946027
-      objectReference: {fileID: 0}
-    - target: {fileID: -5869092611696459537, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: -5712484606220035425, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
       propertyPath: m_Layer
       value: 9
