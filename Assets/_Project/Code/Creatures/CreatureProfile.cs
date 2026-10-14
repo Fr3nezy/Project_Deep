@@ -87,6 +87,25 @@ namespace Deeploration.Creatures
         [Range(0f, 30f)]
         public float calmDelay = 3f;
 
+        [Header("Spavento")]
+        [Tooltip("Secondi di scatto all'inizio della fuga: virata e accelerazione moltiplicate per 6, corpo piegato a C")]
+        [Range(0f, 2f)]
+        public float startleDuration = 0.35f;
+
+        [Tooltip("Lampo dei fotofori all'inizio della fuga: l'emissione arriva a (1 + questo valore) volte la normale. " +
+                 "0 = nessun lampo")]
+        [Range(0f, 10f)]
+        public float startleGlow = 0f;
+
+        [Tooltip("Secondi in cui il lampo si spegne")]
+        [Range(0.05f, 5f)]
+        public float startleGlowDuration = 1.2f;
+
+        [Tooltip("Portata (m) del lampo come stimolo Flash per le altre creature: l'allarme che si propaga nel banco. " +
+                 "0 = il lampo non è uno stimolo")]
+        [Range(0f, 20f)]
+        public float alarmRadius = 0f;
+
         [Header("Corpo")]
         [Tooltip("Raggio d'ingombro usato per evitare gli ostacoli (m)")]
         [Range(0.05f, 5f)]

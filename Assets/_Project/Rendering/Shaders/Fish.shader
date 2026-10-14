@@ -1,5 +1,6 @@
 // Fish: URP lit shader for the ambient fish (lanternfish, hatchetfish), swimming animated in the
 // vertex shader instead of bones. The mesh must lie along +Z (head toward +Z, pivot near the centre).
+// Startle: _GlowBoost (per instance) flares the photophores when the fish bolts.
 // Swim: a lateral wave (object X) that travels from head to tail, amplitude growing toward the tail,
 // plus a static bend for turning. Phase, amount and bend come per instance from the Creature component
 // (MaterialPropertyBlock, GPU instancing), so every fish beats its tail at its own speed.
@@ -33,7 +34,8 @@ Shader "Deeplonauts/Fish"
         _BendAmount ("Bend at the Tail (m per unit of bend)", Range(0, 0.3)) = 0.08
         _SwimPhase ("Swim Phase (rad, per instance)", Float) = 0
         _SwimAmount ("Swim Amount (per instance)", Float) = 1
-        _SwimBend ("Swim Bend (per instance, -1..1)", Float) = 0
+        _SwimBend ("Swim Bend (per instance, -1.6..1.6)", Float) = 0
+        _GlowBoost ("Glow Boost (per instance, startle flash)", Float) = 0
     }
 
     SubShader
@@ -69,6 +71,7 @@ Shader "Deeplonauts/Fish"
             UNITY_DEFINE_INSTANCED_PROP(float, _SwimPhase)
             UNITY_DEFINE_INSTANCED_PROP(float, _SwimAmount)
             UNITY_DEFINE_INSTANCED_PROP(float, _SwimBend)
+            UNITY_DEFINE_INSTANCED_PROP(float, _GlowBoost)
         UNITY_INSTANCING_BUFFER_END(FishProps)
 
         // Lateral swim offset along object X and its slope along Z (for the normals).
@@ -221,7 +224,10 @@ Shader "Deeplonauts/Fish"
                 surface.occlusion = 1;
                 surface.alpha = 1;
                 surface.normalTS = normalTS;
-                surface.emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uv).rgb * _EmissionColor.rgb;
+                // startle flash: the photophores flare up to (1 + _GlowBoost) times, driven by Creature
+                half glowBoost = UNITY_ACCESS_INSTANCED_PROP(FishProps, _GlowBoost);
+                surface.emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uv).rgb * _EmissionColor.rgb
+                    * (1.0h + glowBoost);
 
                 half4 color = UniversalFragmentPBR(inputData, surface);
                 color.rgb = MixFog(color.rgb, input.fogFactor);

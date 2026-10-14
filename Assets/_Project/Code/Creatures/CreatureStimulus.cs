@@ -36,6 +36,9 @@ namespace Deeploration.Creatures
         /// <summary>True se lo stimolo viene dal sub.</summary>
         public bool FromPlayer;
 
+        /// <summary>Creatura che ha emesso lo stimolo (null per il sub e l'ambiente): non percepisce sé stessa.</summary>
+        public Creature Emitter;
+
         /// <summary>True per le luci (serve la linea di vista), false per il rumore (passa attraverso tutto).</summary>
         public bool IsLight => Category != StimulusCategory.Noise;
 

@@ -31,5 +31,9 @@ MonoBehaviour:
   strongLightDistanceScale: 2.2
   inspectRepositionInterval: 5
   calmDelay: 3
+  startleDuration: 0.35
+  startleGlow: 4
+  startleGlowDuration: 1.2
+  alarmRadius: 4
   bodyRadius: 0.125
   lookAhead: 1.5

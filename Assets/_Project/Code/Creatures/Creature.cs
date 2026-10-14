@@ -39,10 +39,15 @@ namespace Deeploration.Creatures
         private static readonly int SwimPhaseId = Shader.PropertyToID("_SwimPhase");
         private static readonly int SwimAmountId = Shader.PropertyToID("_SwimAmount");
         private static readonly int SwimBendId = Shader.PropertyToID("_SwimBend");
+        private static readonly int GlowBoostId = Shader.PropertyToID("_GlowBoost");
+        // Durata del lampo come stimolo per le altre creature, come il flash della torcia del sub.
+        private const float AlarmPulseDuration = 0.4f;
+        private const float StartleBoost = 6f;
         private static MaterialPropertyBlock swimBlock;
 
         private float swimPhase;
         private float swimBend;
+        private float startleTime = float.NegativeInfinity;
 
         private CreatureManager manager;
         private CreatureProfile profile;
@@ -119,6 +124,7 @@ namespace Deeploration.Creatures
             Lod = CreatureLod.Near;
             swimPhase = Random.value * 2f * Mathf.PI;
             swimBend = 0f;
+            startleTime = float.NegativeInfinity;
         }
 
         /// <summary>
@@ -142,6 +148,7 @@ namespace Deeploration.Creatures
             {
                 lastFearTime = now;
                 threatPosition = chosen.Position;
+                if (state != CreatureState.Flee) Startle(now);
                 state = CreatureState.Flee;
             }
             else if (reaction == StimulusReaction.Approach)
@@ -169,6 +176,24 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
+        /// Inizio della fuga: scatto (virata e accelerazione moltiplicate per qualche decimo di secondo, da cui la
+        /// piega a C del corpo) e lampo dei fotofori. Se la specie ha un <c>alarmRadius</c>, il lampo diventa uno
+        /// stimolo Flash per le altre creature: l'allarme si propaga nel banco, ogni pesce lampeggia una volta sola
+        /// quando entra in fuga.
+        /// </summary>
+        private void Startle(float now)
+        {
+            startleTime = now;
+            if (profile.startleGlow > 0f && profile.alarmRadius > 0f)
+            {
+                CreatureStimulus alarm = CreatureStimulus.PointLight(cachedTransform.position, profile.alarmRadius,
+                    StimulusCategory.Flash, false);
+                alarm.Emitter = this;
+                manager.AddPulse(alarm, AlarmPulseDuration);
+            }
+        }
+
+        /// <summary>
         /// Valuta gli stimoli del frame. Per ognuno: portata = <c>Radius</c> × sensibilità della specie; una luce
         /// conta solo se la creatura è nel fascio o nell'alone e se fra la sorgente e la creatura non ci sono
         /// ostacoli, il rumore passa attraverso tutto. Fra gli stimoli percepiti a cui la specie reagisce sceglie
@@ -185,6 +210,7 @@ namespace Deeploration.Creatures
             for (int i = 0; i < stimuli.Count; i++)
             {
                 CreatureStimulus stimulus = stimuli[i];
+                if (ReferenceEquals(stimulus.Emitter, this)) continue;
                 StimulusReaction reaction = profile.ReactionTo(stimulus.Category);
                 if (reaction == StimulusReaction.Ignore) continue;
                 // Uno stimolo che attira non può battere uno che spaventa già trovato.
@@ -364,11 +390,20 @@ namespace Deeploration.Creatures
                 turnRate *= 1f + 2f * avoidWeight;
             }
 
+            // Scatto di fuga: per startleDuration secondi vira e accelera molto più in fretta.
+            bool startled = Time.time - startleTime < profile.startleDuration;
+            float acceleration = profile.acceleration;
+            if (startled)
+            {
+                turnRate *= StartleBoost;
+                acceleration *= StartleBoost;
+            }
+
             Vector3 previousHeading = heading;
             heading = Vector3.RotateTowards(heading, desired.normalized, turnRate * Mathf.Deg2Rad * deltaTime, 0f);
             heading.y = Mathf.Clamp(heading.y, -MaxClimb, MaxClimb);
             heading.Normalize();
-            speed = Mathf.MoveTowards(speed, targetSpeed, profile.acceleration * deltaTime);
+            speed = Mathf.MoveTowards(speed, targetSpeed, acceleration * deltaTime);
 
             position += heading * (speed * deltaTime);
             if (!float.IsNaN(floorY)) position.y = Mathf.Max(position.y, floorY + profile.bodyRadius);
@@ -377,16 +412,18 @@ namespace Deeploration.Creatures
             if (swimAnimator != null)
                 swimAnimator.speed = swimAnimationSpeed * Mathf.Max(0.3f, speed / profile.cruiseSpeed);
             if (swimRenderer != null)
-                UpdateSwim(previousHeading, deltaTime);
+                UpdateSwim(previousHeading, deltaTime, startled);
         }
 
         /// <summary>
         /// Nuoto nello shader: la fase avanza con la velocità (più veloce = colpi di coda più rapidi e ampi),
         /// la curva segue la virata orizzontale (corpo a C, coda verso l'interno della curva come sull'arco
-        /// percorso). Scrive il blocco solo se il renderer è visibile; la fase avanza comunque, così non salta
-        /// quando torna in vista.
+        /// percorso). Durante lo scatto la piega può arrivare a 1.6 e cambia in fretta: è la C della fuga dei pesci.
+        /// Il lampo dei fotofori sale in 0.05 s e si spegne in <c>startleGlowDuration</c>, tremolando.
+        /// Scrive il blocco solo se il renderer è visibile; la fase avanza comunque, così non salta quando torna
+        /// in vista.
         /// </summary>
-        private void UpdateSwim(Vector3 previousHeading, float deltaTime)
+        private void UpdateSwim(Vector3 previousHeading, float deltaTime, bool startled)
         {
             float pace = speed / profile.cruiseSpeed;
             swimPhase += swimFrequency * Mathf.Clamp(pace, 0.35f, 3f) * 2f * Mathf.PI * deltaTime;
@@ -396,14 +433,25 @@ namespace Deeploration.Creatures
                 ? Vector3.SignedAngle(new Vector3(previousHeading.x, 0f, previousHeading.z),
                     new Vector3(heading.x, 0f, heading.z), Vector3.up) / deltaTime
                 : 0f;
-            float targetBend = Mathf.Clamp(yawRate / fullBendTurnRate, -1f, 1f);
-            swimBend = Mathf.MoveTowards(swimBend, targetBend, 4f * deltaTime);
+            float maxBend = startled ? 1.6f : 1f;
+            float targetBend = Mathf.Clamp(yawRate / fullBendTurnRate, -maxBend, maxBend);
+            swimBend = Mathf.MoveTowards(swimBend, targetBend, (startled ? 20f : 4f) * deltaTime);
+
+            float glow = 0f;
+            float sinceStartle = Time.time - startleTime;
+            if (profile.startleGlow > 0f && sinceStartle < profile.startleGlowDuration)
+            {
+                float fade = 1f - sinceStartle / profile.startleGlowDuration;
+                float flicker = 0.75f + 0.25f * Mathf.Sin(sinceStartle * 40f + swimPhase);
+                glow = profile.startleGlow * Mathf.Clamp01(sinceStartle / 0.05f) * fade * fade * flicker;
+            }
 
             if (!swimRenderer.isVisible) return;
             swimBlock ??= new MaterialPropertyBlock();
             swimBlock.SetFloat(SwimPhaseId, swimPhase);
             swimBlock.SetFloat(SwimAmountId, Mathf.Clamp(0.6f + 0.4f * pace, 0.5f, 1.4f));
             swimBlock.SetFloat(SwimBendId, swimBend);
+            swimBlock.SetFloat(GlowBoostId, glow);
             swimRenderer.SetPropertyBlock(swimBlock);
         }
 

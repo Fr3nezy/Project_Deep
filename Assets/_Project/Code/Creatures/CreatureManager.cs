@@ -46,6 +46,8 @@ namespace Deeploration.Creatures
         private readonly List<Creature> active = new List<Creature>();
         private readonly List<IStimulusSource> sources = new List<IStimulusSource>();
         private readonly List<CreatureStimulus> stimuli = new List<CreatureStimulus>();
+        private readonly List<CreatureStimulus> pulses = new List<CreatureStimulus>();
+        private readonly List<float> pulseEnds = new List<float>();
         private readonly Plane[] frustum = new Plane[6];
         private readonly int[] lodCounts = new int[3];
         private Transform poolRoot;
@@ -87,6 +89,16 @@ namespace Deeploration.Creatures
 
         /// <summary>Toglie una sorgente di stimoli registrata.</summary>
         public void RemoveSource(IStimulusSource source) => sources.Remove(source);
+
+        /// <summary>
+        /// Aggiunge uno stimolo breve che resta attivo per <paramref name="duration"/> secondi senza bisogno di una
+        /// sorgente registrata (per esempio il lampo di un pesce spaventato). Entra negli stimoli dal frame dopo.
+        /// </summary>
+        public void AddPulse(CreatureStimulus stimulus, float duration)
+        {
+            pulses.Add(stimulus);
+            pulseEnds.Add(Time.time + duration);
+        }
 
         private void Start()
         {
@@ -192,6 +204,20 @@ namespace Deeploration.Creatures
 
             stimuli.Clear();
             for (int i = 0; i < sources.Count; i++) sources[i].EmitStimuli(stimuli);
+            float now = Time.time;
+            for (int i = pulses.Count - 1; i >= 0; i--)
+            {
+                if (now < pulseEnds[i])
+                {
+                    stimuli.Add(pulses[i]);
+                    continue;
+                }
+                int last = pulses.Count - 1;
+                pulses[i] = pulses[last];
+                pulseEnds[i] = pulseEnds[last];
+                pulses.RemoveAt(last);
+                pulseEnds.RemoveAt(last);
+            }
 
             bool hasCamera = viewCamera != null;
             if (hasCamera) GeometryUtility.CalculateFrustumPlanes(viewCamera, frustum);
