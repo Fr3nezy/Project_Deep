@@ -105,6 +105,12 @@ namespace Deeploration.Creatures
         [Range(0f, 3f)]
         public float alignmentWeight = 0.5f;
 
+        [Header("Sub")]
+        [Tooltip("Spazio personale del sub (m) attorno al corpo, dai piedi alla testa: la creatura non ci entra. " +
+                 "0 = nessuno (per un predatore che deve arrivare a contatto)")]
+        [Range(0f, 5f)]
+        public float diverClearance = 1f;
+
         [Header("Spavento")]
         [Tooltip("Secondi di scatto all'inizio della fuga: virata e accelerazione moltiplicate per 6, corpo piegato a C")]
         [Range(0f, 2f)]

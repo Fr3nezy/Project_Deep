@@ -35,6 +35,7 @@ MonoBehaviour:
   separationDistance: 0.6
   cohesionWeight: 0.5
   alignmentWeight: 0.5
+  diverClearance: 1
   startleDuration: 0.35
   startleGlow: 4
   startleGlowDuration: 1.2

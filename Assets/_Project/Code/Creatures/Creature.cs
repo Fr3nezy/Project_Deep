@@ -50,6 +50,10 @@ namespace Deeploration.Creatures
         // Scivolata diretta lontano dai compagni troppo vicini (m/s a spinta 1): con virate lente la sola rotta non
         // basta a staccare due pesci paralleli.
         private const float SeparationSlip = 0.6f;
+        // Corpo del sub per lo spazio personale: segmento verticale dai piedi (posizione del PlayerCapsule) alla
+        // testa; scivolata massima fuori dallo spazio personale (m/s).
+        private const float DiverHeight = 1.5f;
+        private const float DiverClearanceSlip = 1.5f;
         private static MaterialPropertyBlock swimBlock;
 
         private float swimPhase;
@@ -422,6 +426,12 @@ namespace Deeploration.Creatures
                 targetY += cohesionSteer.y * profile.schoolRadius * profile.cohesionWeight * 0.5f;
             }
 
+            // Spazio personale del sub: nessuna creatura gli passa attraverso. Senza, i pesci attirati dalla torcia
+            // scivolavano fino alla lampada sul casco e attraversavano la camera (pop sul piano vicino).
+            Vector3 diverPush = DiverPush(position);
+            desired += diverPush * 4f;
+            targetY += diverPush.y * profile.diverClearance;
+
             desired.y = 0f;
             if (desired.sqrMagnitude < 0.0001f) desired = new Vector3(heading.x, 0f, heading.z);
             desired.Normalize();
@@ -455,7 +465,8 @@ namespace Deeploration.Creatures
             heading.Normalize();
             speed = Mathf.MoveTowards(speed, targetSpeed, acceleration * deltaTime);
 
-            position += heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime);
+            position += heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime) +
+                        diverPush * (DiverClearanceSlip * deltaTime);
             if (!float.IsNaN(floorY)) position.y = Mathf.Max(position.y, floorY + profile.bodyRadius);
             cachedTransform.SetPositionAndRotation(position, Quaternion.LookRotation(heading));
 
@@ -505,6 +516,23 @@ namespace Deeploration.Creatures
             swimBlock.SetFloat(SwimBendId, swimBend);
             swimBlock.SetFloat(GlowBoostId, glow);
             for (int i = 0; i < swimRenderers.Length; i++) swimRenderers[i].SetPropertyBlock(swimBlock);
+        }
+
+        /// <summary>
+        /// Spinta fuori dallo spazio personale del sub: direzione dal punto più vicino del corpo (segmento dai piedi
+        /// alla testa) alla creatura, lunga da 0 al bordo dello spazio a 1 sul corpo. Zero se fuori o senza sub.
+        /// </summary>
+        private Vector3 DiverPush(Vector3 position)
+        {
+            float clearance = profile.diverClearance;
+            if (clearance <= 0f || !manager.HasPlayer) return Vector3.zero;
+            Vector3 feet = manager.PlayerPosition;
+            Vector3 closest = new Vector3(feet.x, Mathf.Clamp(position.y, feet.y, feet.y + DiverHeight), feet.z);
+            Vector3 away = position - closest;
+            float distance = away.magnitude;
+            if (distance >= clearance) return Vector3.zero;
+            if (distance < 1e-4f) return Vector3.up;
+            return away / distance * (1f - distance / clearance);
         }
 
         /// <summary>Oltre il guinzaglio la rotta piega verso casa, tanto più quanto più si è lontani.</summary>
