@@ -1,6 +1,7 @@
 // Fish: URP lit shader for the ambient fish (lanternfish, hatchetfish), swimming animated in the
 // vertex shader instead of bones. The mesh must lie along +Z (head toward +Z, pivot near the centre).
 // Startle: _GlowBoost (per instance) flares the photophores when the fish bolts.
+// LOD: dithered cross-fade (LOD_FADE_CROSSFADE) in the colour and depth passes, for a LODGroup in Cross Fade.
 // Swim: a lateral wave (object X) that travels from head to tail, amplitude growing toward the tail,
 // plus a static bend for turning. Phase, amount and bend come per instance from the Creature component
 // (MaterialPropertyBlock, GPU instancing), so every fish beats its tail at its own speed.
@@ -141,10 +142,14 @@ Shader "Deeplonauts/Fish"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #if defined(LOD_FADE_CROSSFADE)
+                #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+            #endif
 
             struct Attributes
             {
@@ -192,6 +197,9 @@ Shader "Deeplonauts/Fish"
             {
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
+                #if defined(LOD_FADE_CROSSFADE)
+                    LODFadeCrossFade(input.positionCS);
+                #endif
                 FishClip(input.uv, input.positionCS);
 
                 float2 uv = FishUV(input.uv);
@@ -316,7 +324,12 @@ Shader "Deeplonauts/Fish"
             #pragma vertex Vert
             #pragma fragment Frag
             #pragma shader_feature_local _FISH_DITHER
+            #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
             #pragma multi_compile_instancing
+
+            #if defined(LOD_FADE_CROSSFADE)
+                #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
+            #endif
 
             struct Attributes
             {
@@ -349,6 +362,9 @@ Shader "Deeplonauts/Fish"
             half Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input);
+                #if defined(LOD_FADE_CROSSFADE)
+                    LODFadeCrossFade(input.positionCS);
+                #endif
                 FishClip(input.uv, input.positionCS);
                 return 0;
             }

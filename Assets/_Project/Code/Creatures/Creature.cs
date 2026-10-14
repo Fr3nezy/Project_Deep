@@ -26,9 +26,10 @@ namespace Deeploration.Creatures
         [Tooltip("Velocità della clip di nuoto alla velocità di crociera; scala in proporzione alla velocità attuale.")]
         [SerializeField, Min(0f)] private float swimAnimationSpeed = 1f;
 
-        [Tooltip("Renderer con lo shader Deeplonauts/Fish (opzionale): il nuoto è un'onda nello shader e la " +
-                 "creatura gli passa fase, ampiezza e curva della virata a ogni frame in cui è visibile.")]
-        [SerializeField] private Renderer swimRenderer;
+        [Tooltip("Renderer con lo shader Deeplonauts/Fish (opzionale), uno per livello di LOD: il nuoto è un'onda " +
+                 "nello shader e la creatura passa a tutti fase, ampiezza e curva della virata a ogni frame in cui " +
+                 "almeno uno è visibile.")]
+        [SerializeField] private Renderer[] swimRenderers;
 
         [Tooltip("Colpi di coda al secondo alla velocità di crociera (Hz).")]
         [SerializeField, Min(0f)] private float swimFrequency = 2.5f;
@@ -460,7 +461,7 @@ namespace Deeploration.Creatures
 
             if (swimAnimator != null)
                 swimAnimator.speed = swimAnimationSpeed * Mathf.Max(0.3f, speed / profile.cruiseSpeed);
-            if (swimRenderer != null)
+            if (swimRenderers != null && swimRenderers.Length > 0)
                 UpdateSwim(previousHeading, deltaTime, startled);
         }
 
@@ -495,13 +496,15 @@ namespace Deeploration.Creatures
                 glow = profile.startleGlow * Mathf.Clamp01(sinceStartle / 0.05f) * fade * fade * flicker;
             }
 
-            if (!swimRenderer.isVisible) return;
+            bool visible = false;
+            for (int i = 0; i < swimRenderers.Length; i++) visible |= swimRenderers[i].isVisible;
+            if (!visible) return;
             swimBlock ??= new MaterialPropertyBlock();
             swimBlock.SetFloat(SwimPhaseId, swimPhase);
             swimBlock.SetFloat(SwimAmountId, Mathf.Clamp(0.6f + 0.4f * pace, 0.5f, 1.4f));
             swimBlock.SetFloat(SwimBendId, swimBend);
             swimBlock.SetFloat(GlowBoostId, glow);
-            swimRenderer.SetPropertyBlock(swimBlock);
+            for (int i = 0; i < swimRenderers.Length; i++) swimRenderers[i].SetPropertyBlock(swimBlock);
         }
 
         /// <summary>Oltre il guinzaglio la rotta piega verso casa, tanto più quanto più si è lontani.</summary>
