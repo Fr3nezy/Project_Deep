@@ -80,7 +80,7 @@ Material:
     - _TouchGlowStrength: 1.5
     - _TouchGradient: 1
     - _TouchJitter: 0.3
-    - _TouchLifetime: 2.5
+    - _TouchLifetime: 8
     - _TouchRadius: 1.6
     - _TouchSpeed: 1.2
     - _TouchWidth: 0.25
