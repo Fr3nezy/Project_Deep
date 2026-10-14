@@ -41,6 +41,9 @@ namespace Deeploration.Creatures
         [Tooltip("Margine attorno all'inquadratura entro cui una creatura conta come visibile (m)")]
         [SerializeField, Min(0f)] private float visibilityMargin = 1f;
 
+        [Tooltip("Lato delle celle della griglia dei vicini (m). Il raggio del banco di una specie non lo supera")]
+        [SerializeField, Min(0.5f)] private float neighbourCellSize = 3f;
+
         private readonly Dictionary<CreatureProfile, ObjectPool<Creature>> pools =
             new Dictionary<CreatureProfile, ObjectPool<Creature>>();
         private readonly List<Creature> active = new List<Creature>();
@@ -52,6 +55,14 @@ namespace Deeploration.Creatures
         private readonly int[] lodCounts = new int[3];
         private Transform poolRoot;
         private int nextSlot;
+
+        // Griglia dei vicini, ricostruita a ogni frame: tabella hash di celle con liste concatenate negli array
+        // (testa per secchio, successivo per creatura). Si rialloca solo quando le creature attive crescono.
+        private int[] bucketHead = new int[64];
+        private int[] entryNext = new int[32];
+        private Vector3Int[] entryCell = new Vector3Int[32];
+        private Vector3[] entryPosition = new Vector3[32];
+        private int gridCount;
 
         /// <summary>True se il manager ha un riferimento al sub.</summary>
         public bool HasPlayer => player != null;
@@ -219,6 +230,8 @@ namespace Deeploration.Creatures
                 pulseEnds.RemoveAt(last);
             }
 
+            BuildNeighbourGrid();
+
             bool hasCamera = viewCamera != null;
             if (hasCamera) GeometryUtility.CalculateFrustumPlanes(viewCamera, frustum);
 
@@ -264,6 +277,86 @@ namespace Deeploration.Creatures
 
                 creature.Tick(deltaTime, think, probe);
             }
+        }
+
+        private void BuildNeighbourGrid()
+        {
+            gridCount = active.Count;
+            if (entryNext.Length < gridCount)
+            {
+                int size = Mathf.NextPowerOfTwo(gridCount);
+                entryNext = new int[size];
+                entryCell = new Vector3Int[size];
+                entryPosition = new Vector3[size];
+                bucketHead = new int[size * 2];
+            }
+
+            System.Array.Fill(bucketHead, -1);
+            int mask = bucketHead.Length - 1;
+            for (int i = 0; i < gridCount; i++)
+            {
+                Vector3 position = active[i].transform.position;
+                Vector3Int cell = CellOf(position);
+                int bucket = HashCell(cell) & mask;
+                entryPosition[i] = position;
+                entryCell[i] = cell;
+                entryNext[i] = bucketHead[bucket];
+                bucketHead[bucket] = i;
+            }
+        }
+
+        private Vector3Int CellOf(Vector3 position)
+        {
+            float inverse = 1f / neighbourCellSize;
+            return new Vector3Int(Mathf.FloorToInt(position.x * inverse), Mathf.FloorToInt(position.y * inverse),
+                Mathf.FloorToInt(position.z * inverse));
+        }
+
+        private static int HashCell(Vector3Int cell) => (cell.x * 73856093) ^ (cell.y * 19349663) ^ (cell.z * 83492791);
+
+        /// <summary>
+        /// Vicini della stessa specie entro <paramref name="radius"/> (al massimo il lato della cella), con le
+        /// posizioni di inizio frame. Ritorna il numero di vicini e, sommati su di loro: la spinta di separazione
+        /// (lontano da chi è più vicino di <paramref name="separationDistance"/>, più forte quanto più è vicino),
+        /// il baricentro e la media delle rotte. Baricentro e rotte usano al massimo <paramref name="maxNeighbours"/>
+        /// vicini; la separazione li conta tutti, perché il più vicino può arrivare dopo il limite.
+        /// </summary>
+        internal int Flock(Creature self, Vector3 position, float radius, float separationDistance, int maxNeighbours,
+            out Vector3 separation, out Vector3 centre, out Vector3 alignment)
+        {
+            separation = centre = alignment = Vector3.zero;
+            radius = Mathf.Min(radius, neighbourCellSize);
+            float sqrRadius = radius * radius;
+            Vector3Int home = CellOf(position);
+            int mask = bucketHead.Length - 1;
+            int count = 0;
+
+            for (int dx = -1; dx <= 1; dx++)
+            for (int dy = -1; dy <= 1; dy++)
+            for (int dz = -1; dz <= 1; dz++)
+            {
+                Vector3Int cell = new Vector3Int(home.x + dx, home.y + dy, home.z + dz);
+                for (int j = bucketHead[HashCell(cell) & mask]; j >= 0; j = entryNext[j])
+                {
+                    // Il secchio può contenere altre celle con lo stesso hash: conta solo quella cercata.
+                    if (entryCell[j] != cell || j >= active.Count) continue;
+                    Creature other = active[j];
+                    if (ReferenceEquals(other, self) || other.Profile != self.Profile) continue;
+
+                    Vector3 offset = position - entryPosition[j];
+                    float sqrDistance = offset.sqrMagnitude;
+                    if (sqrDistance > sqrRadius || sqrDistance < 1e-6f) continue;
+
+                    float distance = Mathf.Sqrt(sqrDistance);
+                    if (distance < separationDistance)
+                        separation += offset / distance * (1f - distance / separationDistance);
+                    if (count >= maxNeighbours) continue;
+                    centre += entryPosition[j];
+                    alignment += other.Heading;
+                    count++;
+                }
+            }
+            return count;
         }
 
         private void OnDrawGizmosSelected()

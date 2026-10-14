@@ -87,6 +87,24 @@ namespace Deeploration.Creatures
         [Range(0f, 30f)]
         public float calmDelay = 3f;
 
+        [Header("Banco")]
+        [Tooltip("Raggio (m) entro cui vede i compagni della stessa specie. 0 = solitaria, niente regole di banco. " +
+                 "Non supera neighbourCellSize del CreatureManager")]
+        [Range(0f, 10f)]
+        public float schoolRadius = 0f;
+
+        [Tooltip("Sotto questa distanza (m) da un compagno se ne allontana (separazione), in ogni stato")]
+        [Range(0.05f, 5f)]
+        public float separationDistance = 0.6f;
+
+        [Tooltip("Quanto piega verso il baricentro dei compagni mentre vaga (coesione)")]
+        [Range(0f, 3f)]
+        public float cohesionWeight = 0.5f;
+
+        [Tooltip("Quanto allinea la rotta a quella dei compagni mentre vaga o scappa (allineamento)")]
+        [Range(0f, 3f)]
+        public float alignmentWeight = 0.5f;
+
         [Header("Spavento")]
         [Tooltip("Secondi di scatto all'inizio della fuga: virata e accelerazione moltiplicate per 6, corpo piegato a C")]
         [Range(0f, 2f)]

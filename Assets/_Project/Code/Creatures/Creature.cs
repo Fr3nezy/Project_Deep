@@ -43,11 +43,23 @@ namespace Deeploration.Creatures
         // Durata del lampo come stimolo per le altre creature, come il flash della torcia del sub.
         private const float AlarmPulseDuration = 0.4f;
         private const float StartleBoost = 6f;
+        // Banco: peso della separazione (sempre più forte delle altre regole) e vicini considerati al massimo.
+        private const float SeparationWeight = 2f;
+        private const int MaxNeighbours = 8;
+        // Scivolata diretta lontano dai compagni troppo vicini (m/s a spinta 1): con virate lente la sola rotta non
+        // basta a staccare due pesci paralleli.
+        private const float SeparationSlip = 0.6f;
         private static MaterialPropertyBlock swimBlock;
 
         private float swimPhase;
         private float swimBend;
         private float startleTime = float.NegativeInfinity;
+
+        // Regole di banco dell'ultimo ragionamento: spinta di separazione, direzione verso il baricentro dei
+        // compagni (lunga al massimo 1), rotta media dei compagni.
+        private Vector3 separationSteer;
+        private Vector3 cohesionSteer;
+        private Vector3 alignmentSteer;
 
         private CreatureManager manager;
         private CreatureProfile profile;
@@ -95,6 +107,12 @@ namespace Deeploration.Creatures
         /// <summary>Velocità attuale (m/s) lungo la rotta.</summary>
         public float Speed => speed;
 
+        /// <summary>Rotta attuale (normalizzata).</summary>
+        public Vector3 Heading => heading;
+
+        /// <summary>Compagni della stessa specie visti nell'ultimo ragionamento (0 per le specie solitarie).</summary>
+        public int NeighbourCount { get; private set; }
+
         /// <summary>Indice nella lista delle creature attive del manager; -1 se è nel pool.</summary>
         internal int ActiveIndex { get; set; } = -1;
 
@@ -125,6 +143,8 @@ namespace Deeploration.Creatures
             swimPhase = Random.value * 2f * Mathf.PI;
             swimBend = 0f;
             startleTime = float.NegativeInfinity;
+            separationSteer = cohesionSteer = alignmentSteer = Vector3.zero;
+            NeighbourCount = 0;
         }
 
         /// <summary>
@@ -164,6 +184,7 @@ namespace Deeploration.Creatures
             }
 
             if (state == CreatureState.Inspect && now >= nextRepositionTime) PickSpot(now);
+            if (profile.schoolRadius > 0f) School();
 
             if (state == CreatureState.Flee && now - lastFearTime > profile.calmDelay)
             {
@@ -173,6 +194,26 @@ namespace Deeploration.Creatures
             }
             else if (state == CreatureState.Inspect && now - lastInterestTime > profile.calmDelay)
                 state = CreatureState.Wander;
+        }
+
+        /// <summary>
+        /// Regole di banco con i compagni della stessa specie entro <c>schoolRadius</c>: separazione da chi è
+        /// troppo vicino, coesione verso il baricentro, allineamento alla rotta media. Le spinte vengono applicate
+        /// in <see cref="Move"/> secondo lo stato.
+        /// </summary>
+        private void School()
+        {
+            Vector3 position = cachedTransform.position;
+            int count = manager.Flock(this, position, profile.schoolRadius, profile.separationDistance, MaxNeighbours,
+                out separationSteer, out Vector3 centre, out Vector3 alignment);
+            NeighbourCount = count;
+            if (count == 0)
+            {
+                cohesionSteer = alignmentSteer = Vector3.zero;
+                return;
+            }
+            cohesionSteer = Vector3.ClampMagnitude((centre / count - position) / profile.schoolRadius, 1f);
+            alignmentSteer = alignment.sqrMagnitude > 1e-4f ? alignment.normalized : Vector3.zero;
         }
 
         /// <summary>
@@ -348,7 +389,9 @@ namespace Deeploration.Creatures
             if (state == CreatureState.Flee)
             {
                 targetSpeed = profile.fleeSpeed;
-                desired = position - threatPosition;
+                desired = (position - threatPosition).normalized;
+                // Il banco scappa compatto: stessa direzione dei compagni, senza urtarsi.
+                desired += alignmentSteer * profile.alignmentWeight + separationSteer * SeparationWeight;
             }
             else if (state == CreatureState.Inspect)
             {
@@ -362,6 +405,8 @@ namespace Deeploration.Creatures
                 float arrive = Mathf.Clamp01(spotDistance / 1f);
                 desired = Vector3.Lerp(toLight.normalized, toSpot / Mathf.Max(spotDistance, 0.01f), arrive);
                 targetSpeed = profile.cruiseSpeed * Mathf.Clamp(spotDistance / 1.5f, 0.2f, 1f);
+                // Ognuno resta al suo posto, ma si scosta da chi gli finisce addosso, anche in quota.
+                desired += separationSteer * SeparationWeight;
                 targetY = spot.y;
             }
             else
@@ -370,6 +415,10 @@ namespace Deeploration.Creatures
                 float noise = Mathf.PerlinNoise(noiseSeed, Time.time * profile.wanderFrequency) * 2f - 1f;
                 desired = Quaternion.AngleAxis(noise * profile.wanderTurn * deltaTime, Vector3.up) * heading;
                 desired = PullTowardsHome(position, desired);
+                desired += cohesionSteer * profile.cohesionWeight + alignmentSteer * profile.alignmentWeight +
+                           separationSteer * SeparationWeight;
+                // Il baricentro dei compagni sposta anche la quota, entro i limiti di fondale e soffitto.
+                targetY += cohesionSteer.y * profile.schoolRadius * profile.cohesionWeight * 0.5f;
             }
 
             desired.y = 0f;
@@ -405,7 +454,7 @@ namespace Deeploration.Creatures
             heading.Normalize();
             speed = Mathf.MoveTowards(speed, targetSpeed, acceleration * deltaTime);
 
-            position += heading * (speed * deltaTime);
+            position += heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime);
             if (!float.IsNaN(floorY)) position.y = Mathf.Max(position.y, floorY + profile.bodyRadius);
             cachedTransform.SetPositionAndRotation(position, Quaternion.LookRotation(heading));
 
