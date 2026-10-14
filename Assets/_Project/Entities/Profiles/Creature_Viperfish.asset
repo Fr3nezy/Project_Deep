@@ -26,7 +26,7 @@ MonoBehaviour:
   weakLightReaction: 1
   strongLightReaction: 1
   flashReaction: 2
-  noiseReaction: 2
+  noiseReaction: 1
   inspectDistance: 3
   strongLightDistanceScale: 2.2
   inspectRepositionInterval: 5
@@ -36,6 +36,11 @@ MonoBehaviour:
   cohesionWeight: 0.5
   alignmentWeight: 0.5
   diverClearance: 1.5
+  stalkRange: 30
+  stalkRadius: 8
+  strikeRadius: 2.5
+  aggressionRate: 0.15
+  aggressionDecay: 0.1
   startleDuration: 0.35
   startleGlow: 0
   startleGlowDuration: 1.2

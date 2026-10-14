@@ -11,7 +11,8 @@ Stato:
 - **Implementato e verificato (2026-10-14, task 7a):** lanternfish con il modello definitivo di Manu e nuoto nello shader `Deeplonauts/Fish` (onda laterale dalla testa alla coda, piega in virata), fase e ampiezza per istanza da `Creature`.
 - **Implementato e verificato (2026-10-14, task 7b):** banco e spavento. Banco: le creature della stessa specie entro `schoolRadius` si tengono a distanza (separazione), restano insieme (coesione) e nuotano nella stessa direzione (allineamento), con una griglia spaziale nel manager. Spavento: All'ingresso in fuga la creatura scatta (virata e accelerazione ×6 per `startleDuration`, corpo piegato a C), i fotofori lampeggiano e il lampo diventa uno stimolo `Flash` per le altre creature: l'allarme si propaga nel banco.
 - **Implementato e verificato (2026-10-14, task 5):** catena di joint procedurale `SwimChain` (follow the leader con limite di piega e onda di nuoto), provata su una capsula a segmenti.
-- **Pianificato (M2):** nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, viperfish, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
+- **Implementato e verificato (2026-10-14, task 8, prima parte):** viperfish predatore. Nuovo stato `Stalk`: gira attorno al sub anche al buio e stringe l'orbita con l'aggressività, che sale con la luce e il rumore del sub e scende al buio; il flash della torcia lo fa scappare e gli dimezza l'aggressività. Mascella procedurale `CreatureJaw`, che si apre con l'aggressività.
+- **Pianificato (M2):** morso del viperfish (stress, O₂, vignetta, battito; resto della task 8), nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -23,7 +24,8 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 6. `CreatureStimulus.cs`: struct `CreatureStimulus` (uno stimolo del frame) e interfaccia `IStimulusSource`.
 7. `DiverStimulusSource.cs`: sul `PlayerCapsule`, traduce torcia, passi e prato di penne in stimoli.
 8. `SwimChain.cs`: catena di joint procedurale per i corpi lunghi (viperfish, Pelican Eel).
-9. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
+9. `CreatureJaw.cs`: mascella procedurale guidata da stato e aggressività della creatura.
+10. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
 
 Shader: `Assets/_Project/Rendering/Shaders/Fish.shader` (`Deeplonauts/Fish`), per i pesci ambientali senza ossa (vedi *Shader Deeplonauts/Fish*).
 
@@ -33,8 +35,8 @@ Asset:
 - `Assets/_Project/Entities/Prefabs/Creature_ChainTest.prefab` (2026-10-14): capsula a segmenti per provare `SwimChain` finché non c'è il rig del viperfish. Radice con `Creature` e `SwimChain`; dieci ossa annidate (`Head`, `Seg_01` … `Seg_09`) a 0.1 m l'una dall'altra lungo -Z (catena lunga 0.9 m), ognuna con un figlio `Visual` (sfera, raggio da 0.13 alla testa a 0.04 in coda, materiale `M_ChainTest`, URP Lit grigio caldo). `visibilityRenderer` = la sfera della testa. Nessun collider, layer `Entity`.
 - `Assets/_Project/Assets/Creatures/Viperfish/Viperfish.fbx` (2026-10-14, seconda versione): placeholder del viperfish di Manu con la bocca rifatta (muso più lungo, linea della bocca quasi orizzontale, a riposo appena socchiusa). Nel file delle creature (`Assets/_Project/Assets/Models/Blends/Creatures.blend`) Manu tiene il rig di lavoro nella collection `ViperFish`: armatura `ARM_Viperfish.001` con 12 ossa (`Head` alla nuca, `Spine_01` … `Spine_09` ogni 0.1 m, `Tail` alla base della coda, `Jaw` figlia di `Head` con il pivot dietro l'angolo della bocca), corpo pesato sulle ossa e denti, occhi, raggio dorsale e pinne imparentati direttamente alle ossa (denti inferiori a `Jaw`, superiori e occhi a `Head`, raggio a `Spine_01`, pinne alle vertebre, caudale a `Tail`). L'export viene da una copia unificata nella collection `ViperFish_Export` (nascosta): modificatori applicati con l'ultima suddivisione dei denti e del raggio tolta, ogni pezzo imparentato a un osso trasformato in un gruppo di vertici al 100% su quell'osso, tutto unito nella mesh `SK_Viperfish` (5420 triangoli, 2836 vertici tutti pesati, un materiale) sulla copia dell'armatura `ARM_Viperfish`; esportato con *Apply Transform*. Così il pesce resta un solo draw call invece di 17. In Unity: testa verso +Z, dorso verso +Y, scala 1, lungo 1.34 m. La prima versione (rig fatto da Claude su copie dei pezzi, bocca aperta di circa 43° a riposo) resta nel file come `SK_Viperfish_v1` / `ARM_Viperfish_v1` nella collection `ViperFish_Rig`, nascosta.
 - `Assets/_Project/Assets/Creatures/Viperfish/M_Viperfish.mat`: URP Lit grigio (0.42, 0.44, 0.46), smoothness 0.55, doppia faccia. Provvisorio finché non ci sono le texture.
-- `Assets/_Project/Entities/Prefabs/Creature_Viperfish.prefab`: radice con `Creature` e `SwimChain` (`bones` = `Head`, `Spine_01` … `Spine_09`, `Tail`; `visibilityRenderer` = `SK_Viperfish`; altri campi ai default); figlio `Viperfish` (l'FBX) spostato di (0, -0.011, -0.45) perché `Head` cada sull'origine della radice. `Jaw` nella posa dell'FBX: con la seconda versione la bocca è già chiusa a riposo, quindi l'override di -43° della prima versione è stato tolto (l'apertura come parametro arriva con la task 8). `SkinnedMeshRenderer` senza ombre, `localBounds` allargati a 1.2 × 1.6 × 0.8 m per le pieghe del corpo. Tutto sul layer `Entity`.
-- `Assets/_Project/Entities/Profiles/Creature_Viperfish.asset`: profilo provvisorio per il montaggio (default del codice tranne `cruiseSpeed` 0.8, `fleeSpeed` 3, `heightAboveFloor` 1.8, `heightTolerance` 0.75, `bodyRadius` 0.2, `strongLightReaction` Approach, `inspectDistance` 3, `diverClearance` 1.5). Il comportamento vero del viperfish (orbita nel buio, avvicinamento alla luce, morso) è la task 8. Nessun nido in scena.
+- `Assets/_Project/Entities/Prefabs/Creature_Viperfish.prefab`: radice con `Creature` e `SwimChain` (`bones` = `Head`, `Spine_01` … `Spine_09`, `Tail`; `visibilityRenderer` = `SK_Viperfish`; altri campi ai default); figlio `Viperfish` (l'FBX) spostato di (0, -0.011, -0.45) perché `Head` cada sull'origine della radice. `Jaw` nella posa dell'FBX: con la seconda versione la bocca è già chiusa a riposo, quindi l'override di -43° della prima versione è stato tolto. Dal 2026-10-14 (task 8) la radice ha anche `CreatureJaw` (`jaw` = `Jaw`, `visibilityRenderer` = `SK_Viperfish`, altri campi ai default: asse X locale dell'osso, 40° a mascella spalancata, verso positivo = la punta della mandibola scende). `SkinnedMeshRenderer` senza ombre, `localBounds` allargati a 1.2 × 1.6 × 0.8 m per le pieghe del corpo. Tutto sul layer `Entity`.
+- `Assets/_Project/Entities/Profiles/Creature_Viperfish.asset`: profilo del viperfish (default del codice tranne `cruiseSpeed` 0.8, `fleeSpeed` 3, `heightAboveFloor` 1.8, `heightTolerance` 0.75, `bodyRadius` 0.2, `inspectDistance` 3, `diverClearance` 1.5). Reazioni (task 8): luce debole, luce forte e rumore → Approach (in `Stalk` fanno salire l'aggressività), flash → Flee. Predatore: `stalkRange` 30, `stalkRadius` 8, `strikeRadius` 2.5, `aggressionRate` 0.15, `aggressionDecay` 0.1, cioè circa 7 s di torcia piena per arrivare all'aggressività piena e 10 s di buio per tornare a zero. Nessun nido in scena: per provarlo si fa uscire dal pool con `CreatureManager.Spawn`.
 - `Assets/_Project/Entities/Profiles/Creature_ChainTest.asset`: profilo della capsula (default del codice tranne `cruiseSpeed` 1, `fleeSpeed` 3, `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.15, `strongLightReaction` Approach, `inspectDistance` 3). Nessun nido in scena: per provarla si fa uscire dal pool con `CreatureManager.Spawn`.
 - `Assets/_Project/Entities/Profiles/Creature_Lanternfish.asset`: profilo del lanternfish (default del codice tranne `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.125, `strongLightReaction` Approach). Reazioni: luce debole e forte → si avvicina (i mictofidi vanno verso la luce, per questo si pescano con le lampade), flash e rumore → scappa. Banco e spavento (dal 2026-10-14): `schoolRadius` 2.5, `separationDistance` 0.6 (circa due lunghezze del corpo), `cohesionWeight` 0.5, `alignmentWeight` 0.5, `startleGlow` 4, `alarmRadius` 4, il resto ai default (i lanternfish veri lampeggiano con i fotofori quando si spaventano).
 - `Assets/_Project/Entities/Prefabs/Creature_Lanternfish.prefab` (dal 2026-10-14): alla radice `Creature` (`swimRenderers` = `Body` e `Body_LOD1`, `swimFrequency` 2.5, `fullBendTurnRate` 120) e `LODGroup` (Cross Fade animato, `size` 0.31, LOD0 `Body` fino a 0.13 dell'altezza dello schermo, LOD1 `Body_LOD1` fino a 0.03, poi niente). Con la camera del sub (FOV 32.9°) e `lodBias` 2 il passaggio è a circa 8 m e la scomparsa a circa 35 m, dove la nebbia esponenziale (densità 0.065) ha già coperto quasi tutto. Figli `Body` (`MSH_LanternFish`) e `Body_LOD1` (`MSH_LanternFish_LOD1`), entrambi con `MeshFilter` + `MeshRenderer`, `M_LanternFish`, ombre e probe spenti; tutto sul layer `Entity`. Ha sostituito `Creature_Lanternfish_Placeholder` (Fish-1 del pacchetto Backrock con Animator), rimosso lo stesso giorno e recuperabile dalla storia di Git.
@@ -101,6 +103,11 @@ flowchart TD
 | `cohesionWeight` | float [0, 3] | 0.5 | Quanto piega verso il baricentro dei compagni mentre vaga |
 | `alignmentWeight` | float [0, 3] | 0.5 | Quanto allinea la rotta a quella dei compagni mentre vaga o scappa |
 | `diverClearance` | float [0, 5] | 1 | Spazio personale del sub (m) attorno al corpo, dai piedi alla testa: la creatura non ci entra. 0 = nessuno (per un predatore che deve arrivare a contatto) |
+| `stalkRange` | float [0, 60] | 0 | Entro questa distanza (m) dal sub gli gira attorno (stato `Stalk`), anche al buio: lo sente senza vederlo. 0 = non è un predatore del sub |
+| `stalkRadius` | float [1, 30] | 8 | Raggio dell'orbita (m) ad aggressività 0 |
+| `strikeRadius` | float [0.5, 10] | 2.5 | Raggio dell'orbita (m) ad aggressività piena: la distanza da cui colpirà |
+| `aggressionRate` | float [0, 2] | 0.15 | Aggressività guadagnata al secondo sotto la luce forte o il flash del sub; luce debole e rumore valgono metà |
+| `aggressionDecay` | float [0, 2] | 0.1 | Aggressività persa al secondo quando non percepisce stimoli del sub |
 | `startleDuration` | float [0, 2] | 0.35 | Secondi di scatto all'inizio della fuga: virata e accelerazione ×6, piega a C fino a 1.6 |
 | `startleGlow` | float [0, 10] | 0 | Lampo dei fotofori all'inizio della fuga: emissione fino a (1 + valore) volte la normale. 0 = nessun lampo |
 | `startleGlowDuration` | float [0.05, 5] | 1.2 | Secondi in cui il lampo si spegne |
@@ -119,6 +126,8 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Stati (`CreatureState`):
   - `Wander`: la rotta ruota attorno all'asse verticale secondo un rumore di Perlin (`wanderTurn`, `wanderFrequency`). Oltre il guinzaglio (`leashRadius` del nido) piega verso casa, tanto più quanto più è lontana.
   - `Flee`: scappa dalla sorgente dello stimolo che la spaventa a `fleeSpeed`, anche oltre il guinzaglio. Dopo `calmDelay` secondi senza stimoli che la spaventano passa a `Inspect` se qualcosa la attira ancora (percepito negli ultimi `calmDelay` secondi), altrimenti a `Wander`.
+  - `Stalk` (solo con `stalkRange` > 0): il predatore gira attorno al sub. Ci entra, da qualsiasi stato tranne `Flee`, quando il sub è entro `stalkRange`, e torna a `Wander` oltre il 120% di quella distanza. Ha la precedenza su `Inspect`: uno stimolo che attira non lo porta a osservare, gli fa salire l'aggressività. L'orbita è un cerchio orizzontale attorno al busto del sub (1 m sopra i piedi): la rotta è la tangente più una correzione verso il raggio (`(raggio - distanza) × 0.5`, limitata a ±1.5). Il raggio va da `stalkRadius` ad aggressività 0 a `strikeRadius` ad aggressività piena e respira del ±20% con un rumore lento. Il verso si inverte ogni 8-20 s e quando la creatura sta per sbattere contro un ostacolo (`avoidWeight` > 0.5, al massimo una volta ogni 2 s): in un corridoio fa avanti e indietro sul lato libero invece di scivolare lungo la parete verso il sub. La quota oscilla di ±1 m attorno al busto, mai sotto due raggi del corpo dal fondale. La velocità scende dalla crociera al 60% con l'aggressività: più è aggressivo, più si avvicina strisciando. Ignora il guinzaglio.
+  - Aggressività (`Aggression`, 0..1, solo per i predatori, a ogni frame): in `Stalk`, se uno stimolo che attira e che viene dal sub (`FromPlayer`) è stato percepito negli ultimi 0.5 s, sale di `aggressionRate` al secondo per la luce forte e il flash, di metà per la luce debole e il rumore; altrimenti scende di `aggressionDecay`. Lo spavento (`Startle`, per esempio il flash della torcia con `flashReaction` Flee) la dimezza. Torna a 0 all'uscita dal pool.
   - `Inspect`: si comporta come un pesce attirato dalla luce. Sceglie un **posto personale** relativo alla sorgente: per un fascio dentro il cono (yaw e pitch casuali fino all'80% del semi-angolo), per una luce omnidirezionale su un guscio sopra la sorgente; la distanza è quella preferita (`inspectDistance`, per luce forte e flash moltiplicata per `strongLightDistanceScale`) per un fattore casuale fra 0.75 e 1.3, perché una luce più intensa si osserva da più lontano, dove la luminosità è quella giusta. Il posto si ricalcola a ogni frame rispetto alla sorgente, quindi segue il sub; cambia ogni `inspectRepositionInterval` secondi (±50%). La creatura ci nuota rallentando (velocità `cruiseSpeed × clamp(distanza dal posto / 1.5, 0.2, 1)`); entro 1 m dal posto la rotta passa gradualmente a puntare il muso verso la luce, così scivola verso la sorgente, si allontana dal posto e ci torna: un andirivieni invece di un'orbita. La quota segue il posto (sempre sotto il soffitto e almeno `2 × bodyRadius` sopra il fondale). Torna a `Wander` dopo `calmDelay` secondi senza stimoli che la attirano. Non rispetta il guinzaglio finché osserva. Fino al 2026-10-13 sera girava in cerchio alla stessa distanza e alla quota della lampada: tutti i pesci finivano sullo stesso anello, anche dietro il sub, e si compenetravano.
 - Banco (in `think`, se `schoolRadius` > 0): `CreatureManager.Flock` restituisce i compagni della stessa specie entro `schoolRadius`, con la spinta di separazione (somma su tutti quelli più vicini di `separationDistance` di `direzione opposta × (1 - distanza / separationDistance)`), il baricentro e la rotta media dei primi 8. Ne escono tre spinte: separazione, coesione (verso il baricentro, lunga al massimo 1) e allineamento (rotta media normalizzata). In `Move` si sommano alla rotta dello stato:
   - `Wander`: separazione × 2 + coesione × `cohesionWeight` + allineamento × `alignmentWeight`; la coesione sposta anche la quota preferita (`cohesion.y × schoolRadius × cohesionWeight × 0.5`);
@@ -153,8 +162,9 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - `int NeighbourCount { get; }`: compagni visti nell'ultimo ragionamento (0 per le specie solitarie).
   - `StimulusCategory Perceived { get; }`: categoria dello stimolo che ha deciso la reazione nell'ultimo ragionamento (`None` se nessuno).
   - `float Speed { get; }`: velocità attuale (m/s).
+  - `float Aggression { get; }`: aggressività verso il sub, da 0 a 1; sempre 0 per chi non è un predatore.
   - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash, float ceiling)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
-- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`, verde in `Inspect`), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), in `Inspect` una linea verde verso il posto personale, una sfera sul posto e una linea tenue dal posto alla sorgente, guinzaglio attorno a casa, direzione di evitamento (magenta).
+- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`, verde in `Inspect`, rosa in `Stalk`), in `Stalk` il cerchio dell'orbita attuale attorno al busto del sub (dal rosa al rosso con l'aggressività), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), in `Inspect` una linea verde verso il posto personale, una sfera sul posto e una linea tenue dal posto alla sorgente, guinzaglio attorno a casa, direzione di evitamento (magenta).
 - Riferimenti obbligatori: va presa dal pool con `CreatureManager.Spawn`. Una `Creature` messa a mano in scena resta ferma, perché nessuno chiama `Tick`.
 
 ### CreatureManager
@@ -215,7 +225,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Riferimenti obbligatori: `manager` e `profile`. Se mancano, errore in console e nessuno spawn.
 
 ### CreatureEnums
-- `CreatureState`: `Wander`, `Flee`, `Inspect`. Cresce con le task di M2.
+- `CreatureState`: `Wander`, `Flee`, `Inspect`, `Stalk` (dal 2026-10-14). Cresce con le task di M2.
 - `StimulusCategory`: `None`, `WeakLight`, `StrongLight`, `Flash`, `Noise`. Le tre luci richiedono la linea di vista, il rumore no. Ha sostituito `StimulusKind` (luce o rumore) con la task 4.
 - `StimulusReaction`: `Ignore`, `Approach` (stato `Inspect`), `Flee` (stato `Flee`, vince su `Approach`).
 - `CreatureLod`: `Near`, `Mid`, `Far` (vedi `CreatureManager`).
@@ -278,6 +288,30 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Riferimenti obbligatori: `bones` con almeno 2 ossa, altrimenti non fa niente. Senza `Creature` sullo stesso GameObject l'onda va sempre al ritmo di crociera.
 - Ordine con la gerarchia: le ossa possono essere annidate (come in un rig) perché vengono scritte in ordine dalla testa alla coda, in coordinate del mondo.
 
+### CreatureJaw
+- Responsabilità e ciclo di vita: mascella procedurale, sulla radice della creatura accanto a `Creature`. In `Awake` salva la rotazione locale di riposo dell'osso (che deve essere a bocca chiusa); `OnEnable` (anche all'uscita dal pool) riparte da bocca chiusa con un seme nuovo per il respiro. In `LateUpdate` calcola l'apertura voluta dallo stato della `Creature`:
+  - `Flee`: 0, senza respiro;
+  - `Stalk`: da `stalkOpen` ad aggressività 0 a `strikeOpen` ad aggressività piena: è l'avvertimento prima del morso;
+  - altri stati (o senza `Creature`): `idleOpen`.
+  Fuori dalla fuga somma un respiro lento (`breathAmount` × rumore di Perlin a 0.3 Hz). L'apertura insegue il valore voluto con una curva esponenziale (`responsiveness`) e l'osso ruota di `apertura × openAngle` attorno a `openAxis` partendo dalla posa di riposo. Se `visibilityRenderer` non è visibile l'apertura avanza ma l'osso non viene scritto.
+- Campi Inspector:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `jaw` | `Transform` | null | Osso della mandibola, posa di riposo chiusa |
+| `openAxis` | `Vector3` | (1, 0, 0) | Asse della cerniera nello spazio locale dell'osso |
+| `openAngle` | float [-120, 120] | 40 | Angolo (°) a mascella spalancata; il segno sceglie il verso |
+| `idleOpen` | float [0, 1] | 0.1 | Apertura mentre vaga o osserva |
+| `stalkOpen` | float [0, 1] | 0.2 | Apertura in `Stalk` ad aggressività 0 |
+| `strikeOpen` | float [0, 1] | 0.85 | Apertura in `Stalk` ad aggressività piena |
+| `breathAmount` | float [0, 0.5] | 0.08 | Ampiezza del respiro lento attorno all'apertura |
+| `responsiveness` | float ≥ 0.1 | 3 | Velocità con cui l'apertura insegue il valore voluto (1/s) |
+| `visibilityRenderer` | `Renderer` | null | Se assegnato, l'osso si scrive solo quando è visibile |
+
+- API pubbliche: `float Openness { get; }`: apertura attuale, da 0 (posa di riposo) a 1 (`openAngle`).
+- Riferimenti obbligatori: `jaw`; senza, il componente non fa niente. Senza `Creature` resta su `idleOpen` col respiro.
+- Ordine: la mandibola è figlia di `Head`, che `SwimChain` non scrive, quindi le due rotazioni non si pestano.
+
 ### CreatureBenchmark
 - Responsabilità e ciclo di vita: strumento di sviluppo. `Run(label)` avvia quattro `ProfilerRecorder` (`Main Thread`, `BehaviourUpdate`, `FixedBehaviourUpdate`, `GC Allocated In Frame`). Dopo `warmup` secondi campiona per `duration` secondi, poi scrive le medie in console e in `Logs/CreatureBenchmark.log` (fuori da Assets, ignorato da Git).
 - Campi Inspector: `warmup` (float, 3 s), `duration` (float, 10 s), `label` (string, "creature"), `runOnEnable` (bool, false).
@@ -329,6 +363,10 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - Vita propria delle creature (deciso il 2026-10-13, task 2 e 4): stimoli unificati. Torcia del sub, prato di penne e creature bioluminescenti sono tutti fonti di luce, quindi il viperfish attratto dalla luce insegue anche i lanternfish senza codice di caccia dedicato. Predazione finta: se il predatore raggiunge la preda, la preda torna nel pool con un lampo e il predatore entra in "sazietà" (un timer, non una fame che uccide). Più routine per specie (l'isopode che fruga, il tripode ritto controcorrente). Il manager raccoglierà gli emettitori di stimoli una volta per frame; le creature li leggeranno solo nei frame di `think`.
 
 ## Limiti e problemi noti
+- **Viperfish, morso non ancora fatto:** ad aggressività piena resta in orbita a `strikeRadius` con la bocca spalancata, senza attaccare. Il morso (stress, O₂, vignetta, battito) è il resto della task 8.
+- **Viperfish e torcia bassa:** la luce debole conta solo se la creatura è nel fascio o entro l'alone (3.2 m con la `Low`). A 8 m di orbita la torcia bassa lo provoca solo se lo si illumina; la piena (alone 10 m) lo provoca quasi sempre, salvo roccia in mezzo. È voluto: la bassa è la modalità prudente.
+- **Il viperfish scappa anche dai lampi dei lanternfish** (`flashReaction` Flee vale per ogni flash). Per farlo cacciare i banchi serve distinguere il flash della torcia da quello degli allarmi.
+- In `Stalk` il predatore sa sempre dov'è il sub entro `stalkRange`, attraverso la roccia: lo sente, senza linea di vista.
 - **Mesh del lanternfish da rigenerare a mano:** `MSH_LanternFish.asset` e `MSH_LanternFish_LOD1.asset` sono state prodotte una volta dagli FBX. Se Manu riesporta, la mesh in gioco non cambia finché non viene rifatta. Per evitarlo il prossimo export può uscire già pronto (un solo oggetto unito, trasformazioni applicate, testa lungo l'asse che in Unity diventa +Z, 31 cm): allora il prefab può puntare direttamente alla mesh dell'FBX.
 - Lo scatto a C è visibile solo se la fuga richiede una virata: con la minaccia esattamente alle spalle il pesce parte dritto, senza piega.
 - Sotto la torcia piena il lampo dei fotofori si nota poco, perché la luce del fascio domina; si vede bene al buio o in luce rossa, quando l'allarme parte da un altro pesce.
@@ -471,6 +509,14 @@ Viperfish su `SwimChain` (2026-10-14, Play in `SCN_Gameplay`, un viperfish fatto
 
 
 Seconda versione del viperfish (2026-10-14 sera, stesso metodo): FBX reimportato con 5420 triangoli e 12 ossa, catena con 11 ossa valide senza ricollegare niente (stessi nomi), `Head` sull'origine della radice; vista ravvicinata: bocca chiusa a riposo, linea della bocca quasi orizzontale, zanna inferiore davanti al muso; vista dall'alto in quattro istanti a 0.5 s: coda che oscilla da un lato all'altro, pinne attaccate al corpo. Console senza errori.
+
+Viperfish predatore (2026-10-14, task 8, Play in `SCN_Gameplay`; sub spostato a mano sul fondo del corridoio in (-5, 0.37, -5.5), diver seduto con il controller spento; un viperfish fatto uscire dal pool a 12 m; campioni ogni secondo di stato, aggressività, distanza orizzontale dal busto, angolo attorno al sub e apertura della mascella):
+- torcia `Red`, prima versione senza inversione sugli ostacoli: in `Stalk` a 7.5-8 m, ma nel corridoio sbatteva contro le pareti e scivolava verso il sub fino a 3.4 m con aggressività 0. Corretto con l'inversione del verso quando sta per urtare;
+- torcia `Red`, versione finale, 45 s: sempre in `Stalk` ad aggressività 0, avanti e indietro sul lato libero fra -19° e 87° attorno al sub a 6.3-8.5 m, mascella 0.15-0.25;
+- torcia `Full`: per i primi 6 s una roccia copriva la lampada e non succedeva niente; poi luce forte percepita, aggressività da 0 a 1 in 7 s, orbita da 8 a 3.6 m in 15 s, velocità da 0.8 a 0.35-0.48 m/s, mascella da 0.2 a 0.85. Dietro la roccia (1 s senza luce) l'aggressività scende a 0.75 e risale appena torna in vista;
+- flash (`Red` → `Full` con il viperfish in vista a 4.6 m): passa a `Flee`, aggressività da 0.85 a 0.42, mascella chiusa, scappa a 2.2 m/s fino a 8.9 m; dopo 3 s torna in `Stalk` e in 6 s riarriva ad aggressività piena;
+- vista ravvicinata con mascella a 0.86 (34°): la mandibola scende dalla cerniera, zanne visibili, nessuno strappo all'angolo della bocca;
+- compilazione senza errori né warning, console senza errori con 100 lanternfish e il viperfish attivi.
 
 Non verificato: costo del lanternfish con lo shader (draw call e instancing) degli impulsi d'allarme e della griglia dei vicini con centinaia di pesci (benchmark con l'Editor in primo piano), tocco lungo su F con la tastiera vera, rumore con il diver che cammina davvero, build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5794103649105886875}
   - component: {fileID: 5363190020988231793}
   - component: {fileID: 668244976722232849}
+  - component: {fileID: 6217699429344612263}
   m_Layer: 9
   m_Name: Creature_Viperfish
   m_TagString: Untagged
@@ -80,6 +81,27 @@ MonoBehaviour:
   headAmplitude: 0.1
   waveCount: 0.9
   waveFrequency: 1.2
+  visibilityRenderer: {fileID: 2773181943371577113}
+--- !u!114 &6217699429344612263
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2489802120106906889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 23601a8eab515c840b352354da21d8fa, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureJaw
+  jaw: {fileID: 5477992658667123606}
+  openAxis: {x: 1, y: 0, z: 0}
+  openAngle: 40
+  idleOpen: 0.1
+  stalkOpen: 0.2
+  strikeOpen: 0.85
+  breathAmount: 0.08
+  responsiveness: 3
   visibilityRenderer: {fileID: 2773181943371577113}
 --- !u!1001 &7100336103650734969
 PrefabInstance:
@@ -268,6 +290,11 @@ Transform:
 --- !u!4 &4288216491714423999 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -2806947371418148922, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5477992658667123606 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5869092611696459537, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
   m_PrefabInstance: {fileID: 7100336103650734969}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &6952847900889060254 stripped

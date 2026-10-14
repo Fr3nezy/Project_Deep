@@ -54,6 +54,13 @@ namespace Deeploration.Creatures
         // testa; scivolata massima fuori dallo spazio personale (m/s).
         private const float DiverHeight = 1.5f;
         private const float DiverClearanceSlip = 1.5f;
+        // Predatore: centro dell'orbita all'altezza del busto, oscillazione di quota attorno al centro (m), secondi
+        // per cui uno stimolo del sub conta ancora come presente, intervallo dei cambi di verso dell'orbita (s).
+        private const float StalkCentreHeight = 1f;
+        private const float StalkHeightSwing = 1f;
+        private const float StalkStimulusMemory = 0.5f;
+        private const float OrbitFlipMin = 8f;
+        private const float OrbitFlipMax = 20f;
         private static MaterialPropertyBlock swimBlock;
 
         private float swimPhase;
@@ -92,6 +99,13 @@ namespace Deeploration.Creatures
         private float nextRepositionTime;
         private StimulusCategory perceived;
 
+        // Predatore: aggressività 0..1, verso dell'orbita (+1 antiorario visto dall'alto, -1 orario), prossimo
+        // cambio di verso.
+        private float aggression;
+        private float orbitSign = 1f;
+        private float nextOrbitFlipTime;
+        private float lastOrbitFlipTime;
+
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
         private Vector3 avoidDirection;
@@ -114,6 +128,12 @@ namespace Deeploration.Creatures
 
         /// <summary>Rotta attuale (normalizzata).</summary>
         public Vector3 Heading => heading;
+
+        /// <summary>
+        /// Aggressività verso il sub, da 0 a 1: sale con la sua luce e il suo rumore mentre la creatura gli gira
+        /// attorno, scende al buio. Stringe l'orbita e apre la mascella. Sempre 0 per chi non è un predatore.
+        /// </summary>
+        public float Aggression => aggression;
 
         /// <summary>Compagni della stessa specie visti nell'ultimo ragionamento (0 per le specie solitarie).</summary>
         public int NeighbourCount { get; private set; }
@@ -150,6 +170,9 @@ namespace Deeploration.Creatures
             startleTime = float.NegativeInfinity;
             separationSteer = cohesionSteer = alignmentSteer = Vector3.zero;
             NeighbourCount = 0;
+            aggression = 0f;
+            orbitSign = Random.value < 0.5f ? -1f : 1f;
+            FlipOrbit(Time.time, false);
         }
 
         /// <summary>
@@ -180,8 +203,9 @@ namespace Deeploration.Creatures
             {
                 lastInterestTime = now;
                 interest = chosen;
-                // La paura vince: chi sta scappando si avvicina solo dopo essersi calmato.
-                if (state != CreatureState.Flee && state != CreatureState.Inspect)
+                // La paura vince: chi sta scappando si avvicina solo dopo essersi calmato. Il predatore che gira
+                // attorno al sub non va a osservare: lo stimolo gli fa salire l'aggressività (UpdateAggression).
+                if (state != CreatureState.Flee && state != CreatureState.Inspect && state != CreatureState.Stalk)
                 {
                     state = CreatureState.Inspect;
                     PickSpot(now);
@@ -199,6 +223,17 @@ namespace Deeploration.Creatures
             }
             else if (state == CreatureState.Inspect && now - lastInterestTime > profile.calmDelay)
                 state = CreatureState.Wander;
+
+            // Predatore: finché il sub è a portata gli gira attorno, anche al buio. Esce oltre il 120% della
+            // portata, così non entra ed esce di continuo sul bordo.
+            if (profile.stalkRange > 0f && state != CreatureState.Flee)
+            {
+                float range = profile.stalkRange * (state == CreatureState.Stalk ? 1.2f : 1f);
+                bool inRange = manager.HasPlayer &&
+                               (manager.PlayerPosition - cachedTransform.position).sqrMagnitude < range * range;
+                if (inRange) state = CreatureState.Stalk;
+                else if (state == CreatureState.Stalk) state = CreatureState.Wander;
+            }
         }
 
         /// <summary>
@@ -230,6 +265,8 @@ namespace Deeploration.Creatures
         private void Startle(float now)
         {
             startleTime = now;
+            // Un predatore spaventato (il flash della torcia) perde metà dell'aggressività: accecarlo fa guadagnare tempo.
+            aggression *= 0.5f;
             if (profile.startleGlow > 0f && profile.alarmRadius > 0f)
             {
                 CreatureStimulus alarm = CreatureStimulus.PointLight(cachedTransform.position, profile.alarmRadius,
@@ -376,6 +413,11 @@ namespace Deeploration.Creatures
                 if (avoidDirection.sqrMagnitude < 0.0001f) avoidDirection = new Vector3(heading.x, 0f, heading.z);
                 avoidDirection.Normalize();
                 avoidWeight = 1f - hit.distance / lookDistance;
+
+                // Predatore: se l'orbita lo porta contro la roccia inverte il verso, invece di scivolare lungo la
+                // parete verso il sub. In un corridoio fa avanti e indietro sul lato libero, alla sua distanza.
+                if (state == CreatureState.Stalk && avoidWeight > 0.5f && Time.time - lastOrbitFlipTime > 2f)
+                    FlipOrbit(Time.time, true);
             }
             else
             {
@@ -390,8 +432,15 @@ namespace Deeploration.Creatures
             Vector3 desired;
 
             float targetY = float.IsNaN(floorY) ? position.y : floorY + profile.heightAboveFloor;
+            if (profile.stalkRange > 0f) UpdateAggression(deltaTime);
 
-            if (state == CreatureState.Flee)
+            if (state == CreatureState.Stalk)
+            {
+                desired = StalkHeading(position, out targetY);
+                // Più è aggressivo, più rallenta: si avvicina strisciando invece di girare di corsa.
+                targetSpeed = profile.cruiseSpeed * Mathf.Lerp(1f, 0.6f, aggression);
+            }
+            else if (state == CreatureState.Flee)
             {
                 targetSpeed = profile.fleeSpeed;
                 desired = (position - threatPosition).normalized;
@@ -535,6 +584,61 @@ namespace Deeploration.Creatures
             return away / distance * (1f - distance / clearance);
         }
 
+        /// <summary>
+        /// Aggressività del predatore: in <c>Stalk</c>, finché percepisce la luce o il rumore del sub, sale di
+        /// <c>aggressionRate</c> al secondo per la luce forte e il flash, di metà per la luce debole e il rumore;
+        /// altrimenti scende di <c>aggressionDecay</c>. Gli stimoli che non vengono dal sub non contano.
+        /// </summary>
+        private void UpdateAggression(float deltaTime)
+        {
+            bool provoked = state == CreatureState.Stalk && interest.FromPlayer &&
+                            Time.time - lastInterestTime <= StalkStimulusMemory;
+            float rate = -profile.aggressionDecay;
+            if (provoked)
+            {
+                bool strong = interest.Category == StimulusCategory.StrongLight ||
+                              interest.Category == StimulusCategory.Flash;
+                rate = profile.aggressionRate * (strong ? 1f : 0.5f);
+            }
+            aggression = Mathf.Clamp01(aggression + rate * deltaTime);
+        }
+
+        /// <summary>
+        /// Rotta dell'orbita attorno al sub: tangente al cerchio attorno al busto più una correzione verso il raggio,
+        /// che va da <c>stalkRadius</c> al buio a <c>strikeRadius</c> ad aggressività piena e respira del ±20% con
+        /// un rumore lento. Il verso si inverte ogni 8-20 s. La quota oscilla di ±1 m attorno al busto, mai sotto
+        /// due raggi del corpo dal fondale.
+        /// </summary>
+        private Vector3 StalkHeading(Vector3 position, out float targetY)
+        {
+            float now = Time.time;
+            if (now >= nextOrbitFlipTime) FlipOrbit(now, true);
+
+            Vector3 centre = manager.PlayerPosition + Vector3.up * StalkCentreHeight;
+            Vector3 outward = position - centre;
+            outward.y = 0f;
+            float distance = outward.magnitude;
+            outward = distance > 0.01f ? outward / distance : new Vector3(-heading.x, 0f, -heading.z).normalized;
+
+            float breathing = Mathf.PerlinNoise(noiseSeed, now * 0.1f) * 2f - 1f;
+            float radius = Mathf.Lerp(profile.stalkRadius, profile.strikeRadius, aggression) * (1f + 0.2f * breathing);
+            Vector3 tangent = Vector3.Cross(Vector3.up, outward) * orbitSign;
+
+            float bob = Mathf.PerlinNoise(noiseSeed + 50f, now * 0.07f) * 2f - 1f;
+            targetY = centre.y + bob * StalkHeightSwing;
+            if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, floorY + profile.bodyRadius * 2f);
+
+            return tangent + outward * Mathf.Clamp((radius - distance) * 0.5f, -1.5f, 1.5f);
+        }
+
+        /// <summary>Inverte (se richiesto) il verso dell'orbita e programma il prossimo cambio fra 8 e 20 s.</summary>
+        private void FlipOrbit(float now, bool invert)
+        {
+            if (invert) orbitSign = -orbitSign;
+            lastOrbitFlipTime = now;
+            nextOrbitFlipTime = now + Random.Range(OrbitFlipMin, OrbitFlipMax);
+        }
+
         /// <summary>Oltre il guinzaglio la rotta piega verso casa, tanto più quanto più si è lontani.</summary>
         private Vector3 PullTowardsHome(Vector3 position, Vector3 desired)
         {
@@ -565,8 +669,26 @@ namespace Deeploration.Creatures
             if (profile == null) return;
             Vector3 position = transform.position;
 
-            Gizmos.color = state == CreatureState.Flee ? Color.red : state == CreatureState.Inspect ? Color.green : Color.cyan;
+            Gizmos.color = state == CreatureState.Flee ? Color.red
+                : state == CreatureState.Inspect ? Color.green
+                : state == CreatureState.Stalk ? new Color(1f, 0.3f, 0.6f)
+                : Color.cyan;
             Gizmos.DrawLine(position, position + heading * Mathf.Max(1f, speed));
+            if (state == CreatureState.Stalk && manager != null && manager.HasPlayer)
+            {
+                // Orbita attuale attorno al busto del sub, più rossa con l'aggressività.
+                Gizmos.color = Color.Lerp(new Color(1f, 0.3f, 0.6f, 0.5f), Color.red, aggression);
+                Vector3 centre = manager.PlayerPosition + Vector3.up * StalkCentreHeight;
+                float radius = Mathf.Lerp(profile.stalkRadius, profile.strikeRadius, aggression);
+                Vector3 previous = centre + Vector3.forward * radius;
+                for (int i = 1; i <= 32; i++)
+                {
+                    float angle = i / 32f * 2f * Mathf.PI;
+                    Vector3 next = centre + new Vector3(Mathf.Sin(angle), 0f, Mathf.Cos(angle)) * radius;
+                    Gizmos.DrawLine(previous, next);
+                    previous = next;
+                }
+            }
             if (state == CreatureState.Flee)
             {
                 Gizmos.color = perceived == StimulusCategory.Noise ? new Color(1f, 0.5f, 0f) : Color.yellow;

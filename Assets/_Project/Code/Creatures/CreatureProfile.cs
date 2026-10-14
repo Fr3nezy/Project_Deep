@@ -111,6 +111,28 @@ namespace Deeploration.Creatures
         [Range(0f, 5f)]
         public float diverClearance = 1f;
 
+        [Header("Predatore")]
+        [Tooltip("Entro questa distanza (m) dal sub gli gira attorno (stato Stalk), anche al buio: lo sente senza " +
+                 "vederlo. 0 = non è un predatore del sub")]
+        [Range(0f, 60f)]
+        public float stalkRange = 0f;
+
+        [Tooltip("Raggio dell'orbita (m) attorno al sub ad aggressività 0, al buio")]
+        [Range(1f, 30f)]
+        public float stalkRadius = 8f;
+
+        [Tooltip("Raggio dell'orbita (m) ad aggressività piena: la distanza da cui colpirà")]
+        [Range(0.5f, 10f)]
+        public float strikeRadius = 2.5f;
+
+        [Tooltip("Aggressività guadagnata al secondo sotto la luce forte del sub; la luce debole e il rumore valgono metà")]
+        [Range(0f, 2f)]
+        public float aggressionRate = 0.15f;
+
+        [Tooltip("Aggressività persa al secondo quando non percepisce né luce né rumore del sub")]
+        [Range(0f, 2f)]
+        public float aggressionDecay = 0.1f;
+
         [Header("Spavento")]
         [Tooltip("Secondi di scatto all'inizio della fuga: virata e accelerazione moltiplicate per 6, corpo piegato a C")]
         [Range(0f, 2f)]

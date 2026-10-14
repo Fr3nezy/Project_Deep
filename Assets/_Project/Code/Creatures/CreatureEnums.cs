@@ -8,7 +8,12 @@ namespace Deeploration.Creatures
         /// <summary>Si allontana dallo stimolo percepito alla velocità di fuga finché non torna calma.</summary>
         Flee,
         /// <summary>Si avvicina a uno stimolo che la attira, si ferma a distanza e ci gira attorno osservandolo.</summary>
-        Inspect
+        Inspect,
+        /// <summary>
+        /// Predatore: gira attorno al sub finché è a portata (<c>stalkRange</c>); la luce e il rumore del sub fanno
+        /// salire l'aggressività e stringono l'orbita.
+        /// </summary>
+        Stalk
     }
 
     /// <summary>
