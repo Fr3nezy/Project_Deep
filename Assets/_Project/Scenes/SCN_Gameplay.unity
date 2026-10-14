@@ -154328,7 +154328,7 @@ Transform:
   m_GameObject: {fileID: 469256532}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -5.248866, y: 2.476242, z: -6.020194}
+  m_LocalPosition: {x: -5.248866, y: 2.4762418, z: -6.020194}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -167903,7 +167903,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureNest
   manager: {fileID: 589838369}
   profile: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
-  count: 12
+  count: 100
   spawnRadius: 6
   leashRadius: 12
   maxHeightAboveNest: 3
@@ -207561,6 +207561,7 @@ MonoBehaviour:
   midInterval: 4
   farInterval: 16
   visibilityMargin: 1
+  neighbourCellSize: 1
 --- !u!4 &589838370
 Transform:
   m_ObjectHideFlags: 0
@@ -366691,6 +366692,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 404671512499247287, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: lookAhead
+      value: 2
+      objectReference: {fileID: 0}
     - target: {fileID: 923543129504440592, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
       propertyPath: m_LocalPosition.x
       value: -3.924553
