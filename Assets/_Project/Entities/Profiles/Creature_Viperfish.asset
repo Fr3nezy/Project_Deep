@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a097bd643e797594ab41876fbfe2287d, type: 3}
+  m_Name: Creature_Viperfish
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureProfile
+  prefab: {fileID: 5363190020988231793, guid: 5eb305712a8d8084687f48490e2fffce, type: 3}
+  cruiseSpeed: 0.8
+  fleeSpeed: 3
+  acceleration: 3
+  turnRate: 90
+  heightAboveFloor: 1.8
+  heightTolerance: 0.75
+  wanderTurn: 45
+  wanderFrequency: 0.15
+  lightSensitivity: 1
+  hearingSensitivity: 1
+  weakLightReaction: 1
+  strongLightReaction: 1
+  flashReaction: 2
+  noiseReaction: 2
+  inspectDistance: 3
+  strongLightDistanceScale: 2.2
+  inspectRepositionInterval: 5
+  calmDelay: 3
+  schoolRadius: 0
+  separationDistance: 0.6
+  cohesionWeight: 0.5
+  alignmentWeight: 0.5
+  diverClearance: 1.5
+  startleDuration: 0.35
+  startleGlow: 0
+  startleGlowDuration: 1.2
+  alarmRadius: 0
+  bodyRadius: 0.2
+  lookAhead: 1.5
