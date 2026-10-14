@@ -44,7 +44,7 @@ flowchart TD
 ### AirlockDoor
 - **Responsabilità e ciclo di vita**:
   - `Awake()`: Salva `closedPosition = doorPanel.localPosition` e imposta la luce `doorStatusLight` su `lockedColor`.
-  - `Start()` / `OnDestroy()`: Sottoscrive e disdice `QuestManager.Instance.OnQuestCompleted`. Se la quest è già completata all'avvio, apre immediatamente la porta.
+  - `Start()` / `OnDestroy()`: Sottoscrive `QuestManager.Instance.OnQuestCompleted` e lo disdice tramite `QuestManager.TryGetInstance`, così alla chiusura della scena non ricrea un `QuestManager` (prima lasciava l'errore "Some objects were not cleaned up when closing the scene"). Se la quest è già completata all'avvio, apre immediatamente la porta.
   - `Update()`: Quando `isOpen` è vero, interpola `doorPanel.localPosition` verso `targetPosition` a velocità `openSpeed`.
 - **Campi Inspector**:
   - `Light doorStatusLight`: Faretto di segnalazione sopra la porta.

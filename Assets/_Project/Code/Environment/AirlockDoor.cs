@@ -47,9 +47,9 @@ namespace Deeploration.Environment
 
         private void OnDestroy()
         {
-            if (QuestManager.Instance != null)
+            if (QuestManager.TryGetInstance(out QuestManager questManager))
             {
-                QuestManager.Instance.OnQuestCompleted -= HandleQuestCompleted;
+                questManager.OnQuestCompleted -= HandleQuestCompleted;
             }
         }
 

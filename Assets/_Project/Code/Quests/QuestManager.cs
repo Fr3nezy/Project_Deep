@@ -8,6 +8,10 @@ namespace Deeploration.Quests
     public class QuestManager : MonoBehaviour
     {
         private static QuestManager _instance;
+        private static bool _isQuitting;
+
+        // Restituisce l'istanza esistente o ne crea una nuova. Durante la chiusura
+        // dell'applicazione (incluso l'uscita dal Play mode) non crea nulla e può restituire null.
         public static QuestManager Instance
         {
             get
@@ -15,7 +19,7 @@ namespace Deeploration.Quests
                 if (_instance == null)
                 {
                     _instance = FindFirstObjectByType<QuestManager>();
-                    if (_instance == null)
+                    if (_instance == null && !_isQuitting)
                     {
                         GameObject go = new GameObject("QuestManager");
                         _instance = go.AddComponent<QuestManager>();
@@ -24,6 +28,27 @@ namespace Deeploration.Quests
                 return _instance;
             }
             private set => _instance = value;
+        }
+
+        // Istanza già esistente senza auto-creazione: da usare in OnDestroy/OnDisable.
+        public static bool TryGetInstance(out QuestManager instance)
+        {
+            instance = _instance;
+            return instance != null;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+            _isQuitting = false;
+            Application.quitting -= HandleApplicationQuitting;
+            Application.quitting += HandleApplicationQuitting;
+        }
+
+        private static void HandleApplicationQuitting()
+        {
+            _isQuitting = true;
         }
 
         [Header("Configurazione Missione")]
@@ -61,6 +86,12 @@ namespace Deeploration.Quests
             }
 
             InitializeQuest();
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this)
+                _instance = null;
         }
 
         private void InitializeQuest()

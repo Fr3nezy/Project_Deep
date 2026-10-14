@@ -1,5 +1,5 @@
 # Quest & Progression System
-Ultima verifica: 2026-09-12
+Ultima verifica: 2026-10-14
 
 ## Scopo e confini
 Gestisce la progressione degli obiettivi di gioco, la persistenza a runtime dello stato delle missioni e la notifica degli eventi di avanzamento verso altri sistemi di gameplay (come l'apertura delle porte stagne `AirlockDoor`, o l'aggiornamento visivo dell'HUD in `SuitDebugOverlay`).
@@ -32,6 +32,8 @@ flowchart TD
 ### QuestManager
 - **Responsabilità e ciclo di vita**:
   - `Awake()`: Configura l'istanza singleton `Instance` (se già presente, distrugge il componente duplicato per preservare il GameObject). Se `activeQuestProfile` è nullo, tenta in editor di caricare `Quest_Objective_1.asset`. Chiama `InitializeQuest()`.
+  - `Instance` cerca l'istanza in scena e, se non c'è, crea un GameObject `QuestManager`; durante la chiusura dell'applicazione (anche all'uscita dal Play Mode, via `Application.quitting`) non crea nulla e può restituire null. Gli statici si azzerano a ogni avvio (`RuntimeInitializeOnLoadMethod`, `SubsystemRegistration`), quindi funziona anche con il Domain Reload disattivato.
+  - `OnDestroy()`: se è l'istanza registrata, la azzera.
 - **Campi Inspector**:
   - `QuestProfile activeQuestProfile`: Profilo missione attivo.
   - `UnityEvent onQuestCompleted`: Evento Unity invocato al completamento di tutti gli obiettivi.
@@ -41,6 +43,7 @@ flowchart TD
 - **API pubbliche**:
   ```csharp
   static QuestManager Instance { get; }
+  static bool TryGetInstance(out QuestManager instance); // istanza esistente, senza crearla: da usare in OnDestroy/OnDisable
   string ActiveQuestTitle { get; }
   bool IsQuestCompleted { get; }
   IReadOnlyList<ObjectiveDefinition> RuntimeObjectives { get; }
