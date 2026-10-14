@@ -143,6 +143,8 @@ Shader "Deeplonauts/Fish"
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+            // per-instance LOD fade: without it an instanced batch shares one fade value and fish vanish mid-fade
+            #pragma instancing_options lodfade
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
 
@@ -325,6 +327,8 @@ Shader "Deeplonauts/Fish"
             #pragma fragment Frag
             #pragma shader_feature_local _FISH_DITHER
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
+            // per-instance LOD fade: without it an instanced batch shares one fade value and fish vanish mid-fade
+            #pragma instancing_options lodfade
             #pragma multi_compile_instancing
 
             #if defined(LOD_FADE_CROSSFADE)
