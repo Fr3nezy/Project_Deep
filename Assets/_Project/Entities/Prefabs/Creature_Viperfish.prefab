@@ -123,8 +123,8 @@ MonoBehaviour:
   renderers:
   - {fileID: 2773181943371577113}
   calmColor: {r: 8, g: 8, b: 8, a: 1}
-  angryColor: {r: 10, g: 2, b: 1.6, a: 1}
-  strikeColor: {r: 16, g: 1.5, b: 1.2, a: 1}
+  angryColor: {r: 16, g: 2.5, b: 2, a: 1}
+  strikeColor: {r: 28, g: 2.5, b: 2, a: 1}
   pulseFrequency: {x: 0.25, y: 2}
   pulseDepth: {x: 0.3, y: 0.5}
   strikeStrobe: 9
