@@ -1,5 +1,5 @@
 # Oxygen System
-Ultima verifica: 2026-09-12
+Ultima verifica: 2026-10-15
 
 ## Scopo e confini
 Gestisce la riserva vitale di ossigeno (O₂) nello scafandro del diver. L'ossigeno viene costantemente consumato dal metabolismo basale della tuta e subisce incrementi di drenaggio derivanti dallo sforzo motorio (`DiverController`) e dal livello di agitazione psicologica (`StressSystem`).
@@ -39,18 +39,18 @@ flowchart TD
   - `OxygenLevel currentLevel` (debug sola lettura): Livello di rischio corrente.
 - **API pubbliche**:
   - `event Action<float> OnOxygenChanged`: Evento con percentuale normalizzata (0.0 a 1.0).
-  - `event Action<OxygenLevel> OnOxygenLevelChanged`: Invocato al superamento delle soglie `Normal`, `Warning`, `Critical`, `Depleted`.
+  - `event Action<OxygenLevel> OnLevelChanged`: Invocato al cambio di livello (`Safe`, `Warning`, `Critical`, `Emergency`, `Depleted`).
   - `event Action OnOxygenDepleted`: Invocato quando l'ossigeno tocca 0.
   - `float CurrentOxygen { get; }`
   - `float MaxOxygen { get; }`
   - `float NormalizedOxygen { get; }`
   - `float CurrentDrainPerSecond { get; }`
-  - `OxygenLevel CurrentLevel { get; }`
-  - `bool IsDepleted { get; }`
+  - `OxygenLevel Level { get; }`
   - `void RegisterDrainSource(IOxygenDrainSource source)`: Aggiunge dinamicamente una fonte di consumo.
   - `void UnregisterDrainSource(IOxygenDrainSource source)`: Rimuove una fonte di consumo.
-  - `void Refill(float deltaTime)`: Ricarica la riserva calcolando `profile.refillRatePerSecond * deltaTime`.
-  - `void SetOxygenDirect(float value)`: Forza un valore assoluto di O₂ (utile per debug o checkpoint).
+  - `bool Refill(float deltaTime)`: Ricarica la riserva di `profile.refillRate * deltaTime`; ritorna false a serbatoio pieno.
+  - `void Consume(float amount)` (dal 2026-10-15): perdita istantanea di ossigeno oltre al consumo continuo; valori negativi ignorati, a serbatoio vuoto non fa niente. Usato dal morso del viperfish (`DiverBiteReceiver`, vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)).
+  - Correzione del 2026-10-15: questa lista elencava `OnOxygenLevelChanged`, `CurrentLevel`, `IsDepleted` e `SetOxygenDirect`, che nel codice non esistono (i nomi veri sono `OnLevelChanged` e `Level`).
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - Se `profile` è nullo, stampa `Debug.LogError` e disabilita il componente.
 

@@ -41,6 +41,15 @@ MonoBehaviour:
   strikeRadius: 2.5
   aggressionRate: 0.15
   aggressionDecay: 0.1
+  strikeSpeed: 5
+  biteReach: 0.5
+  strikeCooldown: 20
+  prey: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
+  huntRange: 5
+  huntMaxAggression: 0.6
+  lungeDistance: 1.5
+  preyAlertRadius: 1.2
+  satiation: 30
   startleDuration: 0.35
   startleGlow: 0
   startleGlowDuration: 1.2

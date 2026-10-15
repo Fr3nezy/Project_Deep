@@ -80,6 +80,17 @@ namespace Deeploration.Player
             return true;
         }
 
+        /// <summary>
+        /// Perdita istantanea di ossigeno (per esempio la tuta lacerata da un morso), oltre al consumo continuo.
+        /// Valori negativi ignorati; a serbatoio vuoto non fa niente.
+        /// </summary>
+        public void Consume(float amount)
+        {
+            if (amount <= 0f || currentLevel == OxygenLevel.Depleted) return;
+
+            SetOxygen(currentOxygen - amount);
+        }
+
         private void Update()
         {
             if (currentLevel == OxygenLevel.Depleted) return;

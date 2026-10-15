@@ -63,6 +63,15 @@ namespace Deeploration.Player
             sources.Remove(source);
         }
 
+        /// <summary>
+        /// Picco di stress istantaneo (per esempio un morso), oltre alle fonti continue. Valori negativi ignorati.
+        /// </summary>
+        public void AddStress(float amount)
+        {
+            if (amount > 0f)
+                SetStress(currentStress + amount);
+        }
+
         public float GetOxygenDrainPerSecond()
         {
             return NormalizedStress * profile.maxOxygenDrainPerSecond;

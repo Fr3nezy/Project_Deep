@@ -61,6 +61,18 @@ namespace Deeploration.Creatures
         private const float StalkStimulusMemory = 0.5f;
         private const float OrbitFlipMin = 8f;
         private const float OrbitFlipMax = 20f;
+        // Morso: punto del sub da colpire (casco, sopra i piedi), durata massima dello slancio, aggressività dopo uno
+        // slancio a vuoto, distanza orizzontale dal busto entro cui parte (in multipli di strikeRadius).
+        private const float StrikeTargetHeight = 1.3f;
+        private const float StrikeMaxDuration = 1.5f;
+        private const float MissedStrikeAggression = 0.7f;
+        private const float StrikeStartFactor = 1.3f;
+        // Caccia: durata massima di un inseguimento, pausa dopo una preda persa, intervallo del rumore che avverte
+        // le prede, distanza di cattura in frazione di biteReach.
+        private const float HuntMaxDuration = 8f;
+        private const float HuntGiveUpRest = 4f;
+        private const float PreyAlertInterval = 0.15f;
+        private const float CatchFactor = 0.8f;
         private static MaterialPropertyBlock swimBlock;
 
         private float swimPhase;
@@ -106,6 +118,16 @@ namespace Deeploration.Creatures
         private float nextOrbitFlipTime;
         private float lastOrbitFlipTime;
 
+        // Morso e caccia: inizio dello slancio, primo istante in cui può rimordere, ultimo morso (sub o preda),
+        // preda inseguita, inizio dell'inseguimento, fine della sazietà, prossimo rumore per le prede.
+        private float strikeStartTime;
+        private float strikeCooldownUntil;
+        private float lastBiteTime = float.NegativeInfinity;
+        private Creature preyTarget;
+        private float huntStartTime;
+        private float satedUntil;
+        private float nextPreyAlertTime;
+
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
         private Vector3 avoidDirection;
@@ -134,6 +156,12 @@ namespace Deeploration.Creatures
         /// attorno, scende al buio. Stringe l'orbita e apre la mascella. Sempre 0 per chi non è un predatore.
         /// </summary>
         public float Aggression => aggression;
+
+        /// <summary>Istante (Time.time) dell'ultimo morso, al sub o a una preda; -infinito se non ha mai morso.</summary>
+        public float LastBiteTime => lastBiteTime;
+
+        /// <summary>Preda inseguita in <c>Hunt</c>; null negli altri stati.</summary>
+        public Creature Prey => preyTarget;
 
         /// <summary>Compagni della stessa specie visti nell'ultimo ragionamento (0 per le specie solitarie).</summary>
         public int NeighbourCount { get; private set; }
@@ -173,6 +201,10 @@ namespace Deeploration.Creatures
             aggression = 0f;
             orbitSign = Random.value < 0.5f ? -1f : 1f;
             FlipOrbit(Time.time, false);
+            strikeCooldownUntil = 0f;
+            lastBiteTime = float.NegativeInfinity;
+            preyTarget = null;
+            satedUntil = 0f;
         }
 
         /// <summary>
@@ -204,8 +236,9 @@ namespace Deeploration.Creatures
                 lastInterestTime = now;
                 interest = chosen;
                 // La paura vince: chi sta scappando si avvicina solo dopo essersi calmato. Il predatore che gira
-                // attorno al sub non va a osservare: lo stimolo gli fa salire l'aggressività (UpdateAggression).
-                if (state != CreatureState.Flee && state != CreatureState.Inspect && state != CreatureState.Stalk)
+                // attorno al sub, si lancia o caccia non va a osservare: lo stimolo gli fa salire l'aggressività
+                // (UpdateAggression).
+                if (state == CreatureState.Wander)
                 {
                     state = CreatureState.Inspect;
                     PickSpot(now);
@@ -224,9 +257,34 @@ namespace Deeploration.Creatures
             else if (state == CreatureState.Inspect && now - lastInterestTime > profile.calmDelay)
                 state = CreatureState.Wander;
 
-            // Predatore: finché il sub è a portata gli gira attorno, anche al buio. Esce oltre il 120% della
-            // portata, così non entra ed esce di continuo sul bordo.
-            if (profile.stalkRange > 0f && state != CreatureState.Flee)
+            ThinkPredator(now);
+        }
+
+        /// <summary>
+        /// Stati del predatore, dopo la percezione (che può sempre mandarlo in fuga, anche a metà slancio: il flash
+        /// della torcia salva il sub all'ultimo). In ordine: fine dello slancio a vuoto, fine della caccia, orbita
+        /// attorno al sub se è a portata, slancio ad aggressività piena, caccia se c'è una preda vicina.
+        /// </summary>
+        private void ThinkPredator(float now)
+        {
+            if (state == CreatureState.Strike && now - strikeStartTime > StrikeMaxDuration)
+            {
+                // Il sub si è spostato: torna a girargli attorno, ancora arrabbiato.
+                aggression = Mathf.Min(aggression, MissedStrikeAggression);
+                state = CreatureState.Stalk;
+            }
+
+            if (state == CreatureState.Hunt && !PreyStillValid(now))
+            {
+                preyTarget = null;
+                satedUntil = Mathf.Max(satedUntil, now + HuntGiveUpRest);
+                state = CreatureState.Wander;
+            }
+
+            // Finché il sub è a portata gli gira attorno, anche al buio. Esce oltre il 120% della portata, così
+            // non entra ed esce di continuo sul bordo.
+            if (profile.stalkRange > 0f && (state == CreatureState.Wander || state == CreatureState.Stalk ||
+                                            state == CreatureState.Inspect))
             {
                 float range = profile.stalkRange * (state == CreatureState.Stalk ? 1.2f : 1f);
                 bool inRange = manager.HasPlayer &&
@@ -234,6 +292,70 @@ namespace Deeploration.Creatures
                 if (inRange) state = CreatureState.Stalk;
                 else if (state == CreatureState.Stalk) state = CreatureState.Wander;
             }
+
+            if (state == CreatureState.Stalk && aggression >= 0.999f && now >= strikeCooldownUntil)
+            {
+                Vector3 toTorso = manager.PlayerPosition + Vector3.up * StalkCentreHeight - cachedTransform.position;
+                toTorso.y = 0f;
+                float reach = profile.strikeRadius * StrikeStartFactor;
+                if (toTorso.sqrMagnitude < reach * reach)
+                {
+                    state = CreatureState.Strike;
+                    strikeStartTime = now;
+                }
+            }
+
+            if (profile.prey != null && now >= satedUntil && aggression <= profile.huntMaxAggression &&
+                (state == CreatureState.Wander || state == CreatureState.Stalk))
+            {
+                Creature prey = manager.FindNearest(profile.prey, cachedTransform.position, profile.huntRange);
+                if (prey != null)
+                {
+                    preyTarget = prey;
+                    huntStartTime = now;
+                    state = CreatureState.Hunt;
+                }
+            }
+        }
+
+        /// <summary>
+        /// La preda c'è ancora (non è tornata nel pool), è della specie giusta, non si è allontanata oltre una volta e
+        /// mezza <c>huntRange</c>, l'inseguimento non dura da troppo e il sub non ha fatto salire troppo l'aggressività.
+        /// </summary>
+        private bool PreyStillValid(float now)
+        {
+            if (preyTarget == null || preyTarget.ActiveIndex < 0 || !ReferenceEquals(preyTarget.Profile, profile.prey))
+                return false;
+            if (now - huntStartTime > HuntMaxDuration || aggression > Mathf.Max(profile.huntMaxAggression, 0.95f))
+                return false;
+            float giveUp = profile.huntRange * 1.5f;
+            return (preyTarget.transform.position - cachedTransform.position).sqrMagnitude < giveUp * giveUp;
+        }
+
+        /// <summary>
+        /// Morso al sub: lo segnala al manager (che lo passa al sub), poi scappa con lo scatto della fuga, perde
+        /// tutta l'aggressività e non può rilanciarsi per <c>strikeCooldown</c> secondi.
+        /// </summary>
+        private void BiteDiver(float now)
+        {
+            lastBiteTime = now;
+            manager.ReportBite(this);
+            threatPosition = manager.PlayerPosition + Vector3.up * StrikeTargetHeight;
+            lastFearTime = now;
+            state = CreatureState.Flee;
+            startleTime = now;
+            aggression = 0f;
+            strikeCooldownUntil = now + profile.strikeCooldown;
+        }
+
+        /// <summary>Preda presa: torna nel pool con il suo lampo d'allarme e il predatore resta sazio.</summary>
+        private void CatchPrey(float now)
+        {
+            lastBiteTime = now;
+            manager.Eat(preyTarget);
+            preyTarget = null;
+            satedUntil = now + profile.satiation;
+            state = CreatureState.Wander;
         }
 
         /// <summary>
@@ -294,6 +416,10 @@ namespace Deeploration.Creatures
             {
                 CreatureStimulus stimulus = stimuli[i];
                 if (ReferenceEquals(stimulus.Emitter, this)) continue;
+                // Un predatore non si spaventa per il lampo d'allarme delle sue prede: è quello che sta cacciando.
+                if (profile.prey != null && stimulus.Emitter != null &&
+                    ReferenceEquals(stimulus.Emitter.Profile, profile.prey))
+                    continue;
                 StimulusReaction reaction = profile.ReactionTo(stimulus.Category);
                 if (reaction == StimulusReaction.Ignore) continue;
                 // Uno stimolo che attira non può battere uno che spaventa già trovato.
@@ -434,7 +560,38 @@ namespace Deeploration.Creatures
             float targetY = float.IsNaN(floorY) ? position.y : floorY + profile.heightAboveFloor;
             if (profile.stalkRange > 0f) UpdateAggression(deltaTime);
 
-            if (state == CreatureState.Stalk)
+            bool lunging = false;
+            if (state == CreatureState.Strike)
+            {
+                // Dritto al casco del sub, a bocca spalancata, senza spazio personale.
+                Vector3 target = manager.PlayerPosition + Vector3.up * StrikeTargetHeight;
+                Vector3 toTarget = target - position;
+                desired = toTarget;
+                targetY = target.y;
+                targetSpeed = profile.strikeSpeed;
+                lunging = true;
+                if (toTarget.magnitude < profile.biteReach) BiteDiver(Time.time);
+            }
+            else if (state == CreatureState.Hunt && preyTarget != null && preyTarget.ActiveIndex >= 0)
+            {
+                Vector3 target = preyTarget.transform.position;
+                Vector3 toPrey = target - position;
+                float distance = toPrey.magnitude;
+                desired = toPrey;
+                targetY = target.y;
+                lunging = distance < profile.lungeDistance;
+                targetSpeed = lunging ? profile.strikeSpeed : profile.cruiseSpeed * 1.5f;
+                // Le prede lo sentono solo quando è vicino: un rumore breve che le fa scappare.
+                if (profile.preyAlertRadius > 0f && Time.time >= nextPreyAlertTime)
+                {
+                    CreatureStimulus alert = CreatureStimulus.Noise(position, profile.preyAlertRadius, false);
+                    alert.Emitter = this;
+                    manager.AddPulse(alert, PreyAlertInterval * 1.5f);
+                    nextPreyAlertTime = Time.time + PreyAlertInterval;
+                }
+                if (distance < profile.biteReach * CatchFactor) CatchPrey(Time.time);
+            }
+            else if (state == CreatureState.Stalk)
             {
                 desired = StalkHeading(position, out targetY);
                 // Più è aggressivo, più rallenta: si avvicina strisciando invece di girare di corsa.
@@ -477,14 +634,21 @@ namespace Deeploration.Creatures
 
             // Spazio personale del sub: nessuna creatura gli passa attraverso. Senza, i pesci attirati dalla torcia
             // scivolavano fino alla lampada sul casco e attraversavano la camera (pop sul piano vicino).
-            Vector3 diverPush = DiverPush(position);
+            // Nel morso no: deve arrivare a contatto.
+            Vector3 diverPush = state == CreatureState.Strike ? Vector3.zero : DiverPush(position);
             desired += diverPush * 4f;
             targetY += diverPush.y * profile.diverClearance;
 
+            float dy = targetY - position.y;
+            float horizontal = new Vector2(desired.x, desired.z).magnitude;
             desired.y = 0f;
             if (desired.sqrMagnitude < 0.0001f) desired = new Vector3(heading.x, 0f, heading.z);
             desired.Normalize();
-            desired.y = Mathf.Clamp(HeightCorrection(position.y, targetY), -MaxClimb, MaxClimb);
+            // Nello slancio punta dritto al bersaglio anche in quota (niente tolleranza): la pendenza è dislivello su
+            // distanza orizzontale, sempre entro MaxClimb.
+            desired.y = lunging
+                ? Mathf.Clamp(dy / Mathf.Max(horizontal, 0.3f), -MaxClimb, MaxClimb)
+                : Mathf.Clamp(HeightCorrection(position.y, targetY), -MaxClimb, MaxClimb);
 
             // Vicino a un ostacolo rallenta e vira più forte, così non ci entra mentre gira.
             float turnRate = profile.turnRate;
@@ -500,7 +664,8 @@ namespace Deeploration.Creatures
             }
 
             // Scatto di fuga: per startleDuration secondi vira e accelera molto più in fretta.
-            bool startled = Time.time - startleTime < profile.startleDuration;
+            // Lo slancio usa lo stesso scatto: virata e accelerazione moltiplicate, corpo che si piega di più.
+            bool startled = Time.time - startleTime < profile.startleDuration || lunging;
             float acceleration = profile.acceleration;
             if (startled)
             {
@@ -672,8 +837,14 @@ namespace Deeploration.Creatures
             Gizmos.color = state == CreatureState.Flee ? Color.red
                 : state == CreatureState.Inspect ? Color.green
                 : state == CreatureState.Stalk ? new Color(1f, 0.3f, 0.6f)
+                : state == CreatureState.Strike ? new Color(1f, 0f, 0.2f)
+                : state == CreatureState.Hunt ? new Color(1f, 0.6f, 0f)
                 : Color.cyan;
             Gizmos.DrawLine(position, position + heading * Mathf.Max(1f, speed));
+            if (state == CreatureState.Strike && manager != null && manager.HasPlayer)
+                Gizmos.DrawLine(position, manager.PlayerPosition + Vector3.up * StrikeTargetHeight);
+            if (state == CreatureState.Hunt && preyTarget != null && preyTarget.ActiveIndex >= 0)
+                Gizmos.DrawLine(position, preyTarget.transform.position);
             if (state == CreatureState.Stalk && manager != null && manager.HasPlayer)
             {
                 // Orbita attuale attorno al busto del sub, più rossa con l'aggressività.

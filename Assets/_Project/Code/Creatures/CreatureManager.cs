@@ -52,7 +52,9 @@ namespace Deeploration.Creatures
         private readonly List<CreatureStimulus> stimuli = new List<CreatureStimulus>();
         private readonly List<CreatureStimulus> pulses = new List<CreatureStimulus>();
         private readonly List<float> pulseEnds = new List<float>();
+        private readonly List<Creature> eaten = new List<Creature>();
         private readonly Plane[] frustum = new Plane[6];
+        private DiverBiteReceiver biteReceiver;
         private readonly int[] lodCounts = new int[3];
         private Transform poolRoot;
         private int nextSlot;
@@ -90,9 +92,61 @@ namespace Deeploration.Creatures
             poolRoot = new GameObject("CreaturePool").transform;
             poolRoot.SetParent(transform, false);
             if (player != null)
+            {
                 sources.Add(player);
+                biteReceiver = player.GetComponent<DiverBiteReceiver>();
+            }
             else
                 Debug.LogWarning("[CreatureManager] Player non assegnato: le creature non percepiranno il sub.", this);
+        }
+
+        /// <summary>
+        /// Il morso di un predatore è arrivato al sub: lo passa al <see cref="DiverBiteReceiver"/> sullo stesso
+        /// GameObject del player. Senza ricevitore il morso non ha effetti.
+        /// </summary>
+        internal void ReportBite(Creature biter)
+        {
+            if (biteReceiver != null) biteReceiver.ReceiveBite(biter);
+        }
+
+        /// <summary>
+        /// Una preda è stata presa: il suo lampo d'allarme (se la specie ne ha uno) fa scappare i compagni, e lei
+        /// torna nel pool alla fine del frame, così la lista delle creature non cambia mentre il manager la scorre.
+        /// </summary>
+        internal void Eat(Creature prey)
+        {
+            if (prey == null || prey.ActiveIndex < 0 || eaten.Contains(prey)) return;
+            CreatureProfile species = prey.Profile;
+            if (species.alarmRadius > 0f)
+            {
+                CreatureStimulus alarm = CreatureStimulus.PointLight(prey.transform.position, species.alarmRadius,
+                    StimulusCategory.Flash, false);
+                alarm.Emitter = prey;
+                AddPulse(alarm, 0.4f);
+            }
+            eaten.Add(prey);
+        }
+
+        /// <summary>
+        /// La creatura attiva della specie indicata più vicina a <paramref name="position"/> entro
+        /// <paramref name="radius"/>, o null. Scorre tutte le creature attive: va bene per pochi predatori.
+        /// </summary>
+        internal Creature FindNearest(CreatureProfile species, Vector3 position, float radius)
+        {
+            Creature best = null;
+            float bestSqr = radius * radius;
+            for (int i = 0; i < active.Count; i++)
+            {
+                Creature c = active[i];
+                if (!ReferenceEquals(c.Profile, species) || eaten.Contains(c)) continue;
+                float sqr = (c.transform.position - position).sqrMagnitude;
+                if (sqr < bestSqr)
+                {
+                    bestSqr = sqr;
+                    best = c;
+                }
+            }
+            return best;
         }
 
         /// <summary>Registra una sorgente di stimoli (per esempio una creatura luminosa). Ignora i duplicati.</summary>
@@ -280,6 +334,9 @@ namespace Deeploration.Creatures
 
                 creature.Tick(deltaTime, think, probe);
             }
+
+            for (int i = 0; i < eaten.Count; i++) Despawn(eaten[i]);
+            eaten.Clear();
         }
 
         private void BuildNeighbourGrid()

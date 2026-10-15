@@ -1,5 +1,5 @@
 # Stress System
-Ultima verifica: 2026-09-12
+Ultima verifica: 2026-10-15
 
 ## Scopo e confini
 Simula lo stato psicologico e di ansia del diver negli abissi. Lo stress si accumula quando il giocatore è esposto a fattori di disturbo (buio pesto, isolamento, movimenti repentini e convulsivi della visuale, prossimità di predatori) e si riduce quando si trova in zone sicure illuminate o mantiene la calma.
@@ -45,6 +45,7 @@ flowchart TD
   - `void RegisterSource(IStressSource source)`: Registra una nuova sorgente.
   - `void UnregisterSource(IStressSource source)`: Disiscrive una sorgente.
   - `float GetOxygenDrainPerSecond()`: Restituisce `NormalizedStress * profile.maxOxygenDrainPerSecond`.
+  - `void AddStress(float amount)` (dal 2026-10-15): picco di stress istantaneo oltre alle fonti continue, limitato a `maxStress`; valori negativi ignorati. Usato dal morso del viperfish (`DiverBiteReceiver`, vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)).
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - `profile`: Se assente, logga `Debug.LogError` e disabilita il componente.
 

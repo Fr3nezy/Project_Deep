@@ -44,6 +44,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Creatures/CreatureProfile.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureStimulus.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/Debug/CreatureBenchmark.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/DiverBiteReceiver.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/DiverStimulusSource.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/SwimChain.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |

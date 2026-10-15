@@ -133,6 +133,42 @@ namespace Deeploration.Creatures
         [Range(0f, 2f)]
         public float aggressionDecay = 0.1f;
 
+        [Tooltip("Velocità dello slancio (m/s), verso il sub nel morso e verso la preda nell'ultimo tratto della caccia")]
+        [Range(0.5f, 20f)]
+        public float strikeSpeed = 5f;
+
+        [Tooltip("Distanza (m) fra la testa e il bersaglio a cui il morso va a segno")]
+        [Range(0.1f, 3f)]
+        public float biteReach = 0.5f;
+
+        [Tooltip("Secondi dopo un morso prima che possa lanciarsi di nuovo sul sub")]
+        [Range(0f, 120f)]
+        public float strikeCooldown = 20f;
+
+        [Header("Caccia")]
+        [Tooltip("Specie che caccia. Vuoto = non caccia")]
+        public CreatureProfile prey;
+
+        [Tooltip("Entro questa distanza (m) nota una preda e la insegue")]
+        [Range(0f, 30f)]
+        public float huntRange = 5f;
+
+        [Tooltip("Caccia solo se l'aggressività verso il sub non supera questo valore: quando il sub lo provoca, il sub ha la precedenza")]
+        [Range(0f, 1f)]
+        public float huntMaxAggression = 0.6f;
+
+        [Tooltip("Sotto questa distanza (m) dalla preda passa dall'inseguimento allo slancio")]
+        [Range(0.2f, 10f)]
+        public float lungeDistance = 1.5f;
+
+        [Tooltip("Portata (m) entro cui le prede lo sentono arrivare: un rumore che le fa scappare")]
+        [Range(0f, 10f)]
+        public float preyAlertRadius = 1.2f;
+
+        [Tooltip("Secondi di sazietà dopo una preda presa, in cui non caccia")]
+        [Range(0f, 300f)]
+        public float satiation = 30f;
+
         [Header("Spavento")]
         [Tooltip("Secondi di scatto all'inizio della fuga: virata e accelerazione moltiplicate per 6, corpo piegato a C")]
         [Range(0f, 2f)]

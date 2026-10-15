@@ -453,6 +453,7 @@ GameObject:
   - component: {fileID: 4047316205019098509}
   - component: {fileID: 3106616472976442745}
   - component: {fileID: 7204199989990012631}
+  - component: {fileID: 536422760283156005}
   m_Layer: 8
   m_Name: PlayerCapsule
   m_TagString: Player
@@ -826,6 +827,35 @@ MonoBehaviour:
   seaPenGlowDuration: 2.5
   seaPenTouchRadius: 1.6
   seaPenCellSize: 1
+--- !u!114 &536422760283156005
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4673811610790503242}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0af22874084b84342a05bea8e7fcd35b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.DiverBiteReceiver
+  stress: {fileID: 0}
+  oxygen: {fileID: 0}
+  stressSpike: 45
+  oxygenLoss: 30
+  vignettePeak: 0.65
+  vignetteColor: {r: 0.22, g: 0, b: 0, a: 1}
+  vignetteSmoothness: 0.45
+  vignetteAttack: 0.08
+  vignetteHold: 0.4
+  vignetteRelease: 2.5
+  volumePriority: 100
+  volumeLayer: 0
+  heartbeatClip: {fileID: 0}
+  heartbeatVolume: 0.9
+  heartbeats: 7
+  firstBeatInterval: 0.42
+  lastBeatInterval: 0.8
 --- !u!1 &5963854485263641623
 GameObject:
   m_ObjectHideFlags: 0

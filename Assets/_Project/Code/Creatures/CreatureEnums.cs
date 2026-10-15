@@ -13,7 +13,11 @@ namespace Deeploration.Creatures
         /// Predatore: gira attorno al sub finché è a portata (<c>stalkRange</c>); la luce e il rumore del sub fanno
         /// salire l'aggressività e stringono l'orbita.
         /// </summary>
-        Stalk
+        Stalk,
+        /// <summary>Predatore ad aggressività piena: si lancia verso il sub a bocca spalancata e lo morde.</summary>
+        Strike,
+        /// <summary>Predatore che insegue una preda di un'altra specie e le scatta addosso quando è vicina.</summary>
+        Hunt
     }
 
     /// <summary>

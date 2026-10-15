@@ -29,6 +29,12 @@ namespace Deeploration.Creatures
         [Tooltip("Apertura (0..1) mentre gira attorno al sub ad aggressività piena.")]
         [SerializeField, Range(0f, 1f)] private float strikeOpen = 0.85f;
 
+        [Tooltip("Apertura (0..1) mentre insegue una preda.")]
+        [SerializeField, Range(0f, 1f)] private float huntOpen = 0.7f;
+
+        [Tooltip("Secondi in cui la mascella resta chiusa di scatto dopo un morso.")]
+        [SerializeField, Range(0.05f, 2f)] private float snapDuration = 0.35f;
+
         [Tooltip("Ampiezza del respiro lento attorno all'apertura (0..1). In fuga niente respiro.")]
         [SerializeField, Range(0f, 0.5f)] private float breathAmount = 0.08f;
 
@@ -37,6 +43,10 @@ namespace Deeploration.Creatures
 
         [Tooltip("Renderer della creatura (opzionale): se assegnato, l'osso viene scritto solo quando è visibile.")]
         [SerializeField] private Renderer visibilityRenderer;
+
+        // Slancio: la mascella insegue l'apertura 4 volte più in fretta; morso: chiusura quasi istantanea (1/s).
+        private const float LungeResponse = 4f;
+        private const float SnapResponse = 40f;
 
         private Creature creature;
         private Quaternion restRotation;
@@ -63,6 +73,7 @@ namespace Deeploration.Creatures
             if (jaw == null) return;
 
             float target = idleOpen;
+            float response = responsiveness;
             bool fleeing = false;
             if (creature != null)
             {
@@ -75,11 +86,26 @@ namespace Deeploration.Creatures
                     case CreatureState.Stalk:
                         target = Mathf.Lerp(stalkOpen, strikeOpen, creature.Aggression);
                         break;
+                    case CreatureState.Strike:
+                        target = 1f;
+                        response = responsiveness * LungeResponse;
+                        break;
+                    case CreatureState.Hunt:
+                        target = huntOpen;
+                        response = responsiveness * LungeResponse;
+                        break;
+                }
+                // Il morso (al sub o a una preda) chiude la mascella di colpo.
+                if (Time.time - creature.LastBiteTime < snapDuration)
+                {
+                    target = 0f;
+                    fleeing = true;
+                    response = SnapResponse;
                 }
             }
             if (!fleeing) target += breathAmount * (Mathf.PerlinNoise(seed, Time.time * 0.3f) * 2f - 1f);
 
-            openness = Mathf.Lerp(openness, Mathf.Clamp01(target), 1f - Mathf.Exp(-responsiveness * Time.deltaTime));
+            openness = Mathf.Lerp(openness, Mathf.Clamp01(target), 1f - Mathf.Exp(-response * Time.deltaTime));
 
             if (visibilityRenderer != null && !visibilityRenderer.isVisible) return;
             jaw.localRotation = restRotation * Quaternion.AngleAxis(openness * openAngle, openAxis);

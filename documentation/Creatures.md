@@ -12,7 +12,8 @@ Stato:
 - **Implementato e verificato (2026-10-14, task 7b):** banco e spavento. Banco: le creature della stessa specie entro `schoolRadius` si tengono a distanza (separazione), restano insieme (coesione) e nuotano nella stessa direzione (allineamento), con una griglia spaziale nel manager. Spavento: All'ingresso in fuga la creatura scatta (virata e accelerazione ×6 per `startleDuration`, corpo piegato a C), i fotofori lampeggiano e il lampo diventa uno stimolo `Flash` per le altre creature: l'allarme si propaga nel banco.
 - **Implementato e verificato (2026-10-14, task 5):** catena di joint procedurale `SwimChain` (follow the leader con limite di piega e onda di nuoto), provata su una capsula a segmenti.
 - **Implementato e verificato (2026-10-14, task 8, prima parte):** viperfish predatore. Nuovo stato `Stalk`: gira attorno al sub anche al buio e stringe l'orbita con l'aggressività, che sale con la luce e il rumore del sub e scende al buio; il flash della torcia lo fa scappare e gli dimezza l'aggressività. Mascella procedurale `CreatureJaw`, che si apre con l'aggressività.
-- **Pianificato (M2):** morso del viperfish (stress, O₂, vignetta, battito; resto della task 8), esca del viperfish in Unity (catena `Lure_01` … `Lure_04` già nel file Blender, da esportare e muovere con l'aggressività), nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
+- **Implementato e verificato (2026-10-15, task 8 completa):** morso e caccia. Stato `Strike`: ad aggressività piena il viperfish si lancia sul casco del sub e lo morde; `DiverBiteReceiver` sul sub applica picco di stress, perdita di ossigeno, vignetta rosso scuro e battito cardiaco (audio provvisorio generato in codice). Stato `Hunt`: caccia i lanternfish vicini quando il sub non lo ha provocato troppo, la preda presa torna nel pool con il suo lampo d'allarme e il viperfish resta sazio.
+- **Pianificato (M2):** esca del viperfish in Unity (catena `Lure_01` … `Lure_04` già nel file Blender, da esportare e muovere con l'aggressività), nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -25,7 +26,8 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 7. `DiverStimulusSource.cs`: sul `PlayerCapsule`, traduce torcia, passi e prato di penne in stimoli.
 8. `SwimChain.cs`: catena di joint procedurale per i corpi lunghi (viperfish, Pelican Eel).
 9. `CreatureJaw.cs`: mascella procedurale guidata da stato e aggressività della creatura.
-10. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
+10. `DiverBiteReceiver.cs`: sul `PlayerCapsule`, trasforma i morsi in effetti sul sub (stress, ossigeno, vignetta, battito).
+11. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
 
 Shader: `Assets/_Project/Rendering/Shaders/Fish.shader` (`Deeplonauts/Fish`), per i pesci ambientali senza ossa (vedi *Shader Deeplonauts/Fish*).
 
@@ -70,7 +72,7 @@ Asset:
     | Pinne | (0, 128, 0) | Tutte le pinne |
 
 - `Assets/_Project/Entities/Prefabs/Creature_Viperfish.prefab`: radice con `Creature` e `SwimChain` (`bones` = `Head`, `Spine_01` … `Spine_09`, `Tail`; `visibilityRenderer` = `SK_Viperfish`; altri campi ai default); figlio `Viperfish` (l'FBX) spostato di (0, -0.011, -0.45) perché `Head` cada sull'origine della radice. `Jaw` nella posa dell'FBX: con la seconda versione la bocca è già chiusa a riposo, quindi l'override di -43° della prima versione è stato tolto. Dal 2026-10-14 (task 8) la radice ha anche `CreatureJaw` (`jaw` = `Jaw`, `visibilityRenderer` = `SK_Viperfish`, altri campi ai default: asse X locale dell'osso, 40° a mascella spalancata, verso positivo = la punta della mandibola scende). `SkinnedMeshRenderer` senza ombre, `localBounds` allargati a 1.2 × 1.6 × 0.8 m per le pieghe del corpo. Tutto sul layer `Entity`.
-- `Assets/_Project/Entities/Profiles/Creature_Viperfish.asset`: profilo del viperfish (default del codice tranne `cruiseSpeed` 0.8, `fleeSpeed` 3, `heightAboveFloor` 1.8, `heightTolerance` 0.75, `bodyRadius` 0.2, `inspectDistance` 3, `diverClearance` 1.5). Reazioni (task 8): luce debole, luce forte e rumore → Approach (in `Stalk` fanno salire l'aggressività), flash → Flee. Predatore: `stalkRange` 30, `stalkRadius` 8, `strikeRadius` 2.5, `aggressionRate` 0.15, `aggressionDecay` 0.1, cioè circa 7 s di torcia piena per arrivare all'aggressività piena e 10 s di buio per tornare a zero. Nessun nido in scena: per provarlo si fa uscire dal pool con `CreatureManager.Spawn`.
+- `Assets/_Project/Entities/Profiles/Creature_Viperfish.asset`: profilo del viperfish (default del codice tranne `cruiseSpeed` 0.8, `fleeSpeed` 3, `heightAboveFloor` 1.8, `heightTolerance` 0.75, `bodyRadius` 0.2, `inspectDistance` 3, `diverClearance` 1.5). Reazioni (task 8): luce debole, luce forte e rumore → Approach (in `Stalk` fanno salire l'aggressività), flash → Flee. Predatore: `stalkRange` 30, `stalkRadius` 8, `strikeRadius` 2.5, `aggressionRate` 0.15, `aggressionDecay` 0.1, cioè circa 7 s di torcia piena per arrivare all'aggressività piena e 10 s di buio per tornare a zero. Morso e caccia (2026-10-15): `prey` = `Creature_Lanternfish`, il resto ai default del codice (`strikeSpeed` 5, `biteReach` 0.5, `strikeCooldown` 20, `huntRange` 5, `huntMaxAggression` 0.6, `lungeDistance` 1.5, `preyAlertRadius` 1.2, `satiation` 30). Nessun nido in scena: per provarlo si fa uscire dal pool con `CreatureManager.Spawn`.
 - `Assets/_Project/Entities/Profiles/Creature_ChainTest.asset`: profilo della capsula (default del codice tranne `cruiseSpeed` 1, `fleeSpeed` 3, `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.15, `strongLightReaction` Approach, `inspectDistance` 3). Nessun nido in scena: per provarla si fa uscire dal pool con `CreatureManager.Spawn`.
 - `Assets/_Project/Entities/Profiles/Creature_Lanternfish.asset`: profilo del lanternfish (default del codice tranne `heightAboveFloor` 1.5, `heightTolerance` 0.75, `bodyRadius` 0.125, `strongLightReaction` Approach). Reazioni: luce debole e forte → si avvicina (i mictofidi vanno verso la luce, per questo si pescano con le lampade), flash e rumore → scappa. Banco e spavento (dal 2026-10-14): `schoolRadius` 2.5, `separationDistance` 0.6 (circa due lunghezze del corpo), `cohesionWeight` 0.5, `alignmentWeight` 0.5, `startleGlow` 4, `alarmRadius` 4, il resto ai default (i lanternfish veri lampeggiano con i fotofori quando si spaventano).
 - `Assets/_Project/Entities/Prefabs/Creature_Lanternfish.prefab` (dal 2026-10-14): alla radice `Creature` (`swimRenderers` = `Body` e `Body_LOD1`, `swimFrequency` 2.5, `fullBendTurnRate` 120) e `LODGroup` (Cross Fade animato, `size` 0.31, LOD0 `Body` fino a 0.13 dell'altezza dello schermo, LOD1 `Body_LOD1` fino a 0.03, poi niente). Con la camera del sub (FOV 32.9°) e `lodBias` 2 il passaggio è a circa 8 m e la scomparsa a circa 35 m, dove la nebbia esponenziale (densità 0.065) ha già coperto quasi tutto. Figli `Body` (`MSH_LanternFish`) e `Body_LOD1` (`MSH_LanternFish_LOD1`), entrambi con `MeshFilter` + `MeshRenderer`, `M_LanternFish`, ombre e probe spenti; tutto sul layer `Entity`. Ha sostituito `Creature_Lanternfish_Placeholder` (Fish-1 del pacchetto Backrock con Animator), rimosso lo stesso giorno e recuperabile dalla storia di Git.
@@ -142,6 +144,15 @@ flowchart TD
 | `strikeRadius` | float [0.5, 10] | 2.5 | Raggio dell'orbita (m) ad aggressività piena: la distanza da cui colpirà |
 | `aggressionRate` | float [0, 2] | 0.15 | Aggressività guadagnata al secondo sotto la luce forte o il flash del sub; luce debole e rumore valgono metà |
 | `aggressionDecay` | float [0, 2] | 0.1 | Aggressività persa al secondo quando non percepisce stimoli del sub |
+| `strikeSpeed` | float [0.5, 20] | 5 | Velocità dello slancio (m/s): verso il sub nel morso, verso la preda nell'ultimo tratto della caccia |
+| `biteReach` | float [0.1, 3] | 0.5 | Distanza (m) fra la testa e il bersaglio a cui il morso va a segno; per le prede l'80% |
+| `strikeCooldown` | float [0, 120] | 20 | Secondi dopo un morso prima che possa lanciarsi di nuovo sul sub |
+| `prey` | `CreatureProfile` | null | Specie che caccia; vuoto = non caccia |
+| `huntRange` | float [0, 30] | 5 | Distanza (m) entro cui nota una preda e la insegue |
+| `huntMaxAggression` | float [0, 1] | 0.6 | Caccia solo se l'aggressività verso il sub non supera questo valore |
+| `lungeDistance` | float [0.2, 10] | 1.5 | Sotto questa distanza (m) dalla preda passa dall'inseguimento allo slancio |
+| `preyAlertRadius` | float [0, 10] | 1.2 | Portata (m) del rumore con cui le prede lo sentono arrivare |
+| `satiation` | float [0, 300] | 30 | Secondi di sazietà dopo una preda presa, in cui non caccia |
 | `startleDuration` | float [0, 2] | 0.35 | Secondi di scatto all'inizio della fuga: virata e accelerazione ×6, piega a C fino a 1.6 |
 | `startleGlow` | float [0, 10] | 0 | Lampo dei fotofori all'inizio della fuga: emissione fino a (1 + valore) volte la normale. 0 = nessun lampo |
 | `startleGlowDuration` | float [0.05, 5] | 1.2 | Secondi in cui il lampo si spegne |
@@ -161,6 +172,9 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - `Wander`: la rotta ruota attorno all'asse verticale secondo un rumore di Perlin (`wanderTurn`, `wanderFrequency`). Oltre il guinzaglio (`leashRadius` del nido) piega verso casa, tanto più quanto più è lontana.
   - `Flee`: scappa dalla sorgente dello stimolo che la spaventa a `fleeSpeed`, anche oltre il guinzaglio. Dopo `calmDelay` secondi senza stimoli che la spaventano passa a `Inspect` se qualcosa la attira ancora (percepito negli ultimi `calmDelay` secondi), altrimenti a `Wander`.
   - `Stalk` (solo con `stalkRange` > 0): il predatore gira attorno al sub. Ci entra, da qualsiasi stato tranne `Flee`, quando il sub è entro `stalkRange`, e torna a `Wander` oltre il 120% di quella distanza. Ha la precedenza su `Inspect`: uno stimolo che attira non lo porta a osservare, gli fa salire l'aggressività. L'orbita è un cerchio orizzontale attorno al busto del sub (1 m sopra i piedi): la rotta è la tangente più una correzione verso il raggio (`(raggio - distanza) × 0.5`, limitata a ±1.5). Il raggio va da `stalkRadius` ad aggressività 0 a `strikeRadius` ad aggressività piena e respira del ±20% con un rumore lento. Il verso si inverte ogni 8-20 s e quando la creatura sta per sbattere contro un ostacolo (`avoidWeight` > 0.5, al massimo una volta ogni 2 s): in un corridoio fa avanti e indietro sul lato libero invece di scivolare lungo la parete verso il sub. La quota oscilla di ±1 m attorno al busto, mai sotto due raggi del corpo dal fondale. La velocità scende dalla crociera al 60% con l'aggressività: più è aggressivo, più si avvicina strisciando. Ignora il guinzaglio.
+  - `Strike` (morso): parte da `Stalk` quando l'aggressività è piena, `strikeCooldown` è passato e il busto del sub è entro 1.3 × `strikeRadius` in orizzontale. Punta dritto al casco (1.3 m sopra i piedi), anche in quota, a `strikeSpeed`, con virata e accelerazione ×6 come nello scatto della fuga e senza spazio personale. Quando la testa arriva entro `biteReach`, morde: il manager passa il morso al `DiverBiteReceiver` del sub, poi la creatura scappa dal sub con lo scatto della fuga, l'aggressività torna a 0 e per `strikeCooldown` secondi non può rilanciarsi. Se in 1.5 s non arriva (il sub si è spostato) torna a `Stalk` con l'aggressività a 0.7. La percezione resta attiva: il flash della torcia lo manda in fuga anche a metà slancio.
+  - `Hunt` (caccia, solo con `prey`): parte da `Wander` o `Stalk` se non è sazio, l'aggressività non supera `huntMaxAggression` e una creatura della specie `prey` è entro `huntRange` (la più vicina, cercata con `CreatureManager.FindNearest`). Insegue la preda a 1.5 × la velocità di crociera e, sotto `lungeDistance`, si lancia a `strikeSpeed` come nel morso. Ogni 0.15 s emette un rumore di portata `preyAlertRadius` (con `Emitter` = sé stesso), così le prede lo sentono solo quando è vicino e scappano: qualcuna si salva. Sotto l'80% di `biteReach` la preda è presa (`CreatureManager.Eat`): torna nel pool alla fine del frame, il suo lampo d'allarme fa scappare i compagni e il predatore resta sazio per `satiation` secondi. La caccia finisce senza preda se questa torna nel pool, si allontana oltre 1.5 × `huntRange`, l'inseguimento dura più di 8 s o l'aggressività sale sopra il massimo fra `huntMaxAggression` e 0.95; allora 4 s di pausa prima di riprovare.
+  - Un predatore ignora gli stimoli emessi dalle creature della specie `prey` (il loro lampo d'allarme), così non scappa da quello che sta cacciando.
   - Aggressività (`Aggression`, 0..1, solo per i predatori, a ogni frame): in `Stalk`, se uno stimolo che attira e che viene dal sub (`FromPlayer`) è stato percepito negli ultimi 0.5 s, sale di `aggressionRate` al secondo per la luce forte e il flash, di metà per la luce debole e il rumore; altrimenti scende di `aggressionDecay`. Lo spavento (`Startle`, per esempio il flash della torcia con `flashReaction` Flee) la dimezza. Torna a 0 all'uscita dal pool.
   - `Inspect`: si comporta come un pesce attirato dalla luce. Sceglie un **posto personale** relativo alla sorgente: per un fascio dentro il cono (yaw e pitch casuali fino all'80% del semi-angolo), per una luce omnidirezionale su un guscio sopra la sorgente; la distanza è quella preferita (`inspectDistance`, per luce forte e flash moltiplicata per `strongLightDistanceScale`) per un fattore casuale fra 0.75 e 1.3, perché una luce più intensa si osserva da più lontano, dove la luminosità è quella giusta. Il posto si ricalcola a ogni frame rispetto alla sorgente, quindi segue il sub; cambia ogni `inspectRepositionInterval` secondi (±50%). La creatura ci nuota rallentando (velocità `cruiseSpeed × clamp(distanza dal posto / 1.5, 0.2, 1)`); entro 1 m dal posto la rotta passa gradualmente a puntare il muso verso la luce, così scivola verso la sorgente, si allontana dal posto e ci torna: un andirivieni invece di un'orbita. La quota segue il posto (sempre sotto il soffitto e almeno `2 × bodyRadius` sopra il fondale). Torna a `Wander` dopo `calmDelay` secondi senza stimoli che la attirano. Non rispetta il guinzaglio finché osserva. Fino al 2026-10-13 sera girava in cerchio alla stessa distanza e alla quota della lampada: tutti i pesci finivano sullo stesso anello, anche dietro il sub, e si compenetravano.
 - Banco (in `think`, se `schoolRadius` > 0): `CreatureManager.Flock` restituisce i compagni della stessa specie entro `schoolRadius`, con la spinta di separazione (somma su tutti quelli più vicini di `separationDistance` di `direzione opposta × (1 - distanza / separationDistance)`), il baricentro e la rotta media dei primi 8. Ne escono tre spinte: separazione, coesione (verso il baricentro, lunga al massimo 1) e allineamento (rotta media normalizzata). In `Move` si sommano alla rotta dello stato:
@@ -197,8 +211,10 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - `StimulusCategory Perceived { get; }`: categoria dello stimolo che ha deciso la reazione nell'ultimo ragionamento (`None` se nessuno).
   - `float Speed { get; }`: velocità attuale (m/s).
   - `float Aggression { get; }`: aggressività verso il sub, da 0 a 1; sempre 0 per chi non è un predatore.
+  - `float LastBiteTime { get; }`: istante dell'ultimo morso (al sub o a una preda); -infinito se non ha mai morso.
+  - `Creature Prey { get; }`: preda inseguita in `Hunt`, null negli altri stati.
   - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash, float ceiling)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
-- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`, verde in `Inspect`, rosa in `Stalk`), in `Stalk` il cerchio dell'orbita attuale attorno al busto del sub (dal rosa al rosso con l'aggressività), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), in `Inspect` una linea verde verso il posto personale, una sfera sul posto e una linea tenue dal posto alla sorgente, guinzaglio attorno a casa, direzione di evitamento (magenta).
+- Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`, verde in `Inspect`, rosa in `Stalk`, rosso acceso in `Strike` con una linea verso il casco, arancione in `Hunt` con una linea verso la preda), in `Stalk` il cerchio dell'orbita attuale attorno al busto del sub (dal rosa al rosso con l'aggressività), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), in `Inspect` una linea verde verso il posto personale, una sfera sul posto e una linea tenue dal posto alla sorgente, guinzaglio attorno a casa, direzione di evitamento (magenta).
 - Riferimenti obbligatori: va presa dal pool con `CreatureManager.Spawn`. Una `Creature` messa a mano in scena resta ferma, perché nessuno chiama `Tick`.
 
 ### CreatureManager
@@ -230,6 +246,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - `IReadOnlyList<CreatureStimulus> Stimuli { get; }`: stimoli raccolti all'inizio del frame.
   - `void AddSource(IStimulusSource source)` / `void RemoveSource(IStimulusSource source)`: registra o toglie altre sorgenti di stimoli (per le creature luminose); i duplicati sono ignorati.
   - Interna: `int Flock(Creature self, Vector3 position, float radius, float separationDistance, int maxNeighbours, out Vector3 separation, out Vector3 centre, out Vector3 alignment)`: vicini della stessa specie (vedi *Creature*, Banco, e la griglia sopra); ritorna quanti ne ha usati per baricentro e rotte.
+  - Interne per i predatori: `ReportBite(Creature biter)` passa il morso al `DiverBiteReceiver` trovato in `Awake` sullo stesso GameObject del `player` (senza, il morso non ha effetti); `Eat(Creature prey)` aggiunge il lampo d'allarme della preda (se la specie ha `alarmRadius`) e la rimette nel pool alla fine di `Update`, così la lista delle attive non cambia mentre il manager la scorre; `FindNearest(CreatureProfile species, Vector3 position, float radius)` scorre le creature attive (costo lineare, va bene per pochi predatori).
   - `void AddPulse(CreatureStimulus stimulus, float duration)`: stimolo breve senza sorgente registrata (il lampo di un pesce spaventato), attivo per `duration` secondi a partire dal frame dopo. Gli impulsi scaduti escono dalla lista con uno scambio dall'ultimo posto, senza allocazioni a regime.
   - `LayerMask ObstacleMask { get; }`
   - `int ActiveCount { get; }`
@@ -259,7 +276,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Riferimenti obbligatori: `manager` e `profile`. Se mancano, errore in console e nessuno spawn.
 
 ### CreatureEnums
-- `CreatureState`: `Wander`, `Flee`, `Inspect`, `Stalk` (dal 2026-10-14). Cresce con le task di M2.
+- `CreatureState`: `Wander`, `Flee`, `Inspect`, `Stalk` (dal 2026-10-14), `Strike` e `Hunt` (dal 2026-10-15). Cresce con le task di M2.
 - `StimulusCategory`: `None`, `WeakLight`, `StrongLight`, `Flash`, `Noise`. Le tre luci richiedono la linea di vista, il rumore no. Ha sostituito `StimulusKind` (luce o rumore) con la task 4.
 - `StimulusReaction`: `Ignore`, `Approach` (stato `Inspect`), `Flee` (stato `Flee`, vince su `Approach`).
 - `CreatureLod`: `Near`, `Mid`, `Far` (vedi `CreatureManager`).
@@ -326,6 +343,9 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Responsabilità e ciclo di vita: mascella procedurale, sulla radice della creatura accanto a `Creature`. In `Awake` salva la rotazione locale di riposo dell'osso (che deve essere a bocca chiusa); `OnEnable` (anche all'uscita dal pool) riparte da bocca chiusa con un seme nuovo per il respiro. In `LateUpdate` calcola l'apertura voluta dallo stato della `Creature`:
   - `Flee`: 0, senza respiro;
   - `Stalk`: da `stalkOpen` ad aggressività 0 a `strikeOpen` ad aggressività piena: è l'avvertimento prima del morso;
+  - `Strike`: 1, inseguita 4 volte più in fretta;
+  - `Hunt`: `huntOpen`, 4 volte più in fretta;
+  - per `snapDuration` secondi dopo un morso (`Creature.LastBiteTime`): 0 quasi istantaneo, la mascella che si chiude di colpo;
   - altri stati (o senza `Creature`): `idleOpen`.
   Fuori dalla fuga somma un respiro lento (`breathAmount` × rumore di Perlin a 0.3 Hz). L'apertura insegue il valore voluto con una curva esponenziale (`responsiveness`) e l'osso ruota di `apertura × openAngle` attorno a `openAxis` partendo dalla posa di riposo. Se `visibilityRenderer` non è visibile l'apertura avanza ma l'osso non viene scritto.
 - Campi Inspector:
@@ -338,6 +358,8 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 | `idleOpen` | float [0, 1] | 0.1 | Apertura mentre vaga o osserva |
 | `stalkOpen` | float [0, 1] | 0.2 | Apertura in `Stalk` ad aggressività 0 |
 | `strikeOpen` | float [0, 1] | 0.85 | Apertura in `Stalk` ad aggressività piena |
+| `huntOpen` | float [0, 1] | 0.7 | Apertura mentre insegue una preda |
+| `snapDuration` | float [0.05, 2] | 0.35 | Secondi in cui la mascella resta chiusa di scatto dopo un morso |
 | `breathAmount` | float [0, 0.5] | 0.08 | Ampiezza del respiro lento attorno all'apertura |
 | `responsiveness` | float ≥ 0.1 | 3 | Velocità con cui l'apertura insegue il valore voluto (1/s) |
 | `visibilityRenderer` | `Renderer` | null | Se assegnato, l'osso si scrive solo quando è visibile |
@@ -345,6 +367,33 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - API pubbliche: `float Openness { get; }`: apertura attuale, da 0 (posa di riposo) a 1 (`openAngle`).
 - Riferimenti obbligatori: `jaw`; senza, il componente non fa niente. Senza `Creature` resta su `idleOpen` col respiro.
 - Ordine: la mandibola è figlia di `Head`, che `SwimChain` non scrive, quindi le due rotazioni non si pestano.
+
+### DiverBiteReceiver
+- Responsabilità e ciclo di vita: sul `PlayerCapsule` del prefab `Player`, accanto a `DiverStimulusSource`; il `CreatureManager` lo trova con `GetComponent` sul suo `player`. In `Awake` risolve `StressSystem` e `OxygenSystem` sullo stesso GameObject, crea il figlio `BiteVignetteVolume` (un `Volume` globale con priorità `volumePriority`, peso 0 e un profilo creato a runtime con una sola `Vignette`) e il figlio `BiteHeartbeat` (un `AudioSource` 2D). Se `heartbeatClip` è vuoto genera un battito sintetico (due colpi bassi a 55 e 72 Hz, a 0.16 s di distanza). `ReceiveBite` aggiunge `stressSpike` con `StressSystem.AddStress`, toglie `oxygenLoss` con `OxygenSystem.Consume`, fa ripartire vignetta e battito e lancia `OnBitten`. In `Update` il peso del Volume sale a 1 in `vignetteAttack`, resta per `vignetteHold` e torna a 0 in `vignetteRelease` (smoothstep); la vignetta del morso vince su quella dello stress di `SuitDebugOverlay` perché il suo Volume ha priorità più alta. Il battito suona `heartbeats` volte, con intervallo da `firstBeatInterval` a `lastBeatInterval` e volume che cala fino al 45%. Niente combattimento: il morso fa paura e costa ossigeno.
+- Campi Inspector:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `stress` | `StressSystem` | null | Vuoto = `GetComponent` |
+| `oxygen` | `OxygenSystem` | null | Vuoto = `GetComponent` |
+| `stressSpike` | float ≥ 0 | 45 | Stress aggiunto a ogni morso (su `maxStress` 100) |
+| `oxygenLoss` | float ≥ 0 | 30 | Ossigeno perso a ogni morso (su `maxOxygen` 400) |
+| `vignettePeak` | float [0, 1] | 0.65 | Intensità della vignetta al culmine |
+| `vignetteColor` | `Color` | (0.22, 0, 0) | Colore della vignetta, rosso scuro |
+| `vignetteSmoothness` | float [0.01, 1] | 0.45 | Morbidezza del bordo |
+| `vignetteAttack` | float ≥ 0.01 | 0.08 | Secondi in cui si chiude |
+| `vignetteHold` | float ≥ 0 | 0.4 | Secondi in cui resta chiusa |
+| `vignetteRelease` | float ≥ 0.01 | 2.5 | Secondi in cui si riapre |
+| `volumePriority` | float | 100 | Priorità del Volume del morso, più alta di quelle della scena |
+| `volumeLayer` | int [0, 31] | 0 | Layer del Volume: deve stare nella *Volume Mask* della camera (oggi solo Default) |
+| `heartbeatClip` | `AudioClip` | null | Clip di un battito; vuoto = battito sintetico |
+| `heartbeatVolume` | float [0, 1] | 0.9 | Volume del primo battito |
+| `heartbeats` | int [1, 20] | 7 | Battiti dopo un morso |
+| `firstBeatInterval` | float ≥ 0.2 | 0.42 | Secondi fra i primi battiti |
+| `lastBeatInterval` | float ≥ 0.2 | 0.8 | Secondi fra gli ultimi battiti |
+
+- API pubbliche: `void ReceiveBite(Creature biter)`; `event Action<Creature> OnBitten`; `float LastBiteTime { get; }`; `int BiteCount { get; }`; `float VignetteWeight { get; }`.
+- Riferimenti obbligatori: nessuno. Senza `StressSystem` o `OxygenSystem` l'effetto corrispondente non c'è.
 
 ### CreatureBenchmark
 - Responsabilità e ciclo di vita: strumento di sviluppo. `Run(label)` avvia quattro `ProfilerRecorder` (`Main Thread`, `BehaviourUpdate`, `FixedBehaviourUpdate`, `GC Allocated In Frame`). Dopo `warmup` secondi campiona per `duration` secondi, poi scrive le medie in console e in `Logs/CreatureBenchmark.log` (fuori da Assets, ignorato da Git).
@@ -388,7 +437,7 @@ In `SCN_Gameplay.unity` (2026-10-13):
 - Il vecchio GameObject `EntityPooler` (con `EntityPooler` ed `EntitySpawner`) è stato rimosso.
 - Al suo posto `Creatures` con `CreatureManager` (`player` = `DiverStimulusSource` del `PlayerCapsule`, `neighbourCellSize` 1, altri campi ai default) e il figlio `Nest_Lanternfish` in (-5, 2.51, -14), nel corridoio del prato di penne a 11 m dalla capsula, 1.5 m sopra il fondale: profilo `Creature_Lanternfish`, `count` 100 (12 fino al 2026-10-14, quando Manu ha scelto 100 dopo gli stress test), `spawnRadius` 6, `leashRadius` 12, `maxHeightAboveNest` 3 (soffitto a Y 5.5). Il primo giorno si chiamava `Nest_TestCubes`, stava in (0, 2.5, 0) tra le rocce accanto alla capsula e usava `Creature_TestCube`: lì metà del fondale entro 15 m sta sopra Y 6.4 e i pesci salivano lungo le pareti del canyon (mediana Y 8.9 contro il sub a 0.1).
 
-Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con i default del codice; spia `PlayerCapsule/TorchPivot/EmergencyLight` assegnata a `DiverFlashlight` (vedi [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)).
+Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con i default del codice; dal 2026-10-15 anche `DiverBiteReceiver`, con i default del codice; spia `PlayerCapsule/TorchPivot/EmergencyLight` assegnata a `DiverFlashlight` (vedi [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)).
 
 ## Estensione del sistema
 - Nuova specie: nuovo `CreatureProfile` con il suo prefab, più un `CreatureNest` che la usa. Niente stringhe né enum da aggiornare.
@@ -401,9 +450,10 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - **Denti e spina senza UV:** sono generati dallo Skin modifier, che non crea UV. Prima del bake in Painter vanno applicati i modificatori e fatte le UV (Manu riduce anche la densità dei denti).
 - **High generata da script:** fotofori, solchi e regioni ID sono piazzati con punti di riferimento della gabbia attuale (centro dell'occhio, cerniera della mandibola, anello dell'opercolo, quote degli anelli del corpo). Se il corpo low cambia forma, la high va rigenerata. I bordi delle regioni ID seguono le facce suddivise (gradini di 1-3 mm): in Painter conviene sfumarli un poco.
 - **Esca e occhi non ancora in Unity:** le ossa `Lure_01` … `Lure_04`, `Eye_L` ed `Eye_R` esistono solo nel file Blender. I componenti che le muovono (esca con l'aggressività, sguardo verso il sub o la lampada) sono pianificati; lo sguardo è nel Parcheggio della Roadmap (espressività, M7).
-- **Viperfish, morso non ancora fatto:** ad aggressività piena resta in orbita a `strikeRadius` con la bocca spalancata, senza attaccare. Il morso (stress, O₂, vignetta, battito) è il resto della task 8.
 - **Viperfish e torcia bassa:** la luce debole conta solo se la creatura è nel fascio o entro l'alone (3.2 m con la `Low`). A 8 m di orbita la torcia bassa lo provoca solo se lo si illumina; la piena (alone 10 m) lo provoca quasi sempre, salvo roccia in mezzo. È voluto: la bassa è la modalità prudente.
-- **Il viperfish scappa anche dai lampi dei lanternfish** (`flashReaction` Flee vale per ogni flash). Per farlo cacciare i banchi serve distinguere il flash della torcia da quello degli allarmi.
+- **Le prede mangiate non tornano:** il nido dei lanternfish li fa uscire solo all'avvio, quindi ogni preda presa ne toglie uno dalla scena (circa due al minuto al massimo, con la sazietà di 30 s). Il ricambio arriva con la task dei nidi.
+- **Battito provvisorio:** il battito sintetico è un segnaposto; quello definitivo si assegna a `heartbeatClip`.
+- Il morso ignora lo spazio personale del sub: nell'ultimo istante la testa del viperfish arriva a mezzo metro dal casco e può entrare nel piano vicino della camera.
 - In `Stalk` il predatore sa sempre dov'è il sub entro `stalkRange`, attraverso la roccia: lo sente, senza linea di vista.
 - **Mesh del lanternfish da rigenerare a mano:** `MSH_LanternFish.asset` e `MSH_LanternFish_LOD1.asset` sono state prodotte una volta dagli FBX. Se Manu riesporta, la mesh in gioco non cambia finché non viene rifatta. Per evitarlo il prossimo export può uscire già pronto (un solo oggetto unito, trasformazioni applicate, testa lungo l'asse che in Unity diventa +Z, 31 cm): allora il prefab può puntare direttamente alla mesh dell'FBX.
 - Lo scatto a C è visibile solo se la fuga richiede una virata: con la minaccia esattamente alle spalle il pesce parte dritto, senza piega.
@@ -564,6 +614,12 @@ File Blender del viperfish (2026-10-15, in Blender 5.2 via MCP, render Workbench
 Occhi del viperfish (2026-10-15, stesso metodo): specchio e imparentamento alle ossa senza spostamenti (errore 0 mm sulla posizione e 0° sull'asse, determinante positivo); render ravvicinati a riposo, yaw ±25° e pitch ±20° (vedi i limiti nella descrizione degli occhi); high rifatta con 24 facce di pupilla e 96 di iride per occhio.
 
 Viperfish texturizzato (2026-10-15, Play in `SCN_Gameplay`, camera temporanea con lo stesso post-processing della camera del sub accanto alla torcia, pesce messo nel fascio di lato): torcia `Full` a 2.6 m con smoothness 1 il corpo esce argento chiaro, con 0.5 torna scuro con i toni rosso-bruni e la fila di fotofori visibile; torcia `Low` a 3 m sagoma scura leggibile; luce `Red` a 2.2 m corpo nero, doppia fila di fotofori, esca e fotoforo postorbitale accesi (dopo aver rimesso `_EMISSION`). Console senza errori.
+
+Morso e caccia (2026-10-15, Play in `SCN_Gameplay`, sub spostato a mano nel corridoio, viperfish fatto uscire dal pool a 7 m, registro dei cambi di stato):
+- torcia `Low`: dopo 0.1 s `Hunt` verso un lanternfish a 4 m; il primo inseguimento finisce senza preda dopo 5.3 s; il secondo prende un lanternfish a 2.2 m dal sub (100 → 99), poi 30 s di sazietà e di nuovo `Hunt` a 46.8 s; nel frattempo i lanternfish sono passati a 98;
+- torcia `Full`: il flash dell'accensione lo fa scappare; l'aggressività arriva a 1 in circa 6 s e l'orbita si stringe; a 3.4 m dal busto parte `Strike` e dopo 0.7 s, a 5 m/s, morde: stress da 0 a 45, ossigeno −30, poi `Flee` e di nuovo `Stalk` ad aggressività 0;
+- effetti (morso simulato con `ReceiveBite`): peso della vignetta 1 a 0.3 s, 0.63 a 1.5 s, 0 a 4 s; 5 battiti nei primi 4 s; nella camera del sub bordi rosso scuro che stringono il campo visivo;
+- compilazione senza errori, console senza errori.
 
 Non verificato: costo del lanternfish con lo shader (draw call e instancing) degli impulsi d'allarme e della griglia dei vicini con centinaia di pesci (benchmark con l'Editor in primo piano), tocco lungo su F con la tastiera vera, rumore con il diver che cammina davvero, build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 
