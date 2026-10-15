@@ -163,6 +163,37 @@ namespace Deeploration.Creatures
         /// <summary>Preda inseguita in <c>Hunt</c>; null negli altri stati.</summary>
         public Creature Prey => preyTarget;
 
+        /// <summary>
+        /// Punto che la creatura sta guardando, per gli occhi: il casco del sub in <c>Stalk</c> e <c>Strike</c>, la
+        /// preda in <c>Hunt</c>, la sorgente di luce in <c>Inspect</c>. False negli altri stati.
+        /// </summary>
+        public bool TryGetFocus(out Vector3 point)
+        {
+            switch (state)
+            {
+                case CreatureState.Stalk:
+                case CreatureState.Strike:
+                    if (manager != null && manager.HasPlayer)
+                    {
+                        point = manager.PlayerPosition + Vector3.up * StrikeTargetHeight;
+                        return true;
+                    }
+                    break;
+                case CreatureState.Hunt:
+                    if (preyTarget != null && preyTarget.ActiveIndex >= 0)
+                    {
+                        point = preyTarget.transform.position;
+                        return true;
+                    }
+                    break;
+                case CreatureState.Inspect:
+                    point = interest.Position;
+                    return true;
+            }
+            point = default;
+            return false;
+        }
+
         /// <summary>Compagni della stessa specie visti nell'ultimo ragionamento (0 per le specie solitarie).</summary>
         public int NeighbourCount { get; private set; }
 

@@ -12,6 +12,9 @@ GameObject:
   - component: {fileID: 5363190020988231793}
   - component: {fileID: 668244976722232849}
   - component: {fileID: 6217699429344612263}
+  - component: {fileID: 7373912677206461615}
+  - component: {fileID: 721600411018682210}
+  - component: {fileID: 7324908563919795432}
   m_Layer: 9
   m_Name: Creature_Viperfish
   m_TagString: Untagged
@@ -100,8 +103,81 @@ MonoBehaviour:
   idleOpen: 0.1
   stalkOpen: 0.2
   strikeOpen: 0.85
+  huntOpen: 0.7
+  snapDuration: 0.35
   breathAmount: 0.08
   responsiveness: 3
+  visibilityRenderer: {fileID: 2773181943371577113}
+--- !u!114 &7373912677206461615
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2489802120106906889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 15dfd5e255b0214488202ad1c07fd9fe, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureGlow
+  renderers:
+  - {fileID: 2773181943371577113}
+  calmColor: {r: 8, g: 8, b: 8, a: 1}
+  angryColor: {r: 10, g: 2, b: 1.6, a: 1}
+  strikeColor: {r: 16, g: 1.5, b: 1.2, a: 1}
+  pulseFrequency: {x: 0.25, y: 2}
+  pulseDepth: {x: 0.3, y: 0.5}
+  strikeStrobe: 9
+  huntBoost: 1.4
+  fleeDim: 0.4
+  responsiveness: 2
+--- !u!114 &721600411018682210
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2489802120106906889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 113d8b7153b422041aecfce88eb42ba7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureLure
+  bones:
+  - {fileID: 6386275310091697354}
+  - {fileID: 691324515595931749}
+  - {fileID: 4890144471137872583}
+  - {fileID: 5118382873500031172}
+  forwardAngles:
+  - 60
+  - 45
+  - 40
+  - 30
+  responsiveness: 1.5
+  swayAngle: 6
+  swayFrequency: 0.5
+  visibilityRenderer: {fileID: 2773181943371577113}
+--- !u!114 &7324908563919795432
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2489802120106906889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0587fc543141a754aa40c5e2b0688880, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureEyes
+  eyes:
+  - {fileID: 2419172996353495537}
+  - {fileID: 1732265250448900251}
+  maxYaw: 20
+  maxPitch: 15
+  speed: 25
+  saccadeInterval: {x: 0.4, y: 1.6}
+  idleSaccade: 8
+  focusSaccade: 2
   visibilityRenderer: {fileID: 2773181943371577113}
 --- !u!1001 &7100336103650734969
 PrefabInstance:
@@ -252,6 +328,11 @@ PrefabInstance:
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+--- !u!4 &691324515595931749 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -1508312340814699748, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &816266566809947812 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -1595822315780194851, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
@@ -265,6 +346,16 @@ Transform:
 --- !u!4 &1211101095617079411 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 8234766045469743882, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &1732265250448900251 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8827978859786351586, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2419172996353495537 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4835695109874229896, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
   m_PrefabInstance: {fileID: 7100336103650734969}
   m_PrefabAsset: {fileID: 0}
 --- !u!137 &2773181943371577113 stripped
@@ -292,9 +383,24 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -2806947371418148922, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
   m_PrefabInstance: {fileID: 7100336103650734969}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &4890144471137872583 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6821758893702981186, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &5118382873500031172 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -6520842773848773699, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
 --- !u!4 &5477992658667123606 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -5869092611696459537, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
+  m_PrefabInstance: {fileID: 7100336103650734969}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &6386275310091697354 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5032229837894889549, guid: b478c746b4b82db459b7ef0ac821d809, type: 3}
   m_PrefabInstance: {fileID: 7100336103650734969}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &6952847900889060254 stripped
