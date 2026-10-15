@@ -7,7 +7,8 @@ namespace Deeploration.Creatures
     /// dei puntini) con un colore e una pulsazione che dipendono da stato e aggressività. Calma: colore della mappa
     /// (arancione per il viperfish), pulsazione lenta. Aggressività piena: rosso, pulsazione veloce. Slancio:
     /// rosso acceso che lampeggia. Il colore e l'intensità cambiano insieme, così il segnale si legge anche dove il
-    /// rosso si confonde (luce rossa della torcia, daltonismo).
+    /// rosso si confonde (luce rossa della torcia, daltonismo). I colori sono moltiplicatori lineari, come
+    /// l'_EmissionColor salvato nel materiale: (8, 8, 8) = mappa per 8.
     /// </summary>
     [DisallowMultipleComponent]
     public sealed class CreatureGlow : MonoBehaviour
@@ -20,11 +21,12 @@ namespace Deeploration.Creatures
         [Tooltip("Moltiplicatore dell'emissione a riposo (HDR). Bianco = colore della mappa.")]
         [SerializeField, ColorUsage(false, true)] private Color calmColor = new Color(8f, 8f, 8f);
 
-        [Tooltip("Moltiplicatore ad aggressività piena (HDR): sposta la mappa arancione verso il rosso.")]
-        [SerializeField, ColorUsage(false, true)] private Color angryColor = new Color(10f, 2f, 1.6f);
+        [Tooltip("Moltiplicatore ad aggressività piena (HDR): sposta la mappa arancione verso il rosso. Tenere il rosso " +
+                 "molto sopra verde e blu, altrimenti resta arancione.")]
+        [SerializeField, ColorUsage(false, true)] private Color angryColor = new Color(16f, 2.5f, 2f);
 
         [Tooltip("Moltiplicatore durante lo slancio del morso (HDR).")]
-        [SerializeField, ColorUsage(false, true)] private Color strikeColor = new Color(16f, 1.5f, 1.2f);
+        [SerializeField, ColorUsage(false, true)] private Color strikeColor = new Color(28f, 2.5f, 2f);
 
         [Tooltip("Pulsazioni al secondo a riposo e ad aggressività piena.")]
         [SerializeField] private Vector2 pulseFrequency = new Vector2(0.25f, 2f);
@@ -100,7 +102,10 @@ namespace Deeploration.Creatures
             bool visible = false;
             for (int i = 0; i < renderers.Length; i++) visible |= renderers[i] != null && renderers[i].isVisible;
             if (!visible) return;
-            block.SetColor(EmissionColorId, color * pulse);
+            // SetVector e non SetColor: in spazio colore Linear SetColor tratta il colore come gamma e lo eleva a 2.2,
+            // e con valori HDR (sopra 1) l'emissione esplode. Così il valore arriva allo shader com'è, come quello
+            // salvato nel materiale.
+            block.SetVector(EmissionColorId, color * pulse);
             for (int i = 0; i < renderers.Length; i++)
                 if (renderers[i] != null) renderers[i].SetPropertyBlock(block);
         }

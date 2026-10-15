@@ -357,7 +357,7 @@ namespace Deeploration.Creatures
         {
             if (preyTarget == null || preyTarget.ActiveIndex < 0 || !ReferenceEquals(preyTarget.Profile, profile.prey))
                 return false;
-            if (now - huntStartTime > HuntMaxDuration || aggression > Mathf.Max(profile.huntMaxAggression, 0.95f))
+            if (now - huntStartTime > HuntMaxDuration || aggression > profile.huntMaxAggression)
                 return false;
             float giveUp = profile.huntRange * 1.5f;
             return (preyTarget.transform.position - cachedTransform.position).sqrMagnitude < giveUp * giveUp;
@@ -781,13 +781,14 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
-        /// Aggressività del predatore: in <c>Stalk</c>, finché percepisce la luce o il rumore del sub, sale di
-        /// <c>aggressionRate</c> al secondo per la luce forte e il flash, di metà per la luce debole e il rumore;
-        /// altrimenti scende di <c>aggressionDecay</c>. Gli stimoli che non vengono dal sub non contano.
+        /// Aggressività del predatore: in <c>Stalk</c> e in <c>Hunt</c>, finché percepisce la luce o il rumore del sub,
+        /// sale di <c>aggressionRate</c> al secondo per la luce forte e il flash, di metà per la luce debole e il
+        /// rumore; altrimenti scende di <c>aggressionDecay</c>. Gli stimoli che non vengono dal sub non contano. In
+        /// caccia conta anche lei: il sub che illumina il predatore mentre caccia lo distoglie dalla preda.
         /// </summary>
         private void UpdateAggression(float deltaTime)
         {
-            bool provoked = state == CreatureState.Stalk && interest.FromPlayer &&
+            bool provoked = (state == CreatureState.Stalk || state == CreatureState.Hunt) && interest.FromPlayer &&
                             Time.time - lastInterestTime <= StalkStimulusMemory;
             float rate = -profile.aggressionDecay;
             if (provoked)
