@@ -1,0 +1,284 @@
+// FishSchool: GPU simulation of a school of ambient fish, driven by the FishSchool component.
+// One thread per fish. Simple boids (separation, cohesion, alignment against every other fish, read in
+// tiles through group shared memory), a slow swirl around the volume axis, a soft ellipsoid that keeps the
+// school in open water, and repulsion from the diver (sphere) and from the torch beams (cones).
+// No collisions: the volume has to stay in open water.
+// After moving, each fish is culled against the camera and appended to the draw list of its LOD
+// (LOD0 near, LOD1 far, both in the cross-fade band), with the object-to-world matrix and the per-instance
+// swim values the Deeplonauts/Fish shader reads in its procedural instancing path.
+#pragma kernel Simulate
+
+#define THREADS 256
+#define MAX_BEAMS 4
+#define TWO_PI 6.2831853
+
+struct Fish
+{
+    float3 position;
+    float phase;
+    float3 velocity;
+    float bend;
+    float panic;
+    float scale;
+    float seed;
+    float pad;
+};
+
+// Must match FishSchoolDraw in Fish.shader and FishSchool.DrawStride.
+struct FishDraw
+{
+    float4 row0;
+    float4 row1;
+    float4 row2;
+    float4 swim;    // phase, amount, bend, glow boost
+    float4 fade;    // x: fade (>= 0 keep where dither < x, < 0 keep where dither >= 1 + x), yzw unused
+};
+
+StructuredBuffer<Fish> _FishIn;
+RWStructuredBuffer<Fish> _FishOut;
+AppendStructuredBuffer<FishDraw> _DrawLod0;
+AppendStructuredBuffer<FishDraw> _DrawLod1;
+
+uint _Count;
+float _DeltaTime;
+float _SimTime;
+
+// volume: world to volume-local (unit sphere = ellipsoid surface) and back for directions
+float4x4 _WorldToVolume;
+float4x4 _VolumeToWorld;
+float3 _VolumeCentre;
+float _VolumeSoftness;
+float _ContainWeight;
+float _PanicContainRelief;
+float _Swirl;
+
+// school
+float _NeighbourRadius;
+float _SeparationDistance;
+float _SeparationWeight;
+float _CohesionWeight;
+float _AlignmentWeight;
+float _WanderWeight;
+float _CruiseSpeed;
+float _MinSpeed;
+float _MaxSpeed;
+float _PanicSpeed;
+float _MaxAccel;
+float _VerticalDamping;
+
+// diver and beams
+float4 _Diver;          // xyz position, w radius (0 = none)
+float _DiverWeight;
+int _BeamCount;
+float4 _BeamOrigin[MAX_BEAMS];  // xyz origin, w reach
+float4 _BeamAxis[MAX_BEAMS];    // xyz direction, w tan(half angle)
+float4 _BeamParams[MAX_BEAMS];  // x weight, y margin (m)
+float _PanicDecay;
+
+// look
+float _SwimFrequency;
+float _FullBendTurnRate;
+float _PanicGlow;
+
+// culling and LOD
+float3 _CameraPosition;
+float4 _FrustumPlanes[6];
+float _Lod1Distance;
+float _LodFadeWidth;
+float _CullDistance;
+float _CullFadeWidth;
+float _CullRadius;
+
+groupshared float3 sharedPosition[THREADS];
+groupshared float3 sharedVelocity[THREADS];
+
+float Hash(float n)
+{
+    return frac(sin(n) * 43758.5453);
+}
+
+// Away from the axis of a beam, stronger near the axis and fading toward the end of the reach; 0 outside the
+// cone plus margin.
+float3 BeamPush(float3 p, int b, float seed, out float strength)
+{
+    strength = 0;
+    float3 origin = _BeamOrigin[b].xyz;
+    float reach = _BeamOrigin[b].w;
+    float3 axis = _BeamAxis[b].xyz;
+    float3 v = p - origin;
+    float t = dot(v, axis);
+    if (t <= 0 || t >= reach) return 0;
+    float3 radial = v - axis * t;
+    float r = length(radial);
+    float coneRadius = t * _BeamAxis[b].w + _BeamParams[b].y;
+    if (r >= coneRadius) return 0;
+    // on the axis: a stable sideways direction per fish
+    float3 side = r > 1e-3 ? radial / r : normalize(cross(axis, float3(sin(seed * 7.0), cos(seed * 7.0), 0.37)));
+    float along = t / reach;
+    strength = (1 - r / coneRadius) * (1 - along * along);
+    return side * strength * _BeamParams[b].x;
+}
+
+[numthreads(THREADS, 1, 1)]
+void Simulate(uint3 id : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID)
+{
+    uint i = id.x;
+    bool valid = i < _Count;
+    Fish fish = _FishIn[min(i, _Count - 1)];
+    float3 p = fish.position;
+    float3 v = fish.velocity;
+
+    // boids against every fish, one tile of THREADS at a time
+    float3 separation = 0;
+    float3 sumPosition = 0;
+    float3 sumVelocity = 0;
+    float neighbours = 0;
+    float neighbourSq = _NeighbourRadius * _NeighbourRadius;
+    float separationSq = _SeparationDistance * _SeparationDistance;
+    for (uint tile = 0; tile < _Count; tile += THREADS)
+    {
+        uint j = tile + gtid.x;
+        Fish other = _FishIn[min(j, _Count - 1)];
+        sharedPosition[gtid.x] = j < _Count ? other.position : float3(1e9, 1e9, 1e9);
+        sharedVelocity[gtid.x] = other.velocity;
+        GroupMemoryBarrierWithGroupSync();
+        uint tileCount = min(THREADS, _Count - tile);
+        for (uint k = 0; k < tileCount; k++)
+        {
+            float3 d = sharedPosition[k] - p;
+            float dSq = dot(d, d);
+            if (dSq >= neighbourSq || dSq < 1e-8) continue;
+            neighbours += 1;
+            sumPosition += sharedPosition[k];
+            sumVelocity += sharedVelocity[k];
+            if (dSq < separationSq)
+            {
+                float dist = sqrt(dSq);
+                separation -= d / dist * (1 - dist / _SeparationDistance);
+            }
+        }
+        GroupMemoryBarrierWithGroupSync();
+    }
+    if (!valid) return;
+
+    float3 accel = separation * _SeparationWeight;
+    if (neighbours > 0)
+    {
+        accel += (sumPosition / neighbours - p) * _CohesionWeight;
+        accel += (sumVelocity / neighbours - v) * _AlignmentWeight;
+    }
+
+    // wander: a slow per-fish heading noise
+    float s = fish.seed;
+    float3 wander = float3(sin(_SimTime * 0.37 + s * 11.0), sin(_SimTime * 0.23 + s * 5.0) * 0.3, cos(_SimTime * 0.31 + s * 17.0));
+    accel += wander * _WanderWeight;
+
+    // volume: inside the ellipsoid the swirl turns the school around the vertical axis; near and past the
+    // surface it is pulled back toward the centre (below, after the threats)
+    float3 local = mul(_WorldToVolume, float4(p, 1)).xyz;
+    float q = length(local);
+    float3 toCentre = _VolumeCentre - p;
+    float3 tangent = normalize(cross(float3(0, 1, 0), -toCentre) + float3(0, 0, 1e-4));
+    accel += tangent * _Swirl;
+
+    // diver and beams
+    float threat = 0;
+    if (_Diver.w > 0)
+    {
+        float3 away = p - _Diver.xyz;
+        float dist = length(away);
+        if (dist < _Diver.w)
+        {
+            float k = 1 - dist / _Diver.w;
+            threat = max(threat, k);
+            accel += (dist > 1e-3 ? away / dist : float3(0, 1, 0)) * k * _DiverWeight;
+        }
+    }
+    for (int b = 0; b < _BeamCount; b++)
+    {
+        float strength;
+        accel += BeamPush(p, b, s, strength);
+        threat = max(threat, strength);
+    }
+
+    fish.panic = max(threat, fish.panic * exp(-_DeltaTime / max(_PanicDecay, 1e-3)));
+    float panic = fish.panic;
+
+    // a frightened fish lets itself be pushed toward the hard limit instead of staying in the school
+    float inner = 1 - _VolumeSoftness;
+    if (q > inner)
+    {
+        float3 inward = normalize(toCentre + float3(0, 1e-4, 0));
+        accel += inward * _ContainWeight * (1 - _PanicContainRelief * panic) * (q - inner) / max(_VolumeSoftness, 1e-3);
+    }
+
+    float maxAccel = _MaxAccel * (1 + 2 * panic);
+    float accelLength = length(accel);
+    if (accelLength > maxAccel) accel *= maxAccel / accelLength;
+
+    float3 previousVelocity = v;
+    v += accel * _DeltaTime;
+    v.y *= saturate(1 - _VerticalDamping * _DeltaTime);
+    float speed = length(v);
+    float topSpeed = lerp(_MaxSpeed, _PanicSpeed, panic);
+    float3 dir = speed > 1e-4 ? v / speed : normalize(previousVelocity + float3(0, 0, 1e-4));
+    // drift back toward cruise speed when nothing pushes
+    speed = lerp(speed, _CruiseSpeed, saturate(_DeltaTime * 0.5 * (1 - panic)));
+    speed = clamp(speed, _MinSpeed, topSpeed);
+    v = dir * speed;
+    p += v * _DeltaTime;
+
+    // hard limit: never wander far past the ellipsoid, even when pushed
+    local = mul(_WorldToVolume, float4(p, 1)).xyz;
+    q = length(local);
+    if (q > 1.2) p = mul(_VolumeToWorld, float4(local * (1.2 / q), 1)).xyz;
+
+    // swim: phase with the pace, bend with the horizontal turn rate (same sign as Creature)
+    float pace = speed / max(_CruiseSpeed, 1e-3);
+    fish.phase += _SwimFrequency * clamp(pace, 0.35, 3) * TWO_PI * _DeltaTime;
+    if (fish.phase > 1000) fish.phase -= TWO_PI * 159;
+    float2 a = previousVelocity.xz;
+    float2 c = v.xz;
+    float yawDeg = degrees(atan2(a.y * c.x - a.x * c.y, dot(a, c) + 1e-6));
+    float maxBend = panic > 0.3 ? 1.6 : 1;
+    float targetBend = clamp(yawDeg / max(_DeltaTime, 1e-4) / _FullBendTurnRate, -maxBend, maxBend);
+    float bendRate = (panic > 0.3 ? 20 : 4) * _DeltaTime;
+    fish.bend += clamp(targetBend - fish.bend, -bendRate, bendRate);
+
+    fish.position = p;
+    fish.velocity = v;
+    _FishOut[i] = fish;
+
+    // culling and LOD
+    float distance = length(p - _CameraPosition);
+    if (distance > _CullDistance) return;
+    float radius = _CullRadius * fish.scale;
+    for (int f = 0; f < 6; f++)
+        if (dot(_FrustumPlanes[f].xyz, p) + _FrustumPlanes[f].w < -radius) return;
+
+    float3 forward = dir;
+    float3 right = normalize(cross(float3(0, 1, 0), forward) + float3(1e-4, 0, 0));
+    float3 up = cross(forward, right);
+    float sc = fish.scale;
+    FishDraw draw;
+    draw.row0 = float4(right.x * sc, up.x * sc, forward.x * sc, p.x);
+    draw.row1 = float4(right.y * sc, up.y * sc, forward.y * sc, p.y);
+    draw.row2 = float4(right.z * sc, up.z * sc, forward.z * sc, p.z);
+    float flicker = 0.75 + 0.25 * sin(_SimTime * 40 + fish.phase);
+    draw.swim = float4(fish.phase, clamp(0.6 + 0.4 * pace, 0.5, 1.4), fish.bend, _PanicGlow * panic * panic * flicker);
+
+    float cullFade = saturate((_CullDistance - distance) / max(_CullFadeWidth, 1e-3));
+    float lodStart = _Lod1Distance - _LodFadeWidth * 0.5;
+    float t = saturate((distance - lodStart) / max(_LodFadeWidth, 1e-3));
+    if (t < 1)
+    {
+        draw.fade = float4(min(1 - t, cullFade), 0, 0, 0);
+        _DrawLod0.Append(draw);
+    }
+    if (t > 0)
+    {
+        // in the band LOD1 fills exactly the dither cells LOD0 leaves out
+        draw.fade = float4(t < 1 ? -t : cullFade, 0, 0, 0);
+        _DrawLod1.Append(draw);
+    }
+}

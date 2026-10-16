@@ -5,6 +5,8 @@
 // Swim: a lateral wave (object X) that travels from head to tail, amplitude growing toward the tail,
 // plus a static bend for turning. Phase, amount and bend come per instance from the Creature component
 // (MaterialPropertyBlock, GPU instancing), so every fish beats its tail at its own speed.
+// School: in the procedural instancing variant (Graphics.RenderMeshIndirect from FishSchool) the matrix and
+// the same per-instance values come from the _SchoolDraws buffer written by FishSchool.compute.
 // Surface: Substance Painter "Unity URP (Metallic)" maps: albedo with alpha (fin membranes are clipped,
 // optionally dithered), normal, metallic in R with smoothness in A, emission (photophores).
 Shader "Deeplonauts/Fish"
@@ -77,6 +79,41 @@ Shader "Deeplonauts/Fish"
             UNITY_DEFINE_INSTANCED_PROP(float, _Fade)
         UNITY_INSTANCING_BUFFER_END(FishProps)
 
+        // School path (procedural instancing, Graphics.RenderMeshIndirect from FishSchool): the per-instance
+        // props above are plain statics here, filled from the draw list FishSchool.compute writes for this LOD.
+        // Must match FishDraw in FishSchool.compute.
+        #if defined(UNITY_PROCEDURAL_INSTANCING_ENABLED)
+            struct FishSchoolDraw
+            {
+                float4 row0;
+                float4 row1;
+                float4 row2;
+                float4 swim;
+                float4 fade;
+            };
+            StructuredBuffer<FishSchoolDraw> _SchoolDraws;
+
+            void FishSchoolSetup()
+            {
+                FishSchoolDraw d = _SchoolDraws[unity_InstanceID];
+                unity_ObjectToWorld = float4x4(d.row0, d.row1, d.row2, float4(0, 0, 0, 1));
+                // rotation with uniform scale: the inverse is the transpose over the squared scale
+                float3x3 m = float3x3(d.row0.xyz, d.row1.xyz, d.row2.xyz);
+                float3x3 inv = transpose(m) / dot(d.row0.xyz, d.row0.xyz);
+                float3 t = float3(d.row0.w, d.row1.w, d.row2.w);
+                unity_WorldToObject = float4x4(
+                    float4(inv[0], -dot(inv[0], t)),
+                    float4(inv[1], -dot(inv[1], t)),
+                    float4(inv[2], -dot(inv[2], t)),
+                    float4(0, 0, 0, 1));
+                _SwimPhase = d.swim.x;
+                _SwimAmount = d.swim.y;
+                _SwimBend = d.swim.z;
+                _GlowBoost = d.swim.w;
+                _Fade = d.fade.x;
+            }
+        #endif
+
         // Lateral swim offset along object X and its slope along Z (for the normals).
         // u = 0 at the head, 1 at the tail; the wave runs toward the tail as the phase grows.
         void FishSwim(inout float3 positionOS, inout float3 normalOS)
@@ -119,7 +156,10 @@ Shader "Deeplonauts/Fish"
             uint2 p = uint2(positionCS.xy) & 3;
             const float bayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
             float cell = (bayer[p.y * 4 + p.x] + 0.5) / 16.0;
-            clip(UNITY_ACCESS_INSTANCED_PROP(FishProps, _Fade) - cell);
+            // A negative fade (school LOD1 in the cross-fade band) keeps the complementary cells instead,
+            // so LOD0 at f and LOD1 at f - 1 cover each pixel exactly once.
+            float fade = UNITY_ACCESS_INSTANCED_PROP(FishProps, _Fade);
+            clip(fade >= 0 ? fade - cell : cell - (1 + fade));
             #if defined(_FISH_DITHER)
                 float threshold = cell * 2.0 * _Cutoff;
                 clip(a - threshold);
@@ -153,6 +193,7 @@ Shader "Deeplonauts/Fish"
             #pragma instancing_options lodfade
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
+            #pragma instancing_options procedural:FishSchoolSetup
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #if defined(LOD_FADE_CROSSFADE)
@@ -267,6 +308,7 @@ Shader "Deeplonauts/Fish"
             #pragma fragment Frag
             #pragma shader_feature_local _FISH_DITHER
             #pragma multi_compile_instancing
+            #pragma instancing_options procedural:FishSchoolSetup
             #pragma multi_compile_vertex _ _CASTING_PUNCTUAL_LIGHT_SHADOW
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
@@ -336,6 +378,7 @@ Shader "Deeplonauts/Fish"
             // per-instance LOD fade: without it an instanced batch shares one fade value and fish vanish mid-fade
             #pragma instancing_options lodfade
             #pragma multi_compile_instancing
+            #pragma instancing_options procedural:FishSchoolSetup
 
             #if defined(LOD_FADE_CROSSFADE)
                 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
@@ -394,6 +437,7 @@ Shader "Deeplonauts/Fish"
             #pragma fragment Frag
             #pragma shader_feature_local _FISH_DITHER
             #pragma multi_compile_instancing
+            #pragma instancing_options procedural:FishSchoolSetup
 
             struct Attributes
             {

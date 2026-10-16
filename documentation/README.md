@@ -1,5 +1,5 @@
 # Project Deep — Indice e Catalogo dell'Architettura del Codice
-Ultima verifica: 2026-10-13
+Ultima verifica: 2026-10-16
 
 Benvenuto nell'hub di documentazione tecnica di *Project Deep / Deeplonauts*.  
 Questo catalogo mappa ogni singolo script C# presente nella codebase, definisce i confini dei sistemi, le relazioni tra i componenti e le regole tassative per gli agenti AI e gli sviluppatori.
@@ -12,7 +12,7 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 
 ```
 Assets/_Project/Code/
-├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub
+├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub, banco GPU
 │   └── Debug/                 # Sonda di benchmark del costo per frame
 ├── Editor/                    # Utility e generatori di livello per Unity Editor
 ├── Environment/               # Oggetti ambientali (paratie, stazioni ricarica O2, neve marina, luci)
@@ -32,7 +32,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (59 / 59)
+## 2. Catalogo Completo degli Script (66 / 66)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -49,6 +49,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Creatures/Debug/CreatureBenchmark.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/DiverBiteReceiver.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/DiverStimulusSource.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/FishSchool.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/SwimChain.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
@@ -105,7 +106,7 @@ Assets/_Project/Code/
 Sistemi senza script C# (solo shader e materiali):
 - Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
 - Coral (shader e materiali; l'unico script è `SeaPenTouchGlow`, nel catalogo sopra): `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia) e toppe ibride di penne di mare (steli veri più card con alpha clip, inclinazione e ondeggiamento per stelo con la corrente, bioluminescenza dove passa il sub). Reference: [Coral.md](Coral.md).
-- Fish (shader dei pesci senza ossa, usato dalle creature): `Assets/_Project/Rendering/Shaders/Fish.shader`, nuoto come onda nel vertex shader con fase, ampiezza e piega per istanza scritte da `Creature`, pinne con alpha a retino, fotofori emissivi, dissolvenza d'entrata per istanza (`_Fade`) per il paracadute dei nidi. Reference: [Creatures.md](Creatures.md).
+- Fish (shader dei pesci senza ossa, usato dalle creature): `Assets/_Project/Rendering/Shaders/Fish.shader`, nuoto come onda nel vertex shader con fase, ampiezza e piega per istanza scritte da `Creature`, pinne con alpha a retino, fotofori emissivi, dissolvenza d'entrata per istanza (`_Fade`) per il paracadute dei nidi; percorso di instancing procedurale per il banco GPU (`FishSchool`). Compute del banco: `Assets/_Project/Rendering/Shaders/FishSchool.compute` (boids, repulsione da sub e fascio, cull e LOD). Reference: [Creatures.md](Creatures.md).
 
 ---
 
@@ -148,6 +149,7 @@ flowchart TD
         CreatureMgr[CreatureManager]
         Creature[Creature]
         DiverStim[DiverStimulusSource]
+        School[FishSchool]
     end
 
     %% Input Wiring
@@ -188,6 +190,7 @@ flowchart TD
     Nest -->|Spawn / Despawn| CreatureMgr
     CreatureMgr -->|Tick per LOD| Creature
     DiverStim -->|stimoli e posizione| CreatureMgr
+    CreatureMgr -->|posizione del sub e fasci| School
     Flashlight -.->|modalità, fascio| DiverStim
     Diver -.->|velocità, atterraggio| DiverStim
 ```

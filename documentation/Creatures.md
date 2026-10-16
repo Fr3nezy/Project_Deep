@@ -15,7 +15,8 @@ Stato:
 - **Implementato e verificato (2026-10-15, task 8 completa):** morso e caccia. Stato `Strike`: ad aggressività piena il viperfish si lancia sul casco del sub e lo morde; `DiverBiteReceiver` sul sub applica picco di stress, perdita di ossigeno, vignetta rosso scuro e battito cardiaco (audio provvisorio generato in codice). Stato `Hunt`: caccia i lanternfish vicini quando il sub non lo ha provocato troppo, la preda presa torna nel pool con il suo lampo d'allarme e il viperfish resta sazio.
 - **Implementato e verificato (2026-10-15):** espressività del viperfish. `CreatureGlow` porta i fotofori dall'arancione al rosso con l'aggressività, con la pulsazione che accelera, e li fa lampeggiare rosso acceso nello slancio; `CreatureLure` alza la pinna dorsale e piega l'esca in avanti sopra la testa con l'aggressività e del tutto in caccia e nello slancio; `CreatureEyes` muove gli occhi verso il casco del sub, la preda o la luce, con piccoli scatti.
 - **Implementato e verificato (2026-10-16, task 6):** nidi completi. Il nido rimpiazza le creature che mancano (anche le prede mangiate) facendole uscire a nuoto dalla bocca quando non si vede, si riempie in blocco quando è oltre la nebbia, fa uscire una creatura in dissolvenza se resta in vista troppo a lungo (shader Fish, `_Fade`) e rimette nel pool le creature non viste quando il sub è lontano. Corretti anche il recupero da dentro la roccia (i pesci attraversavano gli sbalzi) e il colore del viperfish in caccia.
-- **Pianificato (M2):** pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
+- **Implementato e verificato (2026-10-16, task 7c):** banco di lanternfish sulla GPU (`FishSchool` + `FishSchool.compute`), seconda forma del pesce ambientale accanto alla `Creature`: centinaia di pesci senza intelligenza in un volume ellissoidale, boids semplici, bolla vuota attorno al casco del sub, tunnel dove punta la torcia; disegnati con `Graphics.RenderMeshIndirect`, stessa mesh e stesso materiale del lanternfish entità (percorso di instancing procedurale dello shader `Deeplonauts/Fish`), LOD0/LOD1 in dissolvenza a retino e cull a 35 m fatti nel compute. Nessun pacchetto (niente VFX Graph né Particle System), decisione di Manu del 2026-10-16.
+- **Pianificato (M2):** pesce ascia e tripode (task 7d), isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -33,8 +34,9 @@ Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
 12. `CreatureLure.cs`: esca sulla spina dorsale che si piega in avanti con l'aggressività.
 13. `CreatureEyes.cs`: occhi che guardano il punto d'interesse della creatura, con saccadi.
 14. `Debug/CreatureBenchmark.cs`: sonda che misura il costo per frame in Play.
+15. `FishSchool.cs` (2026-10-16): banco di pesci simulato sulla GPU e disegnato con l'instancing indiretto.
 
-Shader: `Assets/_Project/Rendering/Shaders/Fish.shader` (`Deeplonauts/Fish`), per i pesci ambientali senza ossa (vedi *Shader Deeplonauts/Fish*).
+Shader: `Assets/_Project/Rendering/Shaders/Fish.shader` (`Deeplonauts/Fish`), per i pesci ambientali senza ossa (vedi *Shader Deeplonauts/Fish*). Compute: `Assets/_Project/Rendering/Shaders/FishSchool.compute` (kernel `Simulate`), la simulazione del banco (vedi *FishSchool*).
 
 Asset:
 - `Assets/_Project/Entities/Profiles/Creature_TestCube.asset`: profilo di prova (valori di default del codice).
@@ -97,6 +99,7 @@ Licenza di stile (decisa da Manu il 2026-10-13): ogni pesce può essere fino al 
 - `CreatureManager.Update` raccoglie gli stimoli del frame chiedendoli una volta a ogni sorgente registrata (`IStimulusSource.EmitStimuli`), legge la posizione del sub (riferimento serializzato, mai cercato), calcola i piani della camera e, per ogni creatura attiva, sceglie il LOD e chiama `Creature.Tick(deltaTime, think, probe)`.
 - `DiverStimulusSource` legge `DiverFlashlight` (modalità, `SpotLight`), `DiverController` (`CurrentSpeed`, `IsGrounded`) e l'evento `SeaPenTouchGlow.Touched`.
 - `Creature.Tick`: se `think`, aggiorna percezione e stato; se `probe`, lancia i raggi verso il fondale e in avanti e ne conserva i risultati; poi muove sempre, usando l'ultimo stato e gli ultimi raggi.
+- `FishSchool.LateUpdate` legge dal manager `HasPlayer`, `PlayerPosition` e `Stimuli` (i fasci di luce, cioè gli stimoli con `ConeCos` > 0) dopo che il manager li ha raccolti nel suo `Update`, li passa al compute insieme ai piani della camera, poi disegna le liste che la GPU ha riempito. Non tocca il pool, la griglia dei vicini né le `Creature`: le entità non vedono il banco e il banco non vede le entità.
 - Dipendenze verso altri sistemi: solo `DiverStimulusSource`, che legge `Deeploration.Player` (`DiverFlashlight`, `DiverController`) e `Deeploration.Environment` (`SeaPenTouchGlow`). Nessuno di quei sistemi dipende dalle creature.
 
 ```mermaid
@@ -110,6 +113,10 @@ flowchart TD
     Source -->|EmitStimuli + posizione, una volta per frame| Manager
     Camera[Camera] -.->|piani di vista| Manager
     Manager -->|Tick: think / probe secondo LOD| Creature[Creature]
+    Manager -->|PlayerPosition + fasci in Stimuli| School[FishSchool]
+    School -->|Dispatch Simulate| Compute[FishSchool.compute]
+    Compute -->|liste LOD0 / LOD1 + conteggi| School
+    School -->|RenderMeshIndirect, procedural| FishShader[Deeplonauts/Fish]
     Creature -->|Raycast / SphereCast / OverlapSphere| Physics[Physics: obstacleMask]
 ```
 
@@ -476,12 +483,79 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - API pubbliche: `void Run(string measureLabel)`, `bool IsRunning { get; }`, `string LastResult { get; }`; voce di menu contestuale *Run*.
 - Limite: in Editor il tempo scorre solo con l'Editor in primo piano o con `Application.runInBackground = true`; una misura avviata con l'Editor fermo campiona un solo frame.
 
+### FishSchool
+- Responsabilità e ciclo di vita: un banco per componente, volume ellissoidale centrato sul GameObject (semiassi `volumeExtents` negli assi locali; rotazione usata, scala ignorata). In `OnEnable` controlla il supporto dei compute shader e i riferimenti, trova il kernel `Simulate` e alloca i buffer: due `Structured` di `count` pesci da 48 byte (lettura e scrittura, scambiati a ogni frame), due `Append` da 80 byte (lista di disegno di LOD0 e LOD1) e un `IndirectArguments` con due comandi `IndirectDrawIndexedArgs`; dispone i pesci a caso (seme `seed`) nell'80% interno dell'ellissoide, in orizzontale alla velocità di crociera. In `OnDisable` libera tutto. In `LateUpdate`: se `count` è cambiato rialloca, imposta i parametri, azzera i contatori delle liste, un dispatch da 256 thread per gruppo, `GraphicsBuffer.CopyCount` dei due contatori nel campo `instanceCount` dei comandi, scambio dei buffer, poi due `Graphics.RenderMeshIndirect` (LOD0 con `mesh`, LOD1 con `meshLod1`) con `RenderParams` sul layer del GameObject, ombre, ricezione delle ombre e probe spenti come sul prefab del lanternfish, e un `MaterialPropertyBlock` per LOD che lega la sua lista a `_SchoolDraws`. La CPU non legge mai i pesci (solo i metodi di debug). `Time.deltaTime` è limitato a 0.05 s.
+- Simulazione (un thread per pesce, `FishSchool.compute`):
+  - boids contro tutti gli altri pesci (O(n²), letti a blocchi di 256 nella memoria condivisa del gruppo): separazione sotto `separationDistance` (spinta lineare fino a zero al bordo), coesione verso il baricentro e allineamento alla rotta media dei vicini entro `neighbourRadius`;
+  - rumore lento di rotta per pesce (`wanderWeight`) e spinta tangente attorno all'asse verticale del volume (`swirl`): il banco gira piano su sé stesso;
+  - richiamo verso il centro nella fascia `volumeSoftness` sotto il bordo dell'ellissoide (`containWeight`, ridotto di `panicContainRelief` × panico) e limite duro a 1.2 volte i semiassi: oltre, il pesce viene riportato sul limite;
+  - bolla del sub: entro `diverRadius` dal casco (`PlayerPosition + diverOffset`) spinta radiale `diverWeight × (1 − d / diverRadius)`;
+  - fasci: per ogni fascio (al massimo 4) spinta perpendicolare all'asse dentro un cono di semi-angolo `semi-angolo del fascio × beamConeScale` più `beamMargin` (doppio per il flash), `peso × (1 − r / raggio del cono) × (1 − (t / portata)²)` con portata = portata dello stimolo × `beamReachScale`; un pesce sull'asse sceglie un lato fisso dal suo seme. Peso per categoria: `strongLightWeight` (Full), `weakLightWeight` (Low), `flashWeight` (flash);
+  - panico = la spinta più forte fra bolla e fasci, che poi cala con costante `panicDecay`: alza velocità massima (fino a `panicSpeed`) e accelerazione (fino al triplo di `maxAcceleration`), allenta il richiamo e accende i fotofori (`_GlowBoost = panicGlow × panico² × tremolio`);
+  - velocità tra `minSpeed` e `maxSpeed` (in panico `panicSpeed`), che torna verso `cruiseSpeed` quando niente spinge; velocità verticale smorzata (`verticalDamping`) perché i pesci restino quasi orizzontali;
+  - nuoto come `Creature`: fase che avanza con `swimFrequency × clamp(velocità / crociera, 0.35, 3)`, ampiezza `clamp(0.6 + 0.4 × passo, 0.5, 1.4)`, piega dalla virata orizzontale (`fullBendTurnRate`, fino a 1.6 e più rapida in panico, stesso segno della `Creature`);
+  - cull e LOD sulla camera: sfera di raggio `cullRadius × scala` contro i sei piani, niente oltre `cullDistance`. Sotto `lod1Distance − lodFadeWidth / 2` solo LOD0, sopra `lod1Distance + lodFadeWidth / 2` solo LOD1, in mezzo tutti e due a retino complementare (vedi `_Fade` nello shader); negli ultimi `cullFadeWidth` metri LOD1 si dissolve. Ogni voce della lista contiene la matrice oggetto→mondo (righe di una 3×4, rotazione dalla rotta con l'alto del mondo, scala per pesce da `sizeRange`), fase, ampiezza, piega, lampo e dissolvenza.
+- Campi Inspector:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `manager` | `CreatureManager` | null | Sorgente della posizione del sub e dei fasci. Vuoto = il banco nuota ma non reagisce (warning) |
+| `simulation` | `ComputeShader` | null | `FishSchool.compute`. Obbligatorio |
+| `mesh` | `Mesh` | null | Mesh del LOD0, lungo +Z come per lo shader Fish. Obbligatoria |
+| `meshLod1` | `Mesh` | null | Mesh del LOD1, allineata al LOD0. Vuota = LOD0 fino al cull |
+| `material` | `Material` | null | Materiale `Deeplonauts/Fish` (lo stesso delle entità). Obbligatorio |
+| `viewCamera` | `Camera` | null | Camera del cull e del LOD. Vuota = `Camera.main` in `Start`; senza camera nessun cull sull'inquadratura |
+| `count` | int [1, 8192] | 500 | Numero di pesci; cambiarlo in Play rialloca e ridispone il banco |
+| `volumeExtents` | Vector3 | (6, 2, 6) | Semiassi dell'ellissoide (m) |
+| `volumeSoftness` | float [0.05, 1] | 0.3 | Fascia sotto il bordo, in frazione del semiasse, in cui parte il richiamo |
+| `containWeight` | float ≥ 0 | 4 | Richiamo al bordo (m/s²) |
+| `panicContainRelief` | float [0, 1] | 0.7 | Quanto cala il richiamo con il panico pieno |
+| `swirl` | float | 0.3 | Spinta tangente attorno all'asse verticale (m/s², il segno sceglie il verso) |
+| `sizeRange` | Vector2 | (0.85, 1.1) | Scala casuale di ogni pesce |
+| `seed` | int | 1 | Seme della disposizione iniziale |
+| `neighbourRadius` | float ≥ 0.1 | 1.2 | Raggio dei vicini per coesione e allineamento (m) |
+| `separationDistance` | float ≥ 0.05 | 0.45 | Distanza sotto cui due pesci si respingono (m) |
+| `separationWeight` | float ≥ 0 | 6 | Peso della separazione |
+| `cohesionWeight` | float ≥ 0 | 0.6 | Peso della coesione |
+| `alignmentWeight` | float ≥ 0 | 1.5 | Peso dell'allineamento |
+| `wanderWeight` | float ≥ 0 | 0.3 | Rumore di rotta (m/s²) |
+| `cruiseSpeed` | float ≥ 0.05 | 0.8 | Velocità a riposo (m/s); il lanternfish entità va a 1.2 |
+| `minSpeed` | float ≥ 0 | 0.4 | Velocità minima (m/s) |
+| `maxSpeed` | float ≥ 0.05 | 1.3 | Velocità massima senza panico (m/s) |
+| `panicSpeed` | float ≥ 0.05 | 3.5 | Velocità massima con il panico pieno (m/s) |
+| `maxAcceleration` | float ≥ 0.1 | 3 | Accelerazione massima a riposo (m/s²) |
+| `verticalDamping` | float ≥ 0 | 2 | Smorzamento della velocità verticale (1/s) |
+| `diverRadius` | float ≥ 0 | 3.5 | Raggio della bolla attorno al casco (m); 0 = nessuna |
+| `diverWeight` | float ≥ 0 | 12 | Spinta al centro della bolla (m/s²) |
+| `diverOffset` | Vector3 | (0, 1.2, 0) | Centro della bolla rispetto al `PlayerCapsule` (la camera è a +1.38) |
+| `strongLightWeight` | float ≥ 0 | 10 | Spinta fuori dal fascio Full (m/s²) |
+| `weakLightWeight` | float ≥ 0 | 5 | Spinta fuori dal fascio Low (m/s²) |
+| `flashWeight` | float ≥ 0 | 20 | Spinta fuori dal flash (m/s²) |
+| `beamMargin` | float ≥ 0 | 0.6 | Margine attorno al cono (m), doppio per il flash |
+| `beamConeScale` | float [0.1, 1] | 0.4 | Semi-angolo del cono che respinge, in frazione di quello del fascio |
+| `beamReachScale` | float [0.05, 1] | 1 | Portata del fascio per il banco, in frazione di quella dello stimolo |
+| `panicDecay` | float ≥ 0.05 | 1.5 | Costante di tempo del calo del panico (s) |
+| `swimFrequency` | float ≥ 0 | 2.5 | Colpi di coda al secondo alla crociera, come `Creature` |
+| `fullBendTurnRate` | float ≥ 1 | 120 | Virata (°/s) a piega piena, come `Creature` |
+| `panicGlow` | float ≥ 0 | 1.5 | Lampo dei fotofori a panico pieno; 0 = nessuno |
+| `lod1Distance` | float ≥ 0 | 8 | Distanza del passaggio a LOD1, al centro della dissolvenza (m) |
+| `lodFadeWidth` | float ≥ 0.01 | 1.5 | Larghezza della dissolvenza fra i LOD (m) |
+| `cullDistance` | float ≥ 1 | 35 | Distanza oltre cui i pesci non si disegnano (m), come la scomparsa del `LODGroup` dell'entità |
+| `cullFadeWidth` | float ≥ 0.01 | 4 | Dissolvenza prima del cull (m) |
+| `cullRadius` | float ≥ 0.05 | 0.35 | Raggio di un pesce per il cull sull'inquadratura (m) |
+
+- API pubbliche: `int Count { get; }`, `int AllocatedCount { get; }` (0 se spento), `int BeamCount { get; }` (fasci passati al compute nell'ultimo frame); per debug e verifica, con lettura sincrona dalla GPU che blocca il frame: `int ReadPositions(List<Vector3> output)` e `Vector2Int ReadDrawCounts()` (pesci disegnati in LOD0 e LOD1 nell'ultimo frame; nella fascia di dissolvenza un pesce conta in tutti e due). Nessun evento.
+- Gizmo (selezionato): l'ellissoide del volume e la sua fascia interna.
+- Riferimenti obbligatori: `simulation`, `mesh`, `material`; se mancano, o se la piattaforma non supporta i compute shader, warning e componente disabilitato. `manager` consigliato. Il materiale deve avere lo shader `Deeplonauts/Fish` con il percorso procedurale (sotto).
+
 ### Shader Deeplonauts/Fish
 - File: `Assets/_Project/Rendering/Shaders/Fish.shader`. URP lit scritto a mano sul modello di `Coral.shader`: passi `ForwardLit`, `ShadowCaster`, `DepthOnly`, `DepthNormals`, tutti con la stessa deformazione. `ForwardLit` e `DepthOnly` supportano il cross-fade a retino dei `LODGroup` (`LOD_FADE_CROSSFADE`), con il valore di dissolvenza per istanza (`#pragma instancing_options lodfade`). Senza quella riga, fino al 2026-10-14 sera, i pesci disegnati con l'instancing condividevano un solo valore di dissolvenza: quelli in transizione a circa 6 m potevano sparire di colpo, cosa che Manu ha visto avvicinandosi al banco. Coda `AlphaTest`, doppia faccia di default (le membrane delle pinne sono piani).
 - Requisiti della mesh: distesa lungo +Z con la testa verso +Z, pivot al centro, una sola mesh con un solo materiale. Niente ossa.
 - Nuoto (vertex): `u = saturate((_HeadZ - z) / _BodyLength)` va da 0 alla testa a 1 in coda; lo spostamento laterale su X è `_SwimAmplitude × _SwimAmount × lerp(_HeadAmplitude, 1, u²) × sin(_SwimPhase - u × _SwimWaves × 2π) + _BendAmount × _SwimBend × u²`. Le normali sono corrette con la derivata dello spostamento lungo Z.
 - Superficie: mappe di Painter nel formato *Unity URP (Metallic)*; alpha dell'albedo per le pinne con taglio a `_Cutoff`, oppure (`_FISH_DITHER`, acceso di default) con una soglia Bayer 4×4 tra 0 e `2 × _Cutoff`, che rende le membrane sfumate a retino come il finish analogico. Emissione = mappa × `_EmissionColor` (fotofori).
 - Proprietà per istanza (`UNITY_INSTANCING_BUFFER`): `_SwimPhase` (rad), `_SwimAmount`, `_SwimBend` (-1.6..1.6), `_GlowBoost` (lampo dello spavento: emissione × (1 + valore)), `_Fade` (dal 2026-10-16: dissolvenza d'entrata del nido, 1 = opaco; sotto 1 taglia tutto il pesce con la stessa soglia Bayer, in tutti i pass compresa l'ombra), scritte da `Creature`. Con il `MaterialPropertyBlock` i pesci escono dallo SRP Batcher e vengono disegnati con il GPU instancing del materiale.
+- Percorso del banco (dal 2026-10-16, task 7c): tutti i pass hanno `#pragma instancing_options procedural:FishSchoolSetup`, che aggiunge la variante `PROCEDURAL_INSTANCING_ON` usata da Unity per `Graphics.RenderMeshIndirect`. In quella variante le proprietà per istanza qui sopra diventano variabili statiche e `FishSchoolSetup` (chiamata da `UNITY_SETUP_INSTANCE_ID` nel vertex e nel fragment) le riempie dalla voce `unity_InstanceID` di `StructuredBuffer<FishSchoolDraw> _SchoolDraws` (la lista del LOD, legata da `FishSchool` con un `MaterialPropertyBlock`), insieme a `unity_ObjectToWorld` e `unity_WorldToObject` (inversa calcolata come trasposta diviso il quadrato della scala). Il resto dello shader è lo stesso per entità e banco. La struttura `FishSchoolDraw` (3 righe della matrice, `swim` = fase, ampiezza, piega, lampo; `fade.x`) deve coincidere con `FishDraw` del compute. Le varianti `INSTANCING_ON` e `LOD_FADE_CROSSFADE` delle entità non cambiano.
+- `_Fade` negativo (dal 2026-10-16, solo il banco): tiene le celle Bayer complementari, cioè quelle con soglia ≥ 1 + `_Fade`. Nella fascia fra i LOD il compute dà al LOD0 `1 − t` e al LOD1 `−t`, così ogni pixel è coperto da uno solo dei due. Per le entità `_Fade` è sempre fra 0 e 1 e il comportamento è quello di prima.
 
 | Proprietà | Default | Significato |
 |---|---|---|
@@ -505,13 +579,16 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 3. Uno o più `CreatureNest` con `manager` e `profile` assegnati, appoggiati in acqua libera.
 4. Le rocce devono stare su un layer incluso in `obstacleMask` (oggi sono su Default).
 5. Pesce senza ossa con nuoto nello shader: mesh unica lungo +Z, materiale `Deeplonauts/Fish` con GPU instancing acceso, `_HeadZ` e `_BodyLength` sulle misure della mesh, renderer (uno per livello di LOD) in `swimRenderers` della `Creature`. Con un LOD: `LODGroup` sulla radice in Cross Fade, mesh dei livelli allineate fra loro, soglie calcolate per la camera del sub (FOV stretto e `lodBias` 2 spostano molto le distanze).
-6. Corpo lungo con `SwimChain`: `SwimChain` sulla radice accanto a `Creature`, `bones` in ordine dalla testa alla coda con la prima figlia della radice nell'origine (è il punto che guida), corpo dritto lungo -Z nella posa di riposo, `visibilityRenderer` = lo `SkinnedMeshRenderer`. Requisiti del modello del viperfish concordati con Manu il 2026-10-14: corpo dritto lungo -Y in Blender con la testa in avanti, 24-30 loop regolari, ossa `Head`, `Spine_01` … `Spine_09`, `Tail` a distanza regolare, osso `Jaw` figlio di `Head` con il pivot sulla cerniera della mandibola, mesh e materiale unici, interno della bocca modellato.
+6. Banco sulla GPU (task 7c): GameObject vuoto in acqua libera con `FishSchool`; `manager` = il `CreatureManager` della scena, `simulation` = `FishSchool.compute`, `mesh` / `meshLod1` = le mesh del pesce e del suo LOD, `material` = il materiale dell'entità (`Deeplonauts/Fish`). Scegliere `volumeExtents` in modo che l'ellissoide **allargato di 1.2** (il limite duro) non tocchi rocce né fondale: per esempio campionando la superficie con `Physics.CheckSphere` (raggio 0.2) sui layer di `obstacleMask`.
+7. Corpo lungo con `SwimChain`: `SwimChain` sulla radice accanto a `Creature`, `bones` in ordine dalla testa alla coda con la prima figlia della radice nell'origine (è il punto che guida), corpo dritto lungo -Z nella posa di riposo, `visibilityRenderer` = lo `SkinnedMeshRenderer`. Requisiti del modello del viperfish concordati con Manu il 2026-10-14: corpo dritto lungo -Y in Blender con la testa in avanti, 24-30 loop regolari, ossa `Head`, `Spine_01` … `Spine_09`, `Tail` a distanza regolare, osso `Jaw` figlio di `Head` con il pivot sulla cerniera della mandibola, mesh e materiale unici, interno della bocca modellato.
 
 ## Configurazione verificata in prefab e scene
 In `SCN_Gameplay.unity` (2026-10-13):
 - Il vecchio GameObject `EntityPooler` (con `EntityPooler` ed `EntitySpawner`) è stato rimosso.
 - Al suo posto `Creatures` con `CreatureManager` (`player` = `DiverStimulusSource` del `PlayerCapsule`, `neighbourCellSize` 1, altri campi ai default) e il figlio `Nest_Lanternfish` in (-5, 2.51, -14), nel corridoio del prato di penne a 11 m dalla capsula, 1.5 m sopra il fondale: profilo `Creature_Lanternfish`, `count` 100 (12 fino al 2026-10-14, quando Manu ha scelto 100 dopo gli stress test), `spawnRadius` 6.81, `leashRadius` 12, `maxHeightAboveNest` 2.87 (soffitto a Y 5.4; 6 e 3 fino alle modifiche di Manu del 2026-10-15/16), campi del ricambio ai default. Il primo giorno si chiamava `Nest_TestCubes`, stava in (0, 2.5, 0) tra le rocce accanto alla capsula e usava `Creature_TestCube`: lì metà del fondale entro 15 m sta sopra Y 6.4 e i pesci salivano lungo le pareti del canyon (mediana Y 8.9 contro il sub a 0.1).
 - Secondo figlio `Nest_Lanternfish (1)` (nome da duplicato, aggiunto da Manu il 2026-10-15/16) in (-5, 2.51, -26.83), 12.8 m oltre il nido dei lanternfish lungo il corridoio: profilo `Creature_Viperfish`, `count` 4 (10 nella prova di Manu, ridotto il 2026-10-16 perché il nido dei lanternfish non teneva il passo con la caccia), `spawnRadius` 6.81, `leashRadius` 12, `maxHeightAboveNest` 2.87. Nuovi campi del ricambio ai default. Rotazione nulla per entrambi i nidi: le creature escono verso +Z.
+
+- Terzo figlio `FishSchool_Lanternfish` (2026-10-16, task 7c) in (-7.5, 3.8, -19), nel corridoio fra i due nidi, layer `Entity`, rotazione nulla: `FishSchool` con `manager` = `CreatureManager` di `Creatures`, `simulation` = `FishSchool.compute`, `mesh` = `MSH_LanternFish`, `meshLod1` = `MSH_LanternFish_LOD1`, `material` = `M_LanternFish`, `count` 500, `volumeExtents` (2.5, 1.2, 5), `beamReachScale` 1, il resto ai default del codice. Il volume va da Y 2.6 a 5.0 (limite duro 2.4-5.2) sopra un fondale a Y 0.4-1.6: il sub, che cammina sul fondo con il casco a circa Y 1.9, passa sotto il banco e la bolla lo apre. Controllo dell'ellissoide con 2000 punti di superficie e sfere di 0.2 m: nessun contatto fino a 1.2 volte i semiassi (spostando il centro di 0.2 m verso -X compaiono 23 contatti con la parete del canyon a 1.2).
 
 Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con i default del codice; dal 2026-10-15 anche `DiverBiteReceiver`, con i default del codice; spia `PlayerCapsule/TorchPivot/EmergencyLight` assegnata a `DiverFlashlight` (vedi [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)).
 
@@ -564,6 +641,13 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - La griglia del prato si costruisce una volta in `Start`: penne aggiunte o spostate in Play non vengono viste.
 - Il soffitto è una quota assoluta per nido: in una mappa a canyon funziona se il nido sta nel fondo piano. Un nido sul fianco di una parete ha bisogno di un soffitto più alto.
 - Lo stato `Flee` non ha ancora un costo (stamina rimossa): una creatura scappa finché percepisce il sub.
+- **Banco senza collisioni:** `FishSchool` non conosce rocce e fondale; il limite duro a 1.2 volte i semiassi è l'unica garanzia. Il volume va messo in acqua libera con quel margine (vedi *Setup*).
+- **Banco O(n²):** ogni pesce guarda tutti gli altri. Misurato fino a 2000 (0.18 ms di compute); per molti più pesci per banco serve una griglia sulla GPU. Meglio più banchi piccoli che uno enorme.
+- **Banco e lanternfish entità reagiscono al contrario alla luce:** le entità si avvicinano (`Approach`, come i mictofidi veri), il banco scansa il fascio, come chiesto dalla task 7c. Le due forme non si vedono tra loro: il banco non è nella griglia dei vicini né negli stimoli, e il viperfish non lo caccia.
+- **Fascio lungo il volume:** il cono che respinge si allarga con la distanza; se la torcia punta lungo l'asse lungo di un volume stretto, il banco si apre a tunnel attorno all'asse ma i pesci restano in parte nella luce perché non hanno dove andare (misure in *Verifica*). Vicino alla lampada (entro circa 2.5 m) il cono è largo appena 1 m e qualche pesce resta a 0.6-1 m dall'asse, al bordo della bolla del sub.
+- **Cull e LOD sulla sola `viewCamera`:** la Scene view e le altre camere vedono i pesci scelti per la camera del sub. Niente ombre (come le entità).
+- **Densità:** il volume della scena (63 m³) è pensato per 500 pesci (distanza media fra vicini 0.38 m). Con 2000 nello stesso volume il banco è un ammasso compatto e il disegno costa 9 volte di più per la sovrapposizione: per più pesci va allargato il volume.
+- **Scrittura di `unity_ObjectToWorld` nella variante procedurale:** verificata con Direct3D12, come negli esempi di instancing procedurale di URP; non provata con Vulkan, Metal o console.
 
 ## Verifica
 Verifica del 2026-10-13 in Editor, Play Mode in `SCN_Gameplay`, durante il prologo (sub nella capsula):
@@ -720,6 +804,27 @@ Morso e caccia (2026-10-15, Play in `SCN_Gameplay`, sub spostato a mano nel corr
 Espressività del viperfish (2026-10-15, Play, luce `Red`, camera temporanea con il post-processing del sub accanto al pesce, aggressività forzata a 1 per riflessione per la seconda foto): calmo puntini giallo-arancio ed esca all'indietro; ad aggressività piena puntini rossi, occhio postorbitale rosso, bocca spalancata, pinna dorsale alzata ed esca sopra gli occhi con il bulbo quasi bianco; `_EmissionColor` (9.1, 1.8, 1.5) nella pulsazione; occhio dal lato del sub a 9° dalla direzione del casco; slancio con lampeggio rosso e morso a segno. Compilazione e console senza errori.
 
 Colore dei fotofori in gioco (2026-10-15 sera). Manu vedeva i viperfish sempre arancione chiaro. Cause trovate: (1) seduto nella capsula la lampada è coperta, aggressività 0 per tutti i 10 viperfish del nido aggiunto da Manu; (2) fuori dalla capsula, con 100 lanternfish vicini, i viperfish cacciavano e in caccia l'aggressività non saliva; (3) `SetColor` gonfiava l'emissione (vedi *CreatureGlow*) e il `angryColor` del prefab, (944, 234, 49), è arancione e circa 100 volte il default. Dopo le correzioni (1 resta voluto), con la torcia `Full` fuori dalla capsula l'aggressività media dei 10 viperfish sale a 0.6-0.8 in 20 s e uno morde; in luce rossa con i default calmo arancio-giallo, aggressivo rosso; con (944, 234, 49) giallo-crema bruciato.
+
+Banco GPU (2026-10-16, task 7c, Play in `SCN_Gameplay`, Editor con `Application.runInBackground = true`, NVIDIA GeForce RTX 4070 Laptop, Direct3D12, Game view 496 × 279). Sub spostato a mano nel corridoio, misure lette con `ReadPositions` e `ReadDrawCounts`:
+- Compilazione, shader e compute senza errori; console senza errori. Il banco si vede dalla camera del sub con lo stesso materiale dell'entità; i lanternfish entità restano disegnati come prima (nello stesso screenshot).
+- Fascio Full dal fondo a 11 m davanti al banco, puntato verso il centro: pesci entro 1 m dall'asse del fascio 240 con la luce `Red`, 0 dopo 4 s di `Full`; nel cono che respinge da 431 a 282. Prima della correzione (cono pieno da 57° e portata 15 m) il banco restava tutto nella luce: da 386 a 266 nel cono interno, perché il fascio copriva l'intero volume e il richiamo lo teneva dentro. Nello screenshot il banco si apre a mezzaluna attorno all'asse.
+- Bolla: sub sotto il centro del banco, luce `Red`. Pesci entro 2.5 m dal casco da 198 (stessa zona prima che arrivasse il sub) a 2, distanza minima da 0.53 m a 2.47 m; entro 3.5 m da 475 a 422, perché sopra il limite duro i pesci non hanno spazio: la bolla utile è di circa 2.5 m. Dal casco si vede un soffitto di pesci aperto sopra la testa.
+- Fascio puntato in alto da sotto: entro 1 m dall'asse da 51 a 28, tutti a 1.5-2.7 m dalla lampada (al bordo del cono, vedi *Limiti*).
+- Rocce: 0 pesci con il centro nella roccia e 0 entro 25 cm da una superficie, con 500 e con 2000 pesci, anche sotto la spinta della bolla; distanza massima dal centro 1.20 volte i semiassi (il limite duro); Y minima 2.68 contro un fondale a 0.4-1.6.
+- Costo CPU: `LateUpdate` 0.010 ms con 500 e 0.009 ms con 2000 (media di 20 chiamate per riflessione).
+- Costo GPU del compute, 50 dispatch seguiti da una lettura sincrona, meno la lettura a vuoto: 0.072 ms con 500 pesci, 0.185 ms con 2000.
+- Costo GPU del disegno, ricavato ripetendo 20 volte le due draw indirette in un `CommandBuffer` su una RT 1920 × 1080 con le matrici della camera del sub, meno l'esecuzione a vuoto (solo il pass `ForwardLit`, senza prepass di profondità):
+
+| Vista | Pesci | Disegnati LOD0 / LOD1 | Disegno |
+|---|---|---|---|
+| Davanti al banco, a 9-14 m | 500 | 36 / 500 | 0.10 ms |
+| Davanti al banco, a 9-14 m | 2000 | 169 / 1995 | 0.90 ms |
+| Sotto il banco, guardando in su | 500 | 145 / 0 | 0.20 ms |
+| Sotto il banco, guardando in su | 2000 | 477 / 0 | 0.40 ms |
+
+- Tempo GPU del frame (FrameTimingManager): oscilla fra circa 0.5 e 1.45 ms anche con il banco spento (stati di clock del portatile), quindi non separa il banco dal resto. Per questo il disegno è misurato a parte come sopra.
+
+Non verificato per il banco: build standalone, Vulkan, aspetto con la torcia `Low` da vicino (portata 8 m), più banchi in scena, banco visto mentre il sub cammina davvero (il sub è stato spostato a mano), costo del prepass di profondità.
 
 Non verificato: costo del lanternfish con lo shader (draw call e instancing) degli impulsi d'allarme e della griglia dei vicini con centinaia di pesci (benchmark con l'Editor in primo piano), tocco lungo su F con la tastiera vera, rumore con il diver che cammina davvero, build standalone (i tempi in build saranno più bassi che in Editor), creature con il sub fuori dalla capsula e in movimento, comportamento a livello `Far`.
 
