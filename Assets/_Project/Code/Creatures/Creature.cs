@@ -132,6 +132,9 @@ namespace Deeploration.Creatures
         private float floorY = float.NaN;
         private Vector3 avoidDirection;
         private float avoidWeight;
+        // Ultima posizione in cui il corpo non toccava ostacoli, per uscirne dalla parte da cui è entrato.
+        private Vector3 lastFreePosition;
+        private bool hasFreePosition;
 
         /// <summary>Profilo con cui la creatura è stata presa dal pool.</summary>
         public CreatureProfile Profile => profile;
@@ -223,6 +226,7 @@ namespace Deeploration.Creatures
             perceived = StimulusCategory.None;
             floorY = float.NaN;
             avoidWeight = 0f;
+            hasFreePosition = false;
             Lod = CreatureLod.Near;
             swimPhase = Random.value * 2f * Mathf.PI;
             swimBend = 0f;
@@ -543,18 +547,34 @@ namespace Deeploration.Creatures
                 cachedTransform.position = position;
             }
 
-            // Lo SphereCast ignora i collider in cui parte già immerso: se il corpo è dentro un ostacolo (per
-            // esempio nell'involucro di un collider convesso) esce allontanandosi dal suo centro, verso l'alto.
+            // Lo SphereCast ignora i collider in cui parte già immerso. Se il corpo tocca un ostacolo torna
+            // all'ultima posizione libera e riparte da lì, dalla parte da cui è entrato: spingerlo sempre in alto
+            // lo faceva attraversare le sporgenze da sotto, sparendo nella roccia e riapparendo sopra. Senza una
+            // posizione libera (appena uscito dal pool dentro un ostacolo) esce allontanandosi dal centro, in alto.
             int overlaps = Physics.OverlapSphereNonAlloc(position, profile.bodyRadius, OverlapBuffer, mask,
                 QueryTriggerInteraction.Ignore);
             if (overlaps > 0)
             {
-                Vector3 away = position - OverlapBuffer[0].bounds.center;
-                away.y = Mathf.Max(away.y, 0f);
-                avoidDirection = (away.normalized + Vector3.up).normalized;
+                Vector3 away;
+                if (hasFreePosition)
+                {
+                    away = lastFreePosition - position;
+                    position = lastFreePosition;
+                    cachedTransform.position = position;
+                    if (away.sqrMagnitude < 1e-6f) away = -heading;
+                }
+                else
+                {
+                    away = position - OverlapBuffer[0].bounds.center;
+                    away.y = Mathf.Max(away.y, 0f);
+                    away = away.normalized + Vector3.up;
+                }
+                avoidDirection = away.normalized;
                 avoidWeight = 1f;
                 return;
             }
+            lastFreePosition = position;
+            hasFreePosition = true;
 
             float lookDistance = profile.bodyRadius + Mathf.Max(1f, speed * profile.lookAhead);
             if (Physics.SphereCast(position, profile.bodyRadius, heading, out RaycastHit hit, lookDistance, mask,

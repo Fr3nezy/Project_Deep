@@ -6,7 +6,7 @@ namespace Deeploration.Creatures
     /// Fotofori che cambiano con l'umore della creatura: moltiplica l'emissione del materiale (la mappa dà la forma
     /// dei puntini) con un colore e una pulsazione che dipendono da stato e aggressività. Calma: colore della mappa
     /// (arancione per il viperfish), pulsazione lenta. Aggressività piena: rosso, pulsazione veloce. Slancio:
-    /// rosso acceso che lampeggia. Il colore e l'intensità cambiano insieme, così il segnale si legge anche dove il
+    /// rosso acceso che lampeggia. In caccia l'umore non scende sotto <c>huntMood</c>, anche lontano dal sub. Il colore e l'intensità cambiano insieme, così il segnale si legge anche dove il
     /// rosso si confonde (luce rossa della torcia, daltonismo). I colori sono moltiplicatori lineari, come
     /// l'_EmissionColor salvato nel materiale: (8, 8, 8) = mappa per 8.
     /// </summary>
@@ -40,6 +40,10 @@ namespace Deeploration.Creatures
         [Tooltip("Intensità in caccia, rispetto al riposo: l'esca si accende per attirare la preda.")]
         [SerializeField, Min(0f)] private float huntBoost = 1.4f;
 
+        [Tooltip("Umore minimo in caccia (0 = calma, 1 = aggressività piena): l'aggressività sale solo con il sub, " +
+                 "così senza questo minimo la caccia alle prede resterebbe del colore della calma.")]
+        [SerializeField, Range(0f, 1f)] private float huntMood = 0.8f;
+
         [Tooltip("Intensità in fuga, rispetto al riposo.")]
         [SerializeField, Range(0f, 1f)] private float fleeDim = 0.4f;
 
@@ -69,6 +73,7 @@ namespace Deeploration.Creatures
             float dt = Time.deltaTime;
             CreatureState state = creature != null ? creature.State : CreatureState.Wander;
             float aggression = creature != null ? creature.Aggression : 0f;
+            if (state == CreatureState.Hunt) aggression = Mathf.Max(aggression, huntMood);
             mood = Mathf.Lerp(mood, aggression, 1f - Mathf.Exp(-responsiveness * dt));
 
             Color color = Color.Lerp(calmColor, angryColor, mood);

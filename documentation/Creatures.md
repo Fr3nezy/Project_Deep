@@ -1,5 +1,5 @@
 # Creatures
-Ultima verifica: 2026-10-15
+Ultima verifica: 2026-10-16
 
 ## Scopo e confini
 Fa vivere la fauna della slice: le creature escono dai nidi, vagano attorno a casa evitando rocce e fondale e reagiscono agli stimoli del sub: la luce della torcia, il rumore dei passi e la scia luminosa del prato di penne. Il sistema è progettato per molte creature a basso costo: un solo componente per creatura, un solo ciclo di aggiornamento per tutta la scena, livelli di dettaglio dell'intelligenza (LOD) e pool senza allocazioni a regime.
@@ -191,7 +191,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Percezione (in `think`): fra gli stimoli del frame (`CreatureManager.Stimuli`) sceglie il più forte, cioè quello con il rapporto distanza / portata più basso, dove la portata è `Radius` × sensibilità della specie (`lightSensitivity` per le luci, `hearingSensitivity` per i rumori). Un rumore conta se la creatura è entro la portata, attraverso gli ostacoli. Una luce conta se la creatura è entro la portata **e** dentro il fascio (`ConeCos`) o entro l'alone (`HaloRadius` × sensibilità), **e** se il raggio dalla sorgente alla creatura (lungo distanza meno `bodyRadius`) non tocca `obstacleMask`. Il raggio parte solo quando i controlli economici sono passati e lo stimolo batterebbe il migliore trovato. Gli stimoli emessi dalla creatura stessa (`Emitter`) sono ignorati. Per ogni stimolo la reazione è `profile.ReactionTo(categoria)`: gli stimoli ignorati non vengono nemmeno valutati, uno che spaventa vince sempre su uno che attira, a parità di reazione vince il più forte. La paura vince anche nel tempo: chi è in `Flee` non passa a `Inspect` finché non si è calmato.
 - Raggi (in `probe`):
   - raggio verso il basso (100 m) per la quota del fondale. Se non trova niente ma dall'alto c'è una superficie, la creatura è finita sotto il terreno e viene riportata all'altezza preferita (paracadute);
-  - `OverlapSphereNonAlloc` sul corpo: se è dentro un ostacolo (per esempio nell'involucro di un collider convesso) esce allontanandosi dal centro del collider e verso l'alto;
+  - `OverlapSphereNonAlloc` sul corpo: se tocca un ostacolo torna all'ultima posizione libera (salvata a ogni raggio senza contatti) e punta da lì, cioè esce dalla parte da cui è entrata. Solo se non ha ancora una posizione libera (appena uscita dal pool dentro un ostacolo) esce allontanandosi dal centro del collider e verso l'alto. Fino al 2026-10-16 usava sempre l'uscita verso l'alto: un pesce entrato da sotto uno sbalzo saliva attraverso tutta la roccia, sparendo e riapparendo sopra (misurato: 54 attraversamenti in 50 s con 100 lanternfish, 0 dopo la correzione);
   - altrimenti `SphereCast` in avanti lungo `bodyRadius + max(1, speed × lookAhead)`: se colpisce, scivola lungo la superficie staccandosene, solo sul piano orizzontale e con peso crescente man mano che si avvicina. La quota resta decisa dalla correzione di quota: così un pendio che sale oltre il soffitto diventa una parete da aggirare, non una rampa.
 - Moto (ogni frame): la rotta orizzontale viene dallo stato, la componente verticale dalla correzione di quota (limitata a ±0.5). La correzione punta a `fondale + heightAboveFloor`, ma mai sopra il soffitto ricevuto dal nido; sopra il soffitto la creatura scende sempre, anche dentro `heightTolerance`. Vicino a un ostacolo la velocità scende fino al 40% e la virata sale fino al triplo. La rotta ruota verso quella desiderata a `turnRate`, la velocità tende al bersaglio con `acceleration`, la posizione non scende mai sotto `fondale + bodyRadius`.
 - Campi Inspector (solo per il modello provvisorio; tutto il resto arriva da profilo e nido):
@@ -374,7 +374,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Ordine: la mandibola è figlia di `Head`, che `SwimChain` non scrive, quindi le due rotazioni non si pestano.
 
 ### CreatureGlow
-- Responsabilità e ciclo di vita: sulla radice della creatura accanto a `Creature`. In `LateUpdate` scrive `_EmissionColor` sui `renderers` con un `MaterialPropertyBlock`: la mappa di emissione del materiale dà la forma dei fotofori, il colore la moltiplica. L'umore visibile insegue l'aggressività con `responsiveness`; colore, frequenza e profondità della pulsazione vanno da `calmColor`, `pulseFrequency.x`, `pulseDepth.x` a `angryColor`, `pulseFrequency.y`, `pulseDepth.y`. In `Strike` usa `strikeColor` e lampeggia a onda quadra a `strikeStrobe`; in `Hunt` moltiplica per `huntBoost` con almeno 1 pulsazione al secondo; in `Flee` per `fleeDim`. Colore e intensità cambiano insieme, così il segnale si legge anche dove il rosso si confonde (luce rossa, daltonismo). Scrive solo se almeno un renderer è visibile. I colori sono moltiplicatori lineari passati con `SetVector`, come l'`_EmissionColor` salvato nel materiale: (8, 8, 8) = mappa per 8. Fino al 2026-10-15 sera passavano con `SetColor`, che in spazio colore Linear tratta il colore come gamma e lo eleva a 2.2: con valori HDR l'emissione esplodeva (il bianco ×8 diventava ×97) e il colore si bruciava in un arancione chiaro.
+- Responsabilità e ciclo di vita: sulla radice della creatura accanto a `Creature`. In `LateUpdate` scrive `_EmissionColor` sui `renderers` con un `MaterialPropertyBlock`: la mappa di emissione del materiale dà la forma dei fotofori, il colore la moltiplica. L'umore visibile insegue l'aggressività con `responsiveness`; colore, frequenza e profondità della pulsazione vanno da `calmColor`, `pulseFrequency.x`, `pulseDepth.x` a `angryColor`, `pulseFrequency.y`, `pulseDepth.y`. In `Strike` usa `strikeColor` e lampeggia a onda quadra a `strikeStrobe`; in `Hunt` l'umore insegue almeno `huntMood` e l'intensità si moltiplica per `huntBoost`, con almeno 1 pulsazione al secondo (l'aggressività sale solo con luce e rumore del sub, quindi fino al 2026-10-16 la caccia ai lanternfish lontano dal sub restava del colore della calma); in `Flee` per `fleeDim`. Colore e intensità cambiano insieme, così il segnale si legge anche dove il rosso si confonde (luce rossa, daltonismo). Scrive solo se almeno un renderer è visibile. I colori sono moltiplicatori lineari passati con `SetVector`, come l'`_EmissionColor` salvato nel materiale: (8, 8, 8) = mappa per 8. Fino al 2026-10-15 sera passavano con `SetColor`, che in spazio colore Linear tratta il colore come gamma e lo eleva a 2.2: con valori HDR l'emissione esplodeva (il bianco ×8 diventava ×97) e il colore si bruciava in un arancione chiaro.
 - Campi Inspector:
 
 | Campo | Tipo | Default | Significato |
@@ -387,6 +387,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 | `pulseDepth` | `Vector2` | (0.3, 0.5) | Profondità della pulsazione a riposo e ad aggressività piena |
 | `strikeStrobe` | float ≥ 0 | 9 | Lampeggi al secondo nello slancio |
 | `huntBoost` | float ≥ 0 | 1.4 | Intensità in caccia rispetto al riposo |
+| `huntMood` | float [0, 1] | 0.8 | Umore minimo in caccia: colore e pulsazione vicini all'aggressività piena anche quando il sub non provoca |
 | `fleeDim` | float [0, 1] | 0.4 | Intensità in fuga rispetto al riposo |
 | `responsiveness` | float ≥ 0.1 | 2 | Velocità con cui l'umore visibile insegue l'aggressività (1/s) |
 
@@ -531,7 +532,8 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - **Rocce sul layer Default:** nessun oggetto usa il layer `Obstacle`. Per questo `obstacleMask` include Default. Ogni collider su Default (anche non roccia) blocca le creature.
 - Le creature `Far` non lanciano raggi: se una creatura nasce lontana, la quota del fondale resta sconosciuta finché non passa a `Mid`.
 - Lo spawn scarta i punti sotto qualsiasi superficie vista dall'alto, quindi anche quelli sotto uno sbalzo di roccia. Un nido in un crepaccio coperto (previsto nella task dei nidi) ripiegherà sul proprio centro: da rivedere in quella task.
-- Il recupero da dentro un ostacolo usa il centro dei bounds del collider: con collider molto grandi o concavi la direzione di uscita è approssimativa.
+- Il recupero da dentro un ostacolo usa il centro dei bounds del collider solo per una creatura appena uscita dal pool, che non ha ancora una posizione libera: con collider molto grandi o concavi quella direzione di uscita è approssimativa.
+- **Prede mangiate:** una preda presa dal predatore torna nel pool all'istante e il nido non la rimpiazza, quindi il banco si assottiglia. Misurato il 2026-10-16 in `SCN_Gameplay` con 10 viperfish e 100 lanternfish: 11-13 lanternfish mangiati al minuto. A vista il pesce sparisce di colpo vicino alla bocca. Il rimpiazzo arriva con la task dei nidi (spawn fuori vista).
 - Il flash dura 0.4 s: le creature `Far` (un ragionamento ogni 16 frame) possono perderlo; quelle `Mid` lo vedono.
 - In `Inspect` la creatura ignora guinzaglio e casa: con la torcia accesa a lungo un banco può seguire il sub lontano dal nido (resta il soffitto). Al ritorno in `Wander` il richiamo verso casa la riporta indietro.
 - Le creature si evitano solo fra compagni della stessa specie (separazione del banco). Non evitano le altre specie né gli organismi senza collider (coralli bambù, penne), che attraversano.
@@ -549,6 +551,11 @@ Verifica del 2026-10-13 in Editor, Play Mode in `SCN_Gameplay`, durante il prolo
 - 12 cubi vagano attorno al nido seguendo il fondale. Sui pendii e sulle rocce la quota sale con il terreno.
 - Fuga: un cubo messo a 2.5 m dal sub passa a `Flee` e accelera; dopo `calmDelay` torna a `Wander`.
 - Compenetrazione, con 300 cubi dopo 30 s: 0 dentro la geometria, 1 a contatto (in uscita), 1 sotto uno sbalzo (legittimo). Prima delle correzioni di spawn e recupero erano 52 sepolti su 300.
+
+Verifica del 2026-10-16 in Editor, Play Mode in `SCN_Gameplay` (100 lanternfish, 10 viperfish), con un monitor temporaneo che ogni frame controllava ogni lanternfish:
+- Centro del pesce dentro la roccia: 54 episodi in 50 s prima della correzione del recupero (quasi tutti su `SM_Slope_low (6)`, in `Wander` a LOD `Mid`), 0 in 57 s dopo. Restano 7 pesci "sotto una superficie" vista dall'alto: nuotano sotto sbalzi, fuori dalla roccia.
+- Salti di posizione oltre la velocità del pesce: 0. Pesci che spariscono restando nell'inquadratura: 1 in 57 s, a 44 m (scomparsa del LOD).
+- `CreatureGlow` del viperfish in `Hunt`: dopo la rampa di circa 1 s il colore passa al rosso anche lontano dal sub (2345 campioni rossi contro 1127 arancioni, questi ultimi nella rampa).
 
 Costo misurato con `CreatureBenchmark` (Editor, Mono, 10 s dopo 3 s di riscaldamento). "Update" e "FixedUpdate" sono il tempo totale degli script di quel ciclo, quindi includono anche gli altri sistemi della scena. Il riferimento a vuoto è Update circa 0.5 ms e GC circa 19-29 KB/frame.
 
