@@ -199,11 +199,12 @@ Shader "Deeplonauts/Fish"
             #pragma multi_compile_fragment _ _SCREEN_SPACE_OCCLUSION
             #pragma multi_compile_fragment _ _LIGHT_COOKIES
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
-            // per-instance LOD fade: without it an instanced batch shares one fade value and fish vanish mid-fade
-            #pragma instancing_options lodfade
             #pragma multi_compile_fog
             #pragma multi_compile_instancing
-            #pragma instancing_options procedural:FishSchoolSetup
+            // One line for both options: per-instance LOD fade (without it an instanced batch shares one fade
+            // value and fish vanish mid-fade) and the school's procedural setup. On two separate lines the second
+            // replaced the first and the entity fish vanished again while crossing their LOD distance.
+            #pragma instancing_options lodfade procedural:FishSchoolSetup
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #if defined(LOD_FADE_CROSSFADE)
@@ -403,10 +404,9 @@ Shader "Deeplonauts/Fish"
             #pragma fragment Frag
             #pragma shader_feature_local _FISH_DITHER
             #pragma multi_compile_fragment _ LOD_FADE_CROSSFADE
-            // per-instance LOD fade: without it an instanced batch shares one fade value and fish vanish mid-fade
-            #pragma instancing_options lodfade
             #pragma multi_compile_instancing
-            #pragma instancing_options procedural:FishSchoolSetup
+            // one line for both, as in ForwardLit
+            #pragma instancing_options lodfade procedural:FishSchoolSetup
 
             #if defined(LOD_FADE_CROSSFADE)
                 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
