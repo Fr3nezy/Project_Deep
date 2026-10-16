@@ -17,8 +17,17 @@ namespace Deeploration.Creatures
     /// disegnano LOD0 e LOD1 con il conteggio scritto dalla GPU. La CPU non legge mai i pesci.
     /// </para>
     /// Niente collisioni: il volume va tenuto in acqua libera, lontano da rocce e fondale.
+    /// <para>
+    /// Con un <see cref="path"/> il volume viaggia lungo i waypoint (avanti e indietro, o in cerchio) a
+    /// <see cref="roamSpeed"/>, ruotando sull'asse verticale verso la direzione di marcia: i pesci lo seguono e il
+    /// banco si sposta invece di girare sempre nello stesso punto. Il percorso va tracciato in acqua libera.
+    /// </para>
+    /// Gira dopo la camera (<c>DiverController.RotateView</c> a ordine 0, <c>RotationalFollowThrough</c> a 200):
+    /// il cull sull'inquadratura usa la camera di questo frame, altrimenti girando la testa i pesci ai bordi
+    /// mancavano per un frame.
     /// </summary>
     [DisallowMultipleComponent]
+    [DefaultExecutionOrder(1000)]
     public sealed class FishSchool : MonoBehaviour
     {
         private const int Threads = 256;
@@ -85,6 +94,23 @@ namespace Deeploration.Creatures
 
         [Tooltip("Seme della disposizione iniziale.")]
         [SerializeField] private int seed = 1;
+
+        [Header("Spostamento")]
+        [Tooltip("Waypoint del percorso del banco, in acqua libera. Vuoto = il banco resta attorno a questo GameObject.")]
+        [SerializeField] private Transform[] path = new Transform[0];
+
+        [Tooltip("Acceso: dopo l'ultimo waypoint torna al primo. Spento: avanti e indietro.")]
+        [SerializeField] private bool loopPath;
+
+        [Tooltip("Velocità del volume lungo il percorso (m/s). Sotto la velocità di crociera dei pesci, che così lo seguono.")]
+        [SerializeField, Min(0f)] private float roamSpeed = 0.45f;
+
+        [Tooltip("Gradi al secondo con cui il volume si gira verso la direzione di marcia.")]
+        [SerializeField, Min(1f)] private float roamTurnRate = 20f;
+
+        [Tooltip("Quanto i pesci sono spinti nella direzione di marcia del volume (1/s): accelerazione = velocità del " +
+                 "volume × questo valore.")]
+        [SerializeField, Min(0f)] private float followWeight = 1.5f;
 
         [Header("Comportamento di banco")]
         [Tooltip("Distanza entro cui un pesce conta come vicino per coesione e allineamento (m).")]
@@ -185,6 +211,8 @@ namespace Deeploration.Creatures
         private static readonly int WorldToVolumeId = Shader.PropertyToID("_WorldToVolume");
         private static readonly int VolumeToWorldId = Shader.PropertyToID("_VolumeToWorld");
         private static readonly int VolumeCentreId = Shader.PropertyToID("_VolumeCentre");
+        private static readonly int VolumeVelocityId = Shader.PropertyToID("_VolumeVelocity");
+        private static readonly int FollowWeightId = Shader.PropertyToID("_FollowWeight");
         private static readonly int VolumeSoftnessId = Shader.PropertyToID("_VolumeSoftness");
         private static readonly int ContainWeightId = Shader.PropertyToID("_ContainWeight");
         private static readonly int PanicContainReliefId = Shader.PropertyToID("_PanicContainRelief");
@@ -230,6 +258,14 @@ namespace Deeploration.Creatures
         private int kernel;
         private int allocated;
 
+        // Volume in viaggio: centro, rotazione, velocità, waypoint verso cui va e verso di percorrenza (+1/-1).
+        private Vector3 centre;
+        private Quaternion volumeRotation;
+        private Vector3 volumeVelocity;
+        private int waypoint;
+        private int pathDirection = 1;
+        private bool volumeReady;
+
         private readonly Plane[] planes = new Plane[6];
         private readonly Vector4[] planeVectors = new Vector4[6];
         private readonly Vector4[] beamOrigins = new Vector4[MaxBeams];
@@ -244,6 +280,9 @@ namespace Deeploration.Creatures
 
         /// <summary>Fasci della torcia passati al compute nell'ultimo frame (0-4).</summary>
         public int BeamCount { get; private set; }
+
+        /// <summary>Centro attuale del volume del banco (si sposta lungo il percorso).</summary>
+        public Vector3 VolumeCentre => volumeReady ? centre : transform.position;
 
         private void Start()
         {
@@ -267,6 +306,12 @@ namespace Deeploration.Creatures
             if (manager == null)
                 Debug.LogWarning("[FishSchool] Manager non assegnato: il banco non reagirà al sub.", this);
             kernel = simulation.FindKernel("Simulate");
+            centre = transform.position;
+            volumeRotation = transform.rotation;
+            volumeVelocity = Vector3.zero;
+            waypoint = 0;
+            pathDirection = 1;
+            volumeReady = true;
             Allocate();
         }
 
@@ -338,14 +383,72 @@ namespace Deeploration.Creatures
             allocated = 0;
         }
 
-        private Matrix4x4 VolumeToWorld() => Matrix4x4.TRS(transform.position, transform.rotation,
-            Vector3.Max(volumeExtents, Vector3.one * 0.1f));
+        private Matrix4x4 VolumeToWorld() => Matrix4x4.TRS(volumeReady ? centre : transform.position,
+            volumeReady ? volumeRotation : transform.rotation, Vector3.Max(volumeExtents, Vector3.one * 0.1f));
+
+        /// <summary>
+        /// Fa avanzare il volume verso il waypoint corrente; arrivato a meno di 1 m passa al successivo (in cerchio o
+        /// avanti e indietro). Velocità e virata cambiano piano, così il banco non scatta.
+        /// </summary>
+        private void Roam(float deltaTime)
+        {
+            int valid = 0;
+            for (int i = 0; i < path.Length; i++) if (path[i] != null) valid++;
+            if (valid == 0 || roamSpeed <= 0f)
+            {
+                volumeVelocity = Vector3.MoveTowards(volumeVelocity, Vector3.zero, deltaTime);
+                centre += volumeVelocity * deltaTime;
+                return;
+            }
+
+            waypoint = Mathf.Clamp(waypoint, 0, path.Length - 1);
+            Transform target = path[waypoint];
+            Vector3 toTarget = target != null ? target.position - centre : Vector3.zero;
+            if (target == null || toTarget.magnitude < 1f)
+            {
+                NextWaypoint();
+                target = path[waypoint];
+                toTarget = target != null ? target.position - centre : Vector3.zero;
+            }
+
+            // Rallenta solo sull'ultimo tratto prima di un'inversione; in cerchio passa oltre senza fermarsi.
+            float distance = toTarget.magnitude;
+            bool turningBack = !loopPath && (waypoint == 0 || waypoint == path.Length - 1);
+            float speed = roamSpeed * (turningBack ? Mathf.Clamp01(distance / 4f) : 1f);
+            Vector3 desired = distance > 1e-3f ? toTarget / distance * speed : Vector3.zero;
+            volumeVelocity = Vector3.MoveTowards(volumeVelocity, desired, roamSpeed * 0.3f * deltaTime);
+            centre += volumeVelocity * deltaTime;
+
+            // L'ellissoide è simmetrico: segue l'asse di marcia, non il verso. Così all'inversione non ruota di
+            // 180° passando di traverso, con l'asse lungo contro le pareti di un canyon.
+            Vector3 flat = new Vector3(volumeVelocity.x, 0f, volumeVelocity.z);
+            if (flat.sqrMagnitude > 1e-4f)
+            {
+                Vector3 forward = volumeRotation * Vector3.forward;
+                if (Vector3.Dot(forward, flat) < 0f) flat = -flat;
+                volumeRotation = Quaternion.RotateTowards(volumeRotation, Quaternion.LookRotation(flat),
+                    roamTurnRate * deltaTime);
+            }
+        }
+
+        private void NextWaypoint()
+        {
+            if (path.Length < 2) return;
+            if (loopPath)
+            {
+                waypoint = (waypoint + 1) % path.Length;
+                return;
+            }
+            if (waypoint + pathDirection < 0 || waypoint + pathDirection >= path.Length) pathDirection = -pathDirection;
+            waypoint += pathDirection;
+        }
 
         private void LateUpdate()
         {
             if (allocated != count) Allocate();
 
             float deltaTime = Mathf.Min(Time.deltaTime, 0.05f);
+            Roam(deltaTime);
             Matrix4x4 volumeToWorld = VolumeToWorld();
             ComputeShader cs = simulation;
             cs.SetInt(CountId, allocated);
@@ -353,11 +456,15 @@ namespace Deeploration.Creatures
             cs.SetFloat(TimeId, Time.time);
             cs.SetMatrix(VolumeToWorldId, volumeToWorld);
             cs.SetMatrix(WorldToVolumeId, volumeToWorld.inverse);
-            cs.SetVector(VolumeCentreId, transform.position);
+            cs.SetVector(VolumeCentreId, centre);
+            cs.SetVector(VolumeVelocityId, volumeVelocity);
+            cs.SetFloat(FollowWeightId, followWeight);
             cs.SetFloat(VolumeSoftnessId, volumeSoftness);
             cs.SetFloat(ContainWeightId, containWeight);
             cs.SetFloat(PanicContainReliefId, panicContainRelief);
-            cs.SetFloat(SwirlId, swirl);
+            // In viaggio il vortice si spegne: con il banco che gira su sé stesso metà dei pesci nuoterebbe all'indietro.
+            float travel = roamSpeed > 0f ? Mathf.Clamp01(volumeVelocity.magnitude / roamSpeed) : 0f;
+            cs.SetFloat(SwirlId, swirl * (1f - 0.8f * travel));
             cs.SetFloat(NeighbourRadiusId, neighbourRadius);
             cs.SetFloat(SeparationDistanceId, separationDistance);
             cs.SetFloat(SeparationWeightId, separationWeight);
@@ -390,7 +497,7 @@ namespace Deeploration.Creatures
             (fishRead, fishWrite) = (fishWrite, fishRead);
 
             float reach = volumeExtents.magnitude * 1.2f + 1f;
-            var bounds = new Bounds(transform.position, Vector3.one * reach * 2f);
+            var bounds = new Bounds(centre, Vector3.one * reach * 2f);
             Draw(mesh, propsLod0, 0, bounds);
             if (meshLod1 != null) Draw(meshLod1, propsLod1, 1, bounds);
         }
@@ -515,6 +622,19 @@ namespace Deeploration.Creatures
             Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.2f);
             Gizmos.DrawWireSphere(Vector3.zero, 1f - volumeSoftness);
             Gizmos.matrix = Matrix4x4.identity;
+
+            // percorso
+            Gizmos.color = new Color(0.3f, 0.8f, 1f, 0.8f);
+            Transform previous = null;
+            foreach (Transform point in path)
+            {
+                if (point == null) continue;
+                Gizmos.DrawWireSphere(point.position, 0.4f);
+                if (previous != null) Gizmos.DrawLine(previous.position, point.position);
+                previous = point;
+            }
+            if (loopPath && previous != null && path.Length > 1 && path[0] != null)
+                Gizmos.DrawLine(previous.position, path[0].position);
         }
     }
 }

@@ -82,6 +82,15 @@ namespace Deeploration.Creatures
         // Dissolvenza d'entrata (paracadute del nido): inizio e durata; durata 0 = già tutta visibile.
         private float fadeStartTime;
         private float fadeDuration;
+        // True se l'ultimo blocco scritto sui renderer ha il lampo spento (scritto quando il pesce è uscito di vista).
+        private bool swimBlockNeutral;
+        // Preda presa: predatore che la inghiotte, inizio, posa nello spazio locale del predatore.
+        /// <summary>Durata della dissolvenza di una preda in bocca al predatore (s).</summary>
+        internal const float SwallowDuration = 0.25f;
+        private Creature swallowedBy;
+        private float swallowStartTime;
+        private Vector3 swallowOffset;
+        private Quaternion swallowRotation;
 
         // Regole di banco dell'ultimo ragionamento: spinta di separazione, direzione verso il baricentro dei
         // compagni (lunga al massimo 1), rotta media dei compagni.
@@ -252,6 +261,7 @@ namespace Deeploration.Creatures
             swimBend = 0f;
             startleTime = float.NegativeInfinity;
             fadeDuration = 0f;
+            swimBlockNeutral = false;
             separationSteer = cohesionSteer = alignmentSteer = Vector3.zero;
             NeighbourCount = 0;
             aggression = 0f;
@@ -261,6 +271,36 @@ namespace Deeploration.Creatures
             lastBiteTime = float.NegativeInfinity;
             preyTarget = null;
             satedUntil = 0f;
+            swallowedBy = null;
+        }
+
+        /// <summary>
+        /// Preda presa: resta attaccata al predatore nella posizione in cui è stata presa (nel suo spazio locale,
+        /// quindi segue la testa) e si dissolve a retino in <see cref="SwallowDuration"/> secondi. Poi il manager la
+        /// rimette nel pool. Solo per le specie con <see cref="CanFadeIn"/>.
+        /// </summary>
+        internal void Swallow(Creature predator)
+        {
+            swallowedBy = predator;
+            swallowStartTime = Time.time;
+            swallowOffset = predator.transform.InverseTransformPoint(cachedTransform.position);
+            swallowRotation = Quaternion.Inverse(predator.transform.rotation) * cachedTransform.rotation;
+        }
+
+        /// <summary>True mentre la creatura viene inghiottita da un predatore.</summary>
+        internal bool Swallowed => swallowedBy != null;
+
+        /// <summary>True se la creatura non viene inghiottita o se la dissolvenza in bocca è finita.</summary>
+        internal bool SwallowDone => swallowedBy == null || Time.time - swallowStartTime >= SwallowDuration;
+
+        private void SwallowStep()
+        {
+            Transform predator = swallowedBy.transform;
+            if (swallowedBy.ActiveIndex >= 0)
+                cachedTransform.SetPositionAndRotation(predator.TransformPoint(swallowOffset),
+                    predator.rotation * swallowRotation);
+            float fade = 1f - Mathf.Clamp01((Time.time - swallowStartTime) / SwallowDuration);
+            if (swimRenderers != null && swimRenderers.Length > 0) WriteSwimBlock(1f, 0f, fade);
         }
 
         /// <summary>
@@ -269,6 +309,11 @@ namespace Deeploration.Creatures
         /// </summary>
         internal void Tick(float deltaTime, bool think, bool probe)
         {
+            if (swallowedBy != null)
+            {
+                SwallowStep();
+                return;
+            }
             if (think) Think();
             if (probe) Probe();
             Move(deltaTime);
@@ -380,7 +425,8 @@ namespace Deeploration.Creatures
         /// </summary>
         private bool PreyStillValid(float now)
         {
-            if (preyTarget == null || preyTarget.ActiveIndex < 0 || !ReferenceEquals(preyTarget.Profile, profile.prey))
+            if (preyTarget == null || preyTarget.ActiveIndex < 0 || preyTarget.Swallowed ||
+                !ReferenceEquals(preyTarget.Profile, profile.prey))
                 return false;
             if (now - huntStartTime > HuntMaxDuration || aggression > profile.huntMaxAggression)
                 return false;
@@ -408,7 +454,7 @@ namespace Deeploration.Creatures
         private void CatchPrey(float now)
         {
             lastBiteTime = now;
-            manager.Eat(preyTarget);
+            manager.Eat(preyTarget, this);
             preyTarget = null;
             satedUntil = now + profile.satiation;
             state = CreatureState.Wander;
@@ -798,13 +844,31 @@ namespace Deeploration.Creatures
             // In dissolvenza scrive anche da non visibile: appena uscita dal pool isVisible è ancora falso e il
             // primo frame userebbe il blocco della vita precedente, tutto opaco.
             bool fading = fadeDuration > 0f && Time.time - fadeStartTime < fadeDuration;
-            if (!visible && !fading) return;
+            if (!visible && !fading)
+            {
+                // Il primo frame in cui torna visibile usa il blocco scritto per ultimo. Se era a metà del lampo
+                // (anche in una vita precedente, prima di tornare nel pool) il pesce lampeggiava per un frame:
+                // appena smette di essere visibile si scrive una volta il blocco a lampo spento.
+                if (!swimBlockNeutral)
+                {
+                    WriteSwimBlock(pace, 0f, 1f);
+                    swimBlockNeutral = true;
+                }
+                return;
+            }
+            swimBlockNeutral = false;
+            WriteSwimBlock(pace, glow,
+                fadeDuration > 0f ? Mathf.Clamp01((Time.time - fadeStartTime) / fadeDuration) : 1f);
+        }
+
+        private void WriteSwimBlock(float pace, float glow, float fade)
+        {
             swimBlock ??= new MaterialPropertyBlock();
             swimBlock.SetFloat(SwimPhaseId, swimPhase);
             swimBlock.SetFloat(SwimAmountId, Mathf.Clamp(0.6f + 0.4f * pace, 0.5f, 1.4f));
             swimBlock.SetFloat(SwimBendId, swimBend);
             swimBlock.SetFloat(GlowBoostId, glow);
-            swimBlock.SetFloat(FadeId, fadeDuration > 0f ? Mathf.Clamp01((Time.time - fadeStartTime) / fadeDuration) : 1f);
+            swimBlock.SetFloat(FadeId, fade);
             for (int i = 0; i < swimRenderers.Length; i++) swimRenderers[i].SetPropertyBlock(swimBlock);
         }
 

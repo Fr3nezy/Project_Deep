@@ -115,12 +115,16 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
-        /// Una preda è stata presa: il suo lampo d'allarme (se la specie ne ha uno) fa scappare i compagni, e lei
-        /// torna nel pool alla fine del frame, così la lista delle creature non cambia mentre il manager la scorre.
+        /// Una preda è stata presa: il suo lampo d'allarme (se la specie ne ha uno) fa scappare i compagni. Se la
+        /// specie può dissolversi (shader Fish) resta attaccata alla bocca del <paramref name="predator"/> e si
+        /// dissolve in <see cref="Creature.SwallowDuration"/> secondi, invece di sparire di colpo; poi, o subito per
+        /// le altre specie, torna nel pool alla fine del frame, così la lista delle creature non cambia mentre il
+        /// manager la scorre.
         /// </summary>
-        internal void Eat(Creature prey)
+        internal void Eat(Creature prey, Creature predator)
         {
             if (prey == null || prey.ActiveIndex < 0 || eaten.Contains(prey)) return;
+            if (prey.CanFadeIn && predator != null) prey.Swallow(predator);
             CreatureProfile species = prey.Profile;
             if (species.alarmRadius > 0f)
             {
@@ -370,8 +374,14 @@ namespace Deeploration.Creatures
                 creature.Tick(deltaTime, think, probe);
             }
 
-            for (int i = 0; i < eaten.Count; i++) Despawn(eaten[i]);
-            eaten.Clear();
+            for (int i = eaten.Count - 1; i >= 0; i--)
+            {
+                Creature prey = eaten[i];
+                if (prey.ActiveIndex >= 0 && !prey.SwallowDone) continue;
+                Despawn(prey);
+                eaten[i] = eaten[eaten.Count - 1];
+                eaten.RemoveAt(eaten.Count - 1);
+            }
         }
 
         private void BuildNeighbourGrid()

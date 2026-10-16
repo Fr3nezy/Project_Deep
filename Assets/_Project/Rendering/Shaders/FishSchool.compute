@@ -1,7 +1,8 @@
 // FishSchool: GPU simulation of a school of ambient fish, driven by the FishSchool component.
 // One thread per fish. Simple boids (separation, cohesion, alignment against every other fish, read in
 // tiles through group shared memory), a slow swirl around the volume axis, a soft ellipsoid that keeps the
-// school in open water, and repulsion from the diver (sphere) and from the torch beams (cones).
+// school in open water, a push along the travel of the volume (it moves along a path of waypoints), and
+// repulsion from the diver (sphere) and from the torch beams (cones).
 // No collisions: the volume has to stay in open water.
 // After moving, each fish is culled against the camera and appended to the draw list of its LOD
 // (LOD0 near, LOD1 far, both in the cross-fade band), with the object-to-world matrix and the per-instance
@@ -47,6 +48,8 @@ float _SimTime;
 float4x4 _WorldToVolume;
 float4x4 _VolumeToWorld;
 float3 _VolumeCentre;
+float3 _VolumeVelocity;   // the volume travels along the FishSchool path
+float _FollowWeight;
 float _VolumeSoftness;
 float _ContainWeight;
 float _PanicContainRelief;
@@ -203,6 +206,9 @@ void Simulate(uint3 id : SV_DispatchThreadID, uint3 gtid : SV_GroupThreadID)
 
     fish.panic = max(threat, fish.panic * exp(-_DeltaTime / max(_PanicDecay, 1e-3)));
     float panic = fish.panic;
+
+    // follow the travelling volume (a frightened fish thinks only about escaping)
+    accel += _VolumeVelocity * _FollowWeight * (1 - panic);
 
     // a frightened fish lets itself be pushed toward the hard limit instead of staying in the school
     float inner = 1 - _VolumeSoftness;

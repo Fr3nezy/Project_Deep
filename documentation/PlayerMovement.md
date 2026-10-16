@@ -118,6 +118,8 @@ Fino al 2026-10-13 `Player.prefab` era un contenitore di quattro prefab annidati
 - tolti il `Rigidbody` del `PlayerCapsule` (nessuno script lo usa; due scene su tre lo avevano già tolto) e il figlio `Capsule` spento;
 - la spia rossa `EmergencyLight` sta sotto `MainCamera/HelmetVisualPivot` (vedi [Flashlight.md](Flashlight.md)).
 
+Dal 2026-10-16 la `MainCamera` ha *Stop NaN* acceso (`UniversalAdditionalCameraData.stopNaN`): un pixel NaN diventa nero prima del post-processing invece di essere allargato dal bloom (intensità 5) in un flash. Motivo e misure in [Creatures.md](Creatures.md) (*Limiti*, NaN).
+
 Gerarchia: `Player` → `MainCamera` (Camera, CinemachineBrain) → `HelmetVisualPivot` (`RotationalFollowThrough`) → `Helmet` (FBX), `EmergencyLight`; `UI_EventSystem`; `PlayerFollowCamera` (camera virtuale) → `cm`; `PlayerCapsule` (controller e sistemi della tuta) → `PlayerCameraRoot`, `TorchPivot` (`RotationalFollowThrough`) → `PlayerGameLight`.
 
 Istanze nelle scene (2026-10-13): radice dritta, solo rotazione sull'asse verticale, nella posizione dei piedi. Override oltre la posa della radice: `SCN_Gameplay` `DiverFlashlight.initialMode` = Red e `rotationOffsetEuler` di `TorchPivot` (lo riscrive l'`OnValidate` di `RotationalFollowThrough` con scarti di un milionesimo di grado, innocuo); `SCN_Intro` posizione della `PlayerGameLight`; `SCN_EnvDemo` nessuno. Tutti i riferimenti delle scene verso il player (cancelli e timeline del prologo, risveglio, neve marina, `CreatureManager`, sequenza dell'ascensore) sono sopravvissuti allo spacchettamento. Per controllare che resti così: *Deeplonauts → Validate Player* (vedi [EditorTools.md](EditorTools.md)).

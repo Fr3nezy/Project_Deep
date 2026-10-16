@@ -9,6 +9,8 @@
 // the same per-instance values come from the _SchoolDraws buffer written by FishSchool.compute.
 // Surface: Substance Painter "Unity URP (Metallic)" maps: albedo with alpha (fin membranes are clipped,
 // optionally dithered), normal, metallic in R with smoothness in A, emission (photophores).
+// Fireflies: geometric specular anti-aliasing plus a cap on the lit colour (emission excluded), so the
+// mirror-like body does not flash single pixels under the torch.
 Shader "Deeplonauts/Fish"
 {
     Properties
@@ -23,6 +25,11 @@ Shader "Deeplonauts/Fish"
         _EmissionMap ("Emission", 2D) = "black" {}
         [HDR] _EmissionColor ("Emission Color", Color) = (1, 1, 1, 1)
         [Enum(UnityEngine.Rendering.CullMode)] _Cull ("Cull", Float) = 0
+
+        [Header(Specular Anti Aliasing)]
+        _SpecularAAVariance ("Screen Space Variance", Range(0, 1)) = 0.25
+        _SpecularAAThreshold ("Max Added Roughness", Range(0, 1)) = 0.2
+        _MaxLitBrightness ("Max Lit Brightness (emission excluded)", Float) = 8
 
         [Header(Alpha)]
         _Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.35
@@ -68,6 +75,9 @@ Shader "Deeplonauts/Fish"
             float _HeadAmplitude;
             float _SwimWaves;
             float _BendAmount;
+            half _SpecularAAVariance;
+            half _SpecularAAThreshold;
+            half _MaxLitBrightness;
         CBUFFER_END
 
         // Per-instance swim state written by Creature through a MaterialPropertyBlock.
@@ -200,6 +210,22 @@ Shader "Deeplonauts/Fish"
                 #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/LODCrossFade.hlsl"
             #endif
 
+            // Geometric specular anti-aliasing (Kaplanyan / Tokuyoshi, as in HDRP): where the surface normal
+            // changes a lot inside one pixel (small, distant fish) the roughness grows, so a mirror-smooth fish
+            // does not light a single pixel at very high brightness for one frame (a firefly that the bloom
+            // turns into a white flash).
+            half SpecularAASmoothness(half smoothness, float3 geometricNormalWS)
+            {
+                float3 dndu = ddx(geometricNormalWS);
+                float3 dndv = ddy(geometricNormalWS);
+                float variance = _SpecularAAVariance * (dot(dndu, dndu) + dot(dndv, dndv));
+                float kernelRoughness = min(2.0 * variance, _SpecularAAThreshold);
+                float perceptualRoughness = 1.0 - smoothness;
+                float roughness = perceptualRoughness * perceptualRoughness;
+                float squaredRoughness = saturate(roughness * roughness + kernelRoughness);
+                return (half)(1.0 - sqrt(sqrt(squaredRoughness)));
+            }
+
             struct Attributes
             {
                 float4 positionOS : POSITION;
@@ -277,16 +303,18 @@ Shader "Deeplonauts/Fish"
                 SurfaceData surface = (SurfaceData)0;
                 surface.albedo = baseSample.rgb * _BaseColor.rgb;
                 surface.metallic = mg.r * _Metallic;
-                surface.smoothness = mg.a * _Smoothness;
+                surface.smoothness = SpecularAASmoothness(mg.a * _Smoothness, input.normalWS);
                 surface.occlusion = 1;
                 surface.alpha = 1;
                 surface.normalTS = normalTS;
                 // startle flash: the photophores flare up to (1 + _GlowBoost) times, driven by Creature
                 half glowBoost = UNITY_ACCESS_INSTANCED_PROP(FishProps, _GlowBoost);
-                surface.emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uv).rgb * _EmissionColor.rgb
+                half3 emission = SAMPLE_TEXTURE2D(_EmissionMap, sampler_EmissionMap, uv).rgb * _EmissionColor.rgb
                     * (1.0h + glowBoost);
 
+                // Emission is added after the cap, so the photophores keep their glow.
                 half4 color = UniversalFragmentPBR(inputData, surface);
+                color.rgb = min(color.rgb, _MaxLitBrightness) + emission;
                 color.rgb = MixFog(color.rgb, input.fogFactor);
                 return half4(color.rgb, 1);
             }
