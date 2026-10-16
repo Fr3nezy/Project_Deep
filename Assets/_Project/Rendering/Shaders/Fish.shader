@@ -37,6 +37,7 @@ Shader "Deeplonauts/Fish"
         _SwimAmount ("Swim Amount (per instance)", Float) = 1
         _SwimBend ("Swim Bend (per instance, -1.6..1.6)", Float) = 0
         _GlowBoost ("Glow Boost (per instance, startle flash)", Float) = 0
+        _Fade ("Fade (per instance, nest fade-in, 1 = opaque)", Float) = 1
     }
 
     SubShader
@@ -73,6 +74,7 @@ Shader "Deeplonauts/Fish"
             UNITY_DEFINE_INSTANCED_PROP(float, _SwimAmount)
             UNITY_DEFINE_INSTANCED_PROP(float, _SwimBend)
             UNITY_DEFINE_INSTANCED_PROP(float, _GlowBoost)
+            UNITY_DEFINE_INSTANCED_PROP(float, _Fade)
         UNITY_INSTANCING_BUFFER_END(FishProps)
 
         // Lateral swim offset along object X and its slope along Z (for the normals).
@@ -109,13 +111,17 @@ Shader "Deeplonauts/Fish"
         // Clip the fin membranes. With _FISH_DITHER the cutoff is spread over a 4x4 Bayer pattern
         // between 0 and 2 x _Cutoff, so soft alpha reads as a screen-door gradient (it matches the
         // dither of the analog finish) instead of a hard edge.
+        // _Fade (per instance) below 1 dissolves the whole fish with the same pattern: the nest's
+        // fade-in when a fish has to appear in view.
         void FishClip(float2 uv, float4 positionCS)
         {
             half a = SAMPLE_TEXTURE2D(_BaseMap, sampler_BaseMap, FishUV(uv)).a * _BaseColor.a;
+            uint2 p = uint2(positionCS.xy) & 3;
+            const float bayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+            float cell = (bayer[p.y * 4 + p.x] + 0.5) / 16.0;
+            clip(UNITY_ACCESS_INSTANCED_PROP(FishProps, _Fade) - cell);
             #if defined(_FISH_DITHER)
-                uint2 p = uint2(positionCS.xy) & 3;
-                const float bayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
-                float threshold = (bayer[p.y * 4 + p.x] + 0.5) / 16.0 * 2.0 * _Cutoff;
+                float threshold = cell * 2.0 * _Cutoff;
                 clip(a - threshold);
             #else
                 clip(a - _Cutoff);

@@ -41,6 +41,10 @@ namespace Deeploration.Creatures
         [Tooltip("Margine attorno all'inquadratura entro cui una creatura conta come visibile (m)")]
         [SerializeField, Min(0f)] private float visibilityMargin = 1f;
 
+        [Tooltip("Oltre questa distanza dalla camera un punto conta come nascosto dalla nebbia, per gli spawn e i " +
+                 "despawn dei nidi (m). Tenerla vicina alla distanza a cui la nebbia copre le creature.")]
+        [SerializeField, Min(1f)] private float hiddenDistance = 35f;
+
         [Tooltip("Lato delle celle della griglia dei vicini (m). Non deve essere più piccolo della separationDistance " +
                  "delle specie; il raggio del banco arriva al massimo a 3 celle")]
         [SerializeField, Min(0.25f)] private float neighbourCellSize = 1f;
@@ -54,6 +58,7 @@ namespace Deeploration.Creatures
         private readonly List<float> pulseEnds = new List<float>();
         private readonly List<Creature> eaten = new List<Creature>();
         private readonly Plane[] frustum = new Plane[6];
+        private readonly Plane[] hiddenFrustum = new Plane[6];
         private DiverBiteReceiver biteReceiver;
         private readonly int[] lodCounts = new int[3];
         private Transform poolRoot;
@@ -147,6 +152,36 @@ namespace Deeploration.Creatures
                 }
             }
             return best;
+        }
+
+        /// <summary>
+        /// True se una sfera di raggio <paramref name="radius"/> in <paramref name="point"/> non si vede dalla camera:
+        /// oltre <c>hiddenDistance</c> (nebbia), fuori dall'inquadratura (con <c>visibilityMargin</c>) o coperta da un
+        /// ostacolo sulla linea di vista. Senza camera tutto è nascosto.
+        /// </summary>
+        public bool IsHidden(Vector3 point, float radius)
+        {
+            if (viewCamera == null) return true;
+            Vector3 eye = viewCamera.transform.position;
+            Vector3 toPoint = point - eye;
+            float distance = toPoint.magnitude;
+            if (distance > hiddenDistance) return true;
+            GeometryUtility.CalculateFrustumPlanes(viewCamera, hiddenFrustum);
+            Vector3 size = Vector3.one * (2f * (radius + visibilityMargin));
+            if (!GeometryUtility.TestPlanesAABB(hiddenFrustum, new Bounds(point, size))) return true;
+            float reach = distance - radius;
+            return reach > 0f && Physics.Raycast(eye, toPoint / distance, reach, obstacleMask,
+                QueryTriggerInteraction.Ignore);
+        }
+
+        /// <summary>
+        /// True se tutta la sfera di raggio <paramref name="radius"/> in <paramref name="point"/> sta oltre
+        /// <c>hiddenDistance</c> dalla camera. Senza camera true.
+        /// </summary>
+        public bool IsBeyondFog(Vector3 point, float radius)
+        {
+            if (viewCamera == null) return true;
+            return (point - viewCamera.transform.position).magnitude - radius > hiddenDistance;
         }
 
         /// <summary>Registra una sorgente di stimoli (per esempio una creatura luminosa). Ignora i duplicati.</summary>

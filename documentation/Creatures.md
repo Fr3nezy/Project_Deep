@@ -14,7 +14,8 @@ Stato:
 - **Implementato e verificato (2026-10-14, task 8, prima parte):** viperfish predatore. Nuovo stato `Stalk`: gira attorno al sub anche al buio e stringe l'orbita con l'aggressività, che sale con la luce e il rumore del sub e scende al buio; il flash della torcia lo fa scappare e gli dimezza l'aggressività. Mascella procedurale `CreatureJaw`, che si apre con l'aggressività.
 - **Implementato e verificato (2026-10-15, task 8 completa):** morso e caccia. Stato `Strike`: ad aggressività piena il viperfish si lancia sul casco del sub e lo morde; `DiverBiteReceiver` sul sub applica picco di stress, perdita di ossigeno, vignetta rosso scuro e battito cardiaco (audio provvisorio generato in codice). Stato `Hunt`: caccia i lanternfish vicini quando il sub non lo ha provocato troppo, la preda presa torna nel pool con il suo lampo d'allarme e il viperfish resta sazio.
 - **Implementato e verificato (2026-10-15):** espressività del viperfish. `CreatureGlow` porta i fotofori dall'arancione al rosso con l'aggressività, con la pulsazione che accelera, e li fa lampeggiare rosso acceso nello slancio; `CreatureLure` alza la pinna dorsale e piega l'esca in avanti sopra la testa con l'aggressività e del tutto in caccia e nello slancio; `CreatureEyes` muove gli occhi verso il casco del sub, la preda o la luce, con piccoli scatti.
-- **Pianificato (M2):** nidi completi (spawn fuori vista, uscita a nuoto, despawn), pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
+- **Implementato e verificato (2026-10-16, task 6):** nidi completi. Il nido rimpiazza le creature che mancano (anche le prede mangiate) facendole uscire a nuoto dalla bocca quando non si vede, si riempie in blocco quando è oltre la nebbia, fa uscire una creatura in dissolvenza se resta in vista troppo a lungo (shader Fish, `_Fade`) e rimette nel pool le creature non viste quando il sub è lontano. Corretti anche il recupero da dentro la roccia (i pesci attraversavano gli sbalzi) e il colore del viperfish in caccia.
+- **Pianificato (M2):** pesci ambientali, isopode, stimoli emessi dalle creature stesse (via `IStimulusSource` e `CreatureManager.AddSource`).
 
 ## File e componenti
 Tutti in `Assets/_Project/Code/Creatures/`, namespace `Deeploration.Creatures`:
@@ -92,7 +93,7 @@ Placeholder scelti il 2026-10-13 tra i pesci del pacchetto, per sagoma: lanternf
 Licenza di stile (decisa da Manu il 2026-10-13): ogni pesce può essere fino al 25% più grande della sua taglia reale, per leggersi meglio nel buio. Vale per i placeholder e per i modelli definitivi. Eccezione decisa da Manu il 2026-10-14: il viperfish è un esemplare **mutato** e resta lungo 1.34 m, circa tre volte un *Chauliodus* reale (35 cm).
 
 ## Dipendenze e flusso dati
-- `CreatureNest` chiede al manager `Prewarm` e `Spawn` all'avvio, `Despawn` quando si disabilita.
+- `CreatureNest` chiede al manager `Prewarm` e `Spawn` all'avvio e per il ricambio, `IsHidden` e `IsBeyondFog` per decidere quando far uscire o rientrare le creature, `Despawn` con il sub lontano e quando si disabilita. Per il paracadute chiama `Creature.FadeIn`.
 - `CreatureManager.Update` raccoglie gli stimoli del frame chiedendoli una volta a ogni sorgente registrata (`IStimulusSource.EmitStimuli`), legge la posizione del sub (riferimento serializzato, mai cercato), calcola i piani della camera e, per ogni creatura attiva, sceglie il LOD e chiama `Creature.Tick(deltaTime, think, probe)`.
 - `DiverStimulusSource` legge `DiverFlashlight` (modalità, `SpotLight`), `DiverController` (`CurrentSpeed`, `IsGrounded`) e l'evento `SeaPenTouchGlow.Touched`.
 - `Creature.Tick`: se `think`, aggiorna percezione e stato; se `probe`, lancia i raggi verso il fondale e in avanti e ne conserva i risultati; poi muove sempre, usando l'ultimo stato e gli ultimi raggi.
@@ -205,7 +206,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 | `fullBendTurnRate` | float ≥ 1 | 120 | Velocità di virata (°/s) a cui il corpo è piegato del tutto |
 
   `swimAnimator` e `swimAnimationSpeed` servono ai placeholder animati e vanno tolti con la catena di joint (task 5 di M2). `swimRenderers` resta per i pesci senza ossa (lanternfish, pesce ascia).
-- Nuoto nello shader (a ogni frame, se `swimRenderers` non è vuoto): la fase avanza di `swimFrequency × clamp(speed / cruiseSpeed, 0.35, 3) × 2π × dt` e parte da un valore casuale a ogni spawn, così i pesci non battono la coda all'unisono. La piega segue la velocità di virata orizzontale (`yawRate / fullBendTurnRate`, limitata a ±1, inseguita a 4 unità al secondo): il corpo fa una C con la coda verso l'interno della curva. L'ampiezza è `clamp(0.6 + 0.4 × speed / cruiseSpeed, 0.5, 1.4)`. Durante lo scatto la piega può arrivare a ±1.6 e cambia a 20 unità al secondo invece di 4. Il lampo (`_GlowBoost`) vale `startleGlow × fade² × tremolio`: sale in 0.05 s, cala con `fade = 1 - t / startleGlowDuration`, tremola a circa 6 Hz. I quattro valori vanno al renderer con un `MaterialPropertyBlock` condiviso (`_SwimPhase`, `_SwimAmount`, `_SwimBend`, `_GlowBoost`) a tutti i renderer della lista, solo se almeno uno è visibile; la fase avanza comunque. Così i due livelli di LOD restano nella stessa posa anche durante il cross-fade.
+- Nuoto nello shader (a ogni frame, se `swimRenderers` non è vuoto): la fase avanza di `swimFrequency × clamp(speed / cruiseSpeed, 0.35, 3) × 2π × dt` e parte da un valore casuale a ogni spawn, così i pesci non battono la coda all'unisono. La piega segue la velocità di virata orizzontale (`yawRate / fullBendTurnRate`, limitata a ±1, inseguita a 4 unità al secondo): il corpo fa una C con la coda verso l'interno della curva. L'ampiezza è `clamp(0.6 + 0.4 × speed / cruiseSpeed, 0.5, 1.4)`. Durante lo scatto la piega può arrivare a ±1.6 e cambia a 20 unità al secondo invece di 4. Il lampo (`_GlowBoost`) vale `startleGlow × fade² × tremolio`: sale in 0.05 s, cala con `fade = 1 - t / startleGlowDuration`, tremola a circa 6 Hz. I valori vanno al renderer con un `MaterialPropertyBlock` condiviso (`_SwimPhase`, `_SwimAmount`, `_SwimBend`, `_GlowBoost`, `_Fade`) a tutti i renderer della lista, solo se almeno uno è visibile oppure è in corso la dissolvenza d'entrata (appena uscita dal pool `isVisible` è ancora falso e il primo frame userebbe il blocco della vita precedente); la fase avanza comunque. `_Fade` va da 0 a 1 in `fadeDuration` secondi dopo `FadeIn`, altrimenti vale 1. Così i due livelli di LOD restano nella stessa posa anche durante il cross-fade.
 - API pubbliche:
   - `CreatureProfile Profile { get; }`
   - `CreatureState State { get; }`
@@ -218,6 +219,8 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - `float LastBiteTime { get; }`: istante dell'ultimo morso (al sub o a una preda); -infinito se non ha mai morso.
   - `Creature Prey { get; }`: preda inseguita in `Hunt`, null negli altri stati.
   - `bool TryGetFocus(out Vector3 point)`: punto che la creatura sta guardando, per gli occhi: il casco del sub (1.3 m sopra i piedi) in `Stalk` e `Strike`, la preda in `Hunt`, la sorgente in `Inspect`; false negli altri stati.
+  - `bool CanFadeIn { get; }`: true se `swimRenderers` non è vuoto (shader Deeplonauts/Fish, che legge `_Fade`). Il nido lo legge sul prefab per decidere il paracadute.
+  - `void FadeIn(float duration)`: fa comparire la creatura con una dissolvenza a retino lunga `duration` secondi (dal 2026-10-16). Senza `CanFadeIn` non ha effetto visibile. Si azzera a ogni spawn.
   - Interne (`internal`, usate dal manager): `OnSpawn(CreatureManager, CreatureProfile, Vector3 home, float leash, float ceiling)`, `Tick(float deltaTime, bool think, bool probe)`, `ActiveIndex`, `Slot`.
 - Gizmo (selezionata): rotta (ciano in `Wander`, rossa in `Flee`, verde in `Inspect`, rosa in `Stalk`, rosso acceso in `Strike` con una linea verso il casco, arancione in `Hunt` con una linea verso la preda), in `Stalk` il cerchio dell'orbita attuale attorno al busto del sub (dal rosa al rosso con l'aggressività), in `Flee` una linea verso la sorgente (gialla per la luce, arancione per il rumore), in `Inspect` una linea verde verso il posto personale, una sfera sul posto e una linea tenue dal posto alla sorgente, guinzaglio attorno a casa, direzione di evitamento (magenta).
 - Riferimenti obbligatori: va presa dal pool con `CreatureManager.Spawn`. Una `Creature` messa a mano in scena resta ferma, perché nessuno chiama `Tick`.
@@ -243,6 +246,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 | `midInterval` | int [1, 30] | 4 | Livello `Mid`: un frame ogni N |
 | `farInterval` | int [1, 120] | 16 | Livello `Far`: un frame ogni N |
 | `visibilityMargin` | float ≥ 0 | 1 | Margine attorno all'inquadratura (m) |
+| `hiddenDistance` | float ≥ 1 | 35 | Oltre questa distanza dalla camera un punto conta come nascosto dalla nebbia, per spawn e despawn dei nidi (m). 35 = distanza a cui il LOD dei lanternfish li fa sparire (dal 2026-10-16) |
 | `neighbourCellSize` | float ≥ 0.25 | 1 | Lato delle celle della griglia dei vicini (m). Almeno quanto la `separationDistance` delle specie; il `schoolRadius` arriva al massimo a 3 celle. Era 3 fino al 2026-10-14 (vedi *Verifica*) |
 
 - API pubbliche:
@@ -254,6 +258,8 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - Interne per i predatori: `ReportBite(Creature biter)` passa il morso al `DiverBiteReceiver` trovato in `Awake` sullo stesso GameObject del `player` (senza, il morso non ha effetti); `Eat(Creature prey)` aggiunge il lampo d'allarme della preda (se la specie ha `alarmRadius`) e la rimette nel pool alla fine di `Update`, così la lista delle attive non cambia mentre il manager la scorre; `FindNearest(CreatureProfile species, Vector3 position, float radius)` scorre le creature attive (costo lineare, va bene per pochi predatori).
   - `void AddPulse(CreatureStimulus stimulus, float duration)`: stimolo breve senza sorgente registrata (il lampo di un pesce spaventato), attivo per `duration` secondi a partire dal frame dopo. Gli impulsi scaduti escono dalla lista con uno scambio dall'ultimo posto, senza allocazioni a regime.
   - `LayerMask ObstacleMask { get; }`
+  - `bool IsHidden(Vector3 point, float radius)`: true se la sfera non si vede dalla camera: oltre `hiddenDistance`, fuori dall'inquadratura (con `visibilityMargin`) o coperta da un ostacolo di `obstacleMask` sulla linea di vista (un raggio). Senza camera true. Calcola i piani della camera a ogni chiamata, senza allocazioni.
+  - `bool IsBeyondFog(Vector3 point, float radius)`: true se tutta la sfera sta oltre `hiddenDistance` dalla camera. Senza camera true.
   - `int ActiveCount { get; }`
   - `int CountAtLod(CreatureLod lod)`: creature nel livello durante l'ultimo frame.
   - `void Prewarm(CreatureProfile profile, int count)`: porta a `count` le istanze inattive della specie.
@@ -262,23 +268,34 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Gizmo (selezionato): sfere di `nearDistance` e `farDistance` attorno al sub.
 
 ### CreatureNest
-- Responsabilità e ciclo di vita: in `Start` fa uscire `count` creature (dopo `Prewarm`); se viene riabilitato le rifà uscire; in `OnDisable` le rimette nel pool. Ogni punto di spawn è scelto a caso nella sfera `spawnRadius`, abbassato sotto il soffitto e scartato se è sepolto (guardando dall'alto la prima superficie sta sopra il punto meno `bodyRadius`) o se il corpo tocca un ostacolo. Dopo 8 tentativi falliti usa il centro del nido. Versione base: spawn fuori vista, uscita a nuoto e despawn per distanza arrivano con la task dei nidi.
+- Responsabilità e ciclo di vita (nido completo dal 2026-10-16, task 6 di M2): una specie per nido, fino a `count` creature fuori dal pool.
+  - **Riempimento iniziale:** con `fillOnStart`, in `Start` fa uscire subito le creature che mancano (dopo `Prewarm`), in punti a caso nella sfera `spawnRadius`, abbassati sotto il soffitto e scartati se sepolti (guardando dall'alto la prima superficie sta sopra il punto meno `bodyRadius`) o se il corpo tocca un ostacolo; dopo 8 tentativi falliti usa il centro del nido. Se il nido viene riabilitato si riempie di nuovo; in `OnDisable` rimette tutto nel pool.
+  - **Elenco delle sue creature:** il nido tiene ogni creatura con lo `Slot` ricevuto allo spawn (unico per spawn). Una creatura tornata nel pool (mangiata, rimessa da altri) ha `ActiveIndex` -1 o, se ripresa da un altro nido, uno `Slot` diverso: il nido la toglie dall'elenco e il posto si libera.
+  - **Ricambio** (in `Update`, un controllo ogni 0.25 s): con il sub entro `activeDistance` e posti liberi, se il nido è nascosto (`CreatureManager.IsHidden` sul centro del nido) fa uscire una creatura dalla bocca: nel centro del nido (o in un punto libero della sfera se il centro tocca un ostacolo), orientata lungo l'asse Z del nido con una deviazione casuale fino a `exitSpread` gradi in beccheggio e imbardata, in `Wander` a metà della velocità di crociera. Poi aspetta `respawnInterval` (±50%). Se il nido è anche oltre la nebbia per tutta la zona (`IsBeyondFog` con raggio `spawnRadius + leashRadius`) lo riempie subito come all'avvio: chi torna da lontano non trova il nido vuoto.
+  - **Paracadute:** se il nido è in vista da `fadeInAfter` secondi dall'ultima uscita (o da quando si è liberato un posto) fa uscire comunque una creatura con `Creature.FadeIn(fadeDuration)`. Solo per le specie con `CanFadeIn` (shader Fish); le altre aspettano che il nido sia nascosto.
+  - **Despawn inverso:** con il sub oltre il 120% di `activeDistance` rimette nel pool, a ogni controllo, le creature del nido che `IsHidden` dà per nascoste. Fra `activeDistance` e il 120% il nido non fa niente, così non svuota e riempie di continuo sul bordo.
 - Campi Inspector:
 
 | Campo | Tipo | Default | Significato |
 |---|---|---|---|
 | `manager` | `CreatureManager` | null | Manager della scena |
 | `profile` | `CreatureProfile` | null | Specie del nido |
-| `count` | int ≥ 0 | 5 | Creature fatte uscire all'avvio |
-| `spawnRadius` | float ≥ 0 | 3 | Sfera di spawn attorno al nido (m) |
+| `count` | int ≥ 0 | 5 | Massimo di creature del nido fuori dal pool |
+| `fillOnStart` | bool | true | All'avvio si riempie subito; spento, parte vuoto e le creature escono una alla volta |
+| `spawnRadius` | float ≥ 0 | 3 | Sfera dei riempimenti in blocco attorno al nido (m) |
 | `leashRadius` | float ≥ 1 | 20 | Oltre questa distanza dal nido le creature tornano indietro (m) |
 | `maxHeightAboveNest` | float ≥ 0 | 4 | Soffitto: quota massima delle creature sopra il nido (m). Dove il fondale sale oltre, lo aggirano |
+| `respawnInterval` | float ≥ 0.1 | 3 | Secondi medi fra due uscite dalla bocca (±50%) |
+| `exitSpread` | float [0, 90] | 30 | Semi-angolo del cono di uscita attorno all'asse Z del nido (°) |
+| `activeDistance` | float ≥ 1 | 60 | Il nido rimpiazza solo con il sub entro questa distanza; oltre il 120% le creature non viste tornano nel pool (m) |
+| `fadeInAfter` | float ≥ 0 | 6 | Secondi in vista dopo cui una creatura esce comunque in dissolvenza; 0 = mai |
+| `fadeDuration` | float ≥ 0.05 | 1.5 | Durata della dissolvenza d'entrata (s) |
 
 - API pubbliche:
-  - `int SpawnedCount { get; }`
-  - `void Respawn(int newCount)`: cambia il numero e rifà uscire il nido da capo (usato per i benchmark).
-- Gizmo: sfera di spawn (sempre); guinzaglio e piano del soffitto (selezionato).
-- Riferimenti obbligatori: `manager` e `profile`. Se mancano, errore in console e nessuno spawn.
+  - `int SpawnedCount { get; }`: creature del nido fuori dal pool (ripulisce prima l'elenco).
+  - `void Respawn(int newCount)`: cambia il numero e rifà uscire il nido da capo, riempito subito (usato per i benchmark).
+- Gizmo: sfera di spawn e linea della bocca lungo l'asse Z (sempre); guinzaglio e piano del soffitto (selezionato).
+- Riferimenti obbligatori: `manager` e `profile`. Se mancano, errore in console e nessuno spawn. Senza camera nel manager tutto conta come nascosto: il ricambio avviene sempre in blocco.
 
 ### CreatureEnums
 - `CreatureState`: `Wander`, `Flee`, `Inspect`, `Stalk` (dal 2026-10-14), `Strike` e `Hunt` (dal 2026-10-15). Cresce con le task di M2.
@@ -464,7 +481,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 - Requisiti della mesh: distesa lungo +Z con la testa verso +Z, pivot al centro, una sola mesh con un solo materiale. Niente ossa.
 - Nuoto (vertex): `u = saturate((_HeadZ - z) / _BodyLength)` va da 0 alla testa a 1 in coda; lo spostamento laterale su X è `_SwimAmplitude × _SwimAmount × lerp(_HeadAmplitude, 1, u²) × sin(_SwimPhase - u × _SwimWaves × 2π) + _BendAmount × _SwimBend × u²`. Le normali sono corrette con la derivata dello spostamento lungo Z.
 - Superficie: mappe di Painter nel formato *Unity URP (Metallic)*; alpha dell'albedo per le pinne con taglio a `_Cutoff`, oppure (`_FISH_DITHER`, acceso di default) con una soglia Bayer 4×4 tra 0 e `2 × _Cutoff`, che rende le membrane sfumate a retino come il finish analogico. Emissione = mappa × `_EmissionColor` (fotofori).
-- Proprietà per istanza (`UNITY_INSTANCING_BUFFER`): `_SwimPhase` (rad), `_SwimAmount`, `_SwimBend` (-1.6..1.6), `_GlowBoost` (lampo dello spavento: emissione × (1 + valore)), scritte da `Creature`. Con il `MaterialPropertyBlock` i pesci escono dallo SRP Batcher e vengono disegnati con il GPU instancing del materiale.
+- Proprietà per istanza (`UNITY_INSTANCING_BUFFER`): `_SwimPhase` (rad), `_SwimAmount`, `_SwimBend` (-1.6..1.6), `_GlowBoost` (lampo dello spavento: emissione × (1 + valore)), `_Fade` (dal 2026-10-16: dissolvenza d'entrata del nido, 1 = opaco; sotto 1 taglia tutto il pesce con la stessa soglia Bayer, in tutti i pass compresa l'ombra), scritte da `Creature`. Con il `MaterialPropertyBlock` i pesci escono dallo SRP Batcher e vengono disegnati con il GPU instancing del materiale.
 
 | Proprietà | Default | Significato |
 |---|---|---|
@@ -509,7 +526,7 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - **High generata da script:** fotofori, solchi e regioni ID sono piazzati con punti di riferimento della gabbia attuale (centro dell'occhio, cerniera della mandibola, anello dell'opercolo, quote degli anelli del corpo). Se il corpo low cambia forma, la high va rigenerata. I bordi delle regioni ID seguono le facce suddivise (gradini di 1-3 mm): in Painter conviene sfumarli un poco.
 - **Esca e occhi non ancora in Unity:** le ossa `Lure_01` … `Lure_04`, `Eye_L` ed `Eye_R` esistono solo nel file Blender. I componenti che le muovono (esca con l'aggressività, sguardo verso il sub o la lampada) sono pianificati; lo sguardo è nel Parcheggio della Roadmap (espressività, M7).
 - **Viperfish e torcia bassa:** la luce debole conta solo se la creatura è nel fascio o entro l'alone (3.2 m con la `Low`). A 8 m di orbita la torcia bassa lo provoca solo se lo si illumina; la piena (alone 10 m) lo provoca quasi sempre, salvo roccia in mezzo. È voluto: la bassa è la modalità prudente.
-- **Le prede mangiate non tornano:** il nido dei lanternfish li fa uscire solo all'avvio, quindi ogni preda presa ne toglie uno dalla scena (circa due al minuto al massimo, con la sazietà di 30 s). Il ricambio arriva con la task dei nidi.
+- **Ricambio più lento della caccia se i predatori sono tanti:** ogni viperfish mangia al massimo due prede al minuto (sazietà 30 s). Un nido in vista rimpiazza una creatura ogni `fadeInAfter` secondi (10 al minuto a 6 s), uno nascosto una ogni 1.5-4.5 s. Con i 10 viperfish messi in `SCN_Gameplay` il 2026-10-16 (circa 14 lanternfish mangiati al minuto) il banco cala comunque: con uno o due viperfish il nido tiene il passo.
 - **Esca non davanti alla bocca:** con la spina attuale l'esca arriva sopra gli occhi, non davanti al muso (vedi *CreatureLure*, Taratura). Per portarla davanti alla bocca la spina va allungata nel modello.
 - **Colore unico per tutta l'emissione:** `CreatureGlow` tinge insieme fotofori, fotoforo postorbitale ed esca, perché la mappa di emissione è una sola. Il bulbo dell'esca, più luminoso, ad aggressività piena esce quasi bianco. Un'esca con colore e ritmo suoi richiede una maschera separata (per esempio il canale G, come previsto per il bake) e uno shader che la legga.
 - Il `MaterialPropertyBlock` di `CreatureGlow` toglie il viperfish dallo SRP Batcher: un draw call non raggruppato, irrilevante per una creatura sola.
@@ -531,9 +548,11 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - **Collider convesso enorme:** `SM_LargeRock_low (2)` in `SCN_Gameplay` ha un `MeshCollider` convesso con bounds di circa 52 × 42 × 32 m, molto più grande della roccia visibile. Per la fisica (creature e sub) quello spazio è roccia piena. Le creature lo aggirano ed escono se ci finiscono dentro, ma il buco nell'acqua resta. Da valutare un collider concavo o più convessi quando si sistemano i collider dell'ambiente.
 - **Rocce sul layer Default:** nessun oggetto usa il layer `Obstacle`. Per questo `obstacleMask` include Default. Ogni collider su Default (anche non roccia) blocca le creature.
 - Le creature `Far` non lanciano raggi: se una creatura nasce lontana, la quota del fondale resta sconosciuta finché non passa a `Mid`.
-- Lo spawn scarta i punti sotto qualsiasi superficie vista dall'alto, quindi anche quelli sotto uno sbalzo di roccia. Un nido in un crepaccio coperto (previsto nella task dei nidi) ripiegherà sul proprio centro: da rivedere in quella task.
+- Il riempimento in blocco scarta i punti sotto qualsiasi superficie vista dall'alto, quindi anche quelli sotto uno sbalzo di roccia: un nido in un crepaccio coperto ripiega sul proprio centro e le creature compaiono tutte lì. L'uscita dalla bocca invece usa il centro del nido così com'è, quindi un nido in un crepaccio funziona se il suo centro è in acqua libera e l'asse Z punta fuori. Per un nido coperto conviene spegnere `fillOnStart` o tenere piccolo `count`.
+- I nidi in scena hanno l'asse Z di default (rotazione nulla): le creature escono verso +Z del mondo. Quando i nidi verranno messi nei crepacci va girato l'asse verso l'apertura.
+- Il nido controlla la visibilità solo sul proprio centro: una creatura che esce da un nido nascosto può comunque nuotare subito nell'inquadratura. È voluto: si vede uscire da dietro la roccia, non comparire.
 - Il recupero da dentro un ostacolo usa il centro dei bounds del collider solo per una creatura appena uscita dal pool, che non ha ancora una posizione libera: con collider molto grandi o concavi quella direzione di uscita è approssimativa.
-- **Prede mangiate:** una preda presa dal predatore torna nel pool all'istante e il nido non la rimpiazza, quindi il banco si assottiglia. Misurato il 2026-10-16 in `SCN_Gameplay` con 10 viperfish e 100 lanternfish: 11-13 lanternfish mangiati al minuto. A vista il pesce sparisce di colpo vicino alla bocca. Il rimpiazzo arriva con la task dei nidi (spawn fuori vista).
+- **Prede mangiate:** una preda presa dal predatore torna nel pool all'istante: a vista il pesce sparisce di colpo vicino alla bocca del predatore. Il nido poi la rimpiazza (vedi `CreatureNest`).
 - Il flash dura 0.4 s: le creature `Far` (un ragionamento ogni 16 frame) possono perderlo; quelle `Mid` lo vedono.
 - In `Inspect` la creatura ignora guinzaglio e casa: con la torcia accesa a lungo un banco può seguire il sub lontano dal nido (resta il soffitto). Al ritorno in `Wander` il richiamo verso casa la riporta indietro.
 - Le creature si evitano solo fra compagni della stessa specie (separazione del banco). Non evitano le altre specie né gli organismi senza collider (coralli bambù, penne), che attraversano.
@@ -556,6 +575,13 @@ Verifica del 2026-10-16 in Editor, Play Mode in `SCN_Gameplay` (100 lanternfish,
 - Centro del pesce dentro la roccia: 54 episodi in 50 s prima della correzione del recupero (quasi tutti su `SM_Slope_low (6)`, in `Wander` a LOD `Mid`), 0 in 57 s dopo. Restano 7 pesci "sotto una superficie" vista dall'alto: nuotano sotto sbalzi, fuori dalla roccia.
 - Salti di posizione oltre la velocità del pesce: 0. Pesci che spariscono restando nell'inquadratura: 1 in 57 s, a 44 m (scomparsa del LOD).
 - `CreatureGlow` del viperfish in `Hunt`: dopo la rampa di circa 1 s il colore passa al rosso anche lontano dal sub (2345 campioni rossi contro 1127 arancioni, questi ultimi nella rampa).
+
+Verifica dei nidi del 2026-10-16, stessa scena (nido dei lanternfish a 10.8 m dalla camera e in vista, nido dei viperfish nascosto), sub nella capsula:
+- Ricambio in vista: in 60 s 7 lanternfish rimpiazzati (4 in dissolvenza) contro circa 14 mangiati. Con il timer della dissolvenza legato alla vista continua erano 8 in 63 s, perché il nido risultava nascosto per brevi istanti e il timer ripartiva.
+- Despawn inverso: sub spostato a 90 m, dopo 3 s 0 creature attive su 110.
+- Ritorno: sub a 55.8 m dal nido dei lanternfish (oltre la nebbia), dopo 2 s il nido è di nuovo a 100. Sub di nuovo alla capsula: il nido dei viperfish (nascosto) ne fa uscire 6 su 10 in circa 18 s, tutti con la rotta lungo +Z del nido.
+- Dissolvenza vista da una camera temporanea davanti al banco: a circa un quarto i lanternfish sono quasi invisibili a retino e i viperfish (senza dissolvenza) restano pieni; a fine dissolvenza i lanternfish sono tutti visibili.
+- Compilazione e shader senza errori.
 
 Costo misurato con `CreatureBenchmark` (Editor, Mono, 10 s dopo 3 s di riscaldamento). "Update" e "FixedUpdate" sono il tempo totale degli script di quel ciclo, quindi includono anche gli altri sistemi della scena. Il riferimento a vuoto è Update circa 0.5 ms e GC circa 19-29 KB/frame.
 

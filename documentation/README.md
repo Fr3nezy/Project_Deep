@@ -105,7 +105,7 @@ Assets/_Project/Code/
 Sistemi senza script C# (solo shader e materiali):
 - Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
 - Coral (shader e materiali; l'unico script è `SeaPenTouchGlow`, nel catalogo sopra): `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia) e toppe ibride di penne di mare (steli veri più card con alpha clip, inclinazione e ondeggiamento per stelo con la corrente, bioluminescenza dove passa il sub). Reference: [Coral.md](Coral.md).
-- Fish (shader dei pesci senza ossa, usato dalle creature): `Assets/_Project/Rendering/Shaders/Fish.shader`, nuoto come onda nel vertex shader con fase, ampiezza e piega per istanza scritte da `Creature`, pinne con alpha a retino, fotofori emissivi. Reference: [Creatures.md](Creatures.md).
+- Fish (shader dei pesci senza ossa, usato dalle creature): `Assets/_Project/Rendering/Shaders/Fish.shader`, nuoto come onda nel vertex shader con fase, ampiezza e piega per istanza scritte da `Creature`, pinne con alpha a retino, fotofori emissivi, dissolvenza d'entrata per istanza (`_Fade`) per il paracadute dei nidi. Reference: [Creatures.md](Creatures.md).
 
 ---
 

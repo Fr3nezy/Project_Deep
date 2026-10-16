@@ -41,6 +41,7 @@ namespace Deeploration.Creatures
         private static readonly int SwimAmountId = Shader.PropertyToID("_SwimAmount");
         private static readonly int SwimBendId = Shader.PropertyToID("_SwimBend");
         private static readonly int GlowBoostId = Shader.PropertyToID("_GlowBoost");
+        private static readonly int FadeId = Shader.PropertyToID("_Fade");
         // Durata del lampo come stimolo per le altre creature, come il flash della torcia del sub.
         private const float AlarmPulseDuration = 0.4f;
         private const float StartleBoost = 6f;
@@ -78,6 +79,9 @@ namespace Deeploration.Creatures
         private float swimPhase;
         private float swimBend;
         private float startleTime = float.NegativeInfinity;
+        // Dissolvenza d'entrata (paracadute del nido): inizio e durata; durata 0 = già tutta visibile.
+        private float fadeStartTime;
+        private float fadeDuration;
 
         // Regole di banco dell'ultimo ragionamento: spinta di separazione, direzione verso il baricentro dei
         // compagni (lunga al massimo 1), rotta media dei compagni.
@@ -200,6 +204,22 @@ namespace Deeploration.Creatures
         /// <summary>Compagni della stessa specie visti nell'ultimo ragionamento (0 per le specie solitarie).</summary>
         public int NeighbourCount { get; private set; }
 
+        /// <summary>
+        /// True se la creatura può comparire in dissolvenza: servono i renderer del nuoto con lo shader
+        /// Deeplonauts/Fish, che legge <c>_Fade</c>.
+        /// </summary>
+        public bool CanFadeIn => swimRenderers != null && swimRenderers.Length > 0;
+
+        /// <summary>
+        /// Fa comparire la creatura con una dissolvenza a retino lunga <paramref name="duration"/> secondi. Senza
+        /// <see cref="CanFadeIn"/> non ha effetto.
+        /// </summary>
+        public void FadeIn(float duration)
+        {
+            fadeStartTime = Time.time;
+            fadeDuration = Mathf.Max(0f, duration);
+        }
+
         /// <summary>Indice nella lista delle creature attive del manager; -1 se è nel pool.</summary>
         internal int ActiveIndex { get; set; } = -1;
 
@@ -231,6 +251,7 @@ namespace Deeploration.Creatures
             swimPhase = Random.value * 2f * Mathf.PI;
             swimBend = 0f;
             startleTime = float.NegativeInfinity;
+            fadeDuration = 0f;
             separationSteer = cohesionSteer = alignmentSteer = Vector3.zero;
             NeighbourCount = 0;
             aggression = 0f;
@@ -774,12 +795,16 @@ namespace Deeploration.Creatures
 
             bool visible = false;
             for (int i = 0; i < swimRenderers.Length; i++) visible |= swimRenderers[i].isVisible;
-            if (!visible) return;
+            // In dissolvenza scrive anche da non visibile: appena uscita dal pool isVisible è ancora falso e il
+            // primo frame userebbe il blocco della vita precedente, tutto opaco.
+            bool fading = fadeDuration > 0f && Time.time - fadeStartTime < fadeDuration;
+            if (!visible && !fading) return;
             swimBlock ??= new MaterialPropertyBlock();
             swimBlock.SetFloat(SwimPhaseId, swimPhase);
             swimBlock.SetFloat(SwimAmountId, Mathf.Clamp(0.6f + 0.4f * pace, 0.5f, 1.4f));
             swimBlock.SetFloat(SwimBendId, swimBend);
             swimBlock.SetFloat(GlowBoostId, glow);
+            swimBlock.SetFloat(FadeId, fadeDuration > 0f ? Mathf.Clamp01((Time.time - fadeStartTime) / fadeDuration) : 1f);
             for (int i = 0; i < swimRenderers.Length; i++) swimRenderers[i].SetPropertyBlock(swimBlock);
         }
 
