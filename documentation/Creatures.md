@@ -706,7 +706,7 @@ Verifica del tremolio dei lanternfish singoli del 2026-10-16 (seconda clip di Ma
 | 11.5-15 m | 7.1% (47 863) | 1.9% (79 594) |
 | 15-20 m | 19.0% (97 998) | 8.6% (172 859), nebbia e grana al limite della soglia |
 
-  Con il cross-fade le sparizioni sotto i 15 m si ripetono sugli stessi pesci a 10.2-11.4 m, cioè attorno al cambio di LOD; con Fade Mode None non ce ne sono. Con il materiale vero, sempre a cross-fade acceso, le prove precedenti davano 23-49% di pesci "invisibili" oltre i 9 m: in gran parte erano pesci fuori dalla portata (15 m) o dal cono della torcia, quindi al buio (vedi *Limiti*). La correzione dei pragma è giusta ma non risolve: risolve Fade Mode None sul prefab.
+  Con il cross-fade le sparizioni sotto i 15 m si ripetono sugli stessi pesci a 10.2-11.4 m, cioè attorno al cambio di LOD; con Fade Mode None non ce ne sono. Con il materiale vero, sempre a cross-fade acceso, le prove precedenti davano 23-49% di pesci "invisibili" oltre i 9 m: in gran parte erano pesci fuori dalla portata (15 m) o dal cono della torcia, quindi al buio (vedi *Limiti*). La correzione dei pragma è giusta ma non risolve: risolve Fade Mode None sul prefab. Confermato da Manu in Play lo stesso giorno: i lanternfish non spariscono più.
 
 Costo misurato con `CreatureBenchmark` (Editor, Mono, 10 s dopo 3 s di riscaldamento). "Update" e "FixedUpdate" sono il tempo totale degli script di quel ciclo, quindi includono anche gli altri sistemi della scena. Il riferimento a vuoto è Update circa 0.5 ms e GC circa 19-29 KB/frame.
 
