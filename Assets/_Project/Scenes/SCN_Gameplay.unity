@@ -38881,6 +38881,62 @@ Mesh:
       - serializedVersion: 1
         m_IndexStart: 0
         m_IndexCount: 0
+--- !u!1 &130657346
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 130657347}
+  - component: {fileID: 130657348}
+  m_Layer: 0
+  m_Name: Nest_Lanternfish (1)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &130657347
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130657346}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -5, y: 2.506503, z: -26.83}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 589838370}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &130657348
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 130657346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5aa386a7ba8d46843a1faf65e0e1b8b6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureNest
+  manager: {fileID: 589838369}
+  profile: {fileID: 11400000, guid: 356d320b4fe9b3143b304225fa52c43f, type: 2}
+  count: 4
+  fillOnStart: 1
+  spawnRadius: 6.81
+  leashRadius: 12
+  maxHeightAboveNest: 2.87
+  respawnInterval: 3
+  exitSpread: 30
+  activeDistance: 60
+  fadeInAfter: 6
+  fadeDuration: 1.5
 --- !u!1001 &141622767
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -51436,43 +51492,43 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalPosition.x
-      value: -1.254
+      value: -1.2736714
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 1.075
+      value: 1.0683897
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 1.287
+      value: 1.2928195
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalRotation.w
-      value: 0.9227936
+      value: 0.98184216
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalRotation.x
-      value: -0.09529702
+      value: -0.025346829
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalRotation.y
-      value: 0.34294564
+      value: -0.07173364
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalRotation.z
-      value: 0.14750843
+      value: 0.17377514
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x
-      value: -16.084
+      value: -1.423
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.y
-      value: 39.01
+      value: -8.611
       objectReference: {fileID: 0}
     - target: {fileID: 7875875095708441505, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
-      value: 12.433
+      value: 20.181
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -167904,9 +167960,15 @@ MonoBehaviour:
   manager: {fileID: 589838369}
   profile: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
   count: 100
-  spawnRadius: 6
+  fillOnStart: 1
+  spawnRadius: 6.81
   leashRadius: 12
-  maxHeightAboveNest: 3
+  maxHeightAboveNest: 2.87
+  respawnInterval: 3
+  exitSpread: 30
+  activeDistance: 60
+  fadeInAfter: 6
+  fadeDuration: 1.5
 --- !u!1 &562769346
 GameObject:
   m_ObjectHideFlags: 0
@@ -207561,6 +207623,7 @@ MonoBehaviour:
   midInterval: 4
   farInterval: 16
   visibilityMargin: 1
+  hiddenDistance: 35
   neighbourCellSize: 1
 --- !u!4 &589838370
 Transform:
@@ -207576,6 +207639,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 556942549}
+  - {fileID: 130657347}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &596808398
