@@ -12,6 +12,7 @@ namespace Deeploration.Player
     public sealed class HelmetInstruments : MonoBehaviour
     {
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
+        private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
         private static readonly Color Amber = new(1f, 0.69f, 0.25f);
         private static readonly Color EmergencyRed = new(1f, 0.27f, 0.2f);
         private static readonly Color LampYellow = new(0.94f, 0.82f, 0.35f);
@@ -44,6 +45,29 @@ namespace Deeploration.Player
         [Tooltip("Intensità dell'emissione di una tacca accesa (HDR).")]
         [SerializeField, Min(0f)] private float barIntensity = 2f;
 
+        [Header("Luce rossa")]
+        [Tooltip("Materiali delle fasce verde, arancione e rossa delle scale: con la torcia rossa diventano tre rossi " +
+                 "di luminosità crescente. Cercati sui renderer figli, per indice di sottomesh.")]
+        [SerializeField] private Material greenScale;
+        [SerializeField] private Material orangeScale;
+        [SerializeField] private Material redScale;
+
+        [Header("Bussola")]
+        [Tooltip("Il nastro della bussola (Cylinder.007): un arco nel piano XY locale, centrato su compassCenter.")]
+        [SerializeField] private Renderer compassStrip;
+        [Tooltip("Dà la rotta. Default: la camera principale.")]
+        [SerializeField] private Transform headingSource;
+        [Tooltip("Centro dell'arco del nastro, nello spazio locale della mesh.")]
+        [SerializeField] private Vector3 compassCenter = new(0f, -0.019f, 0.046f);
+        [Tooltip("Raggio a cui stanno le lettere: poco dentro la faccia interna del nastro (r ≈ 0.10).")]
+        [SerializeField, Min(0.001f)] private float compassRadius = 0.097f;
+        [Tooltip("Metà dell'arco visibile del nastro, in gradi.")]
+        [SerializeField, Range(10f, 90f)] private float compassArcHalf = 45f;
+        [Tooltip("Metà della finestra di rotta mostrata sul nastro, in gradi.")]
+        [SerializeField, Range(10f, 180f)] private float compassWindowHalf = 75f;
+        [Tooltip("Altezza delle lettere, in unità del mondo.")]
+        [SerializeField, Min(0.001f)] private float compassLetterHeight = 0.009f;
+
         [Header("Lancette: gradi")]
         [Tooltip("Rotazione della lancetta dalla fine verde (0) alla fine rossa (1) della scala: 270° in senso orario " +
                  "a partire da in basso a sinistra.")]
@@ -66,9 +90,16 @@ namespace Deeploration.Player
         private float startY;
         private int shownDepth = int.MinValue;
         private FlashlightMode? shownMode;
+        private FlashlightMode? scaleMode;
+        private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
+        private static readonly string[] CompassNames = { "N", "E", "S", "O" };
+        private readonly TMP_Text[] compassLetters = new TMP_Text[4];
 
         private void Awake()
         {
+            if (headingSource == null && Camera.main != null) headingSource = Camera.main.transform;
+            CollectScaleSlots();
+            BuildCompassLetters();
             if (oxygen == null) oxygen = FindFirstObjectByType<OxygenSystem>();
             if (flashlight == null) flashlight = FindFirstObjectByType<DiverFlashlight>();
             if (depthSource == null && oxygen != null) depthSource = oxygen.transform;
@@ -106,9 +137,99 @@ namespace Deeploration.Player
             RotateNeedle(oxygenNeedle, oxygenRest, oxygenFraction, oxygenBand >= 2 ? Mathf.Sin(time * 30f) * 1.2f : 0f);
             RotateNeedle(pressureNeedle, pressureRest, pressureFraction, pressureBand >= 2 ? Mathf.Sin(time * 25f) * 1.8f : 0f);
 
-            SetLamp(oxygenLamp, oxygenBand, time);
-            SetLamp(pressureLamp, pressureBand, time);
+            SetLamp(oxygenLamp, oxygenBand, mode, time);
+            SetLamp(pressureLamp, pressureBand, mode, time);
             UpdateCrt(depth, pressureBand, mode, time);
+            UpdateScales(mode);
+            UpdateCompass(mode);
+        }
+
+        private void CollectScaleSlots()
+        {
+            foreach (var r in GetComponentsInChildren<Renderer>(true))
+            {
+                var mats = r.sharedMaterials;
+                for (int i = 0; i < mats.Length; i++)
+                {
+                    int band = mats[i] == null ? -1 : mats[i] == greenScale ? 0 : mats[i] == orangeScale ? 1 : mats[i] == redScale ? 2 : -1;
+                    if (band >= 0) scaleSlots.Add((r, i, band));
+                }
+            }
+        }
+
+        // Con la torcia rossa le fasce diventano tre rossi distinti per luminosità; altrimenti tornano al materiale.
+        private void UpdateScales(FlashlightMode mode)
+        {
+            if (scaleMode == mode) return;
+            scaleMode = mode;
+            bool red = mode == FlashlightMode.Red;
+            foreach (var (r, index, band) in scaleSlots)
+            {
+                block.Clear();
+                if (red)
+                {
+                    float k = band == 0 ? 0.12f : band == 1 ? 0.4f : 1f;
+                    Color c = EmergencyRed * k;
+                    c.a = 1f;
+                    block.SetColor(BaseColorId, c);
+                    block.SetColor(EmissionColorId, c);
+                }
+                r.SetPropertyBlock(block, index);
+            }
+        }
+
+        private void BuildCompassLetters()
+        {
+            if (compassStrip == null || depthLabel == null) return;
+            for (int i = 0; i < compassLetters.Length; i++)
+            {
+                var go = new GameObject("Compass_" + CompassNames[i]);
+                go.transform.SetParent(transform, false);
+                var t = go.AddComponent<TextMeshPro>();
+                t.font = depthLabel.font;
+                t.fontSharedMaterial = depthLabel.fontSharedMaterial;
+                t.fontStyle = FontStyles.Bold;
+                t.alignment = TextAlignmentOptions.Center;
+                t.enableWordWrapping = false;
+                t.rectTransform.sizeDelta = new Vector2(0.03f, 0.02f);
+                t.text = CompassNames[i];
+                t.fontSize = 1f;
+                float lineHeight = t.GetPreferredValues("H").y; // altezza della riga a fontSize 1
+                t.fontSize = compassLetterHeight / Mathf.Max(lineHeight, 1e-6f);
+                compassLetters[i] = t;
+            }
+        }
+
+        // Nastro: la lettera di un punto cardinale scorre sull'arco secondo lo scarto dalla rotta (destra = più a est),
+        // e sfuma verso i bordi della finestra. Sulla mesh +X locale è la sinistra di chi guarda.
+        private void UpdateCompass(FlashlightMode mode)
+        {
+            if (compassStrip == null) return;
+            Color ink = mode == FlashlightMode.Red ? EmergencyRed : Amber;
+            Color glow = ink * 0.12f;
+            WriteEmission(compassStrip, glow);
+            if (compassLetters[0] == null) return;
+
+            float heading = headingSource != null ? headingSource.eulerAngles.y : 0f;
+            Transform strip = compassStrip.transform;
+            for (int i = 0; i < compassLetters.Length; i++)
+            {
+                float off = Mathf.DeltaAngle(heading, i * 90f);
+                float fade = 1f - Mathf.Abs(off) / compassWindowHalf;
+                var letter = compassLetters[i];
+                letter.enabled = fade > 0f;
+                if (fade <= 0f) continue;
+
+                float angle = off / compassWindowHalf * compassArcHalf * Mathf.Deg2Rad;
+                var outward = new Vector3(-Mathf.Sin(angle), -Mathf.Cos(angle), 0f);
+                Vector3 worldOut = strip.TransformDirection(outward);
+                letter.transform.SetPositionAndRotation(
+                    strip.TransformPoint(compassCenter + outward * compassRadius),
+                    Quaternion.LookRotation(worldOut, -strip.TransformDirection(Vector3.forward)));
+                Color c = ink;
+                c.a = fade;
+                letter.color = c;
+            }
         }
 
         private float CurrentDepth() =>
@@ -128,10 +249,12 @@ namespace Deeploration.Player
             needle.localRotation = rest * Quaternion.Euler(0f, 0f, angle);
         }
 
-        private void SetLamp(Renderer lamp, int band, float time)
+        private void SetLamp(Renderer lamp, int band, FlashlightMode mode, float time)
         {
             if (lamp == null) return;
-            Color color = band == 1 ? LampYellow : band == 2 ? LampOrange : LampRed;
+            Color color = mode == FlashlightMode.Red
+                ? EmergencyRed * (band == 1 ? 0.35f : band == 2 ? 0.65f : 1f)
+                : band == 1 ? LampYellow : band == 2 ? LampOrange : LampRed;
             float on = band == 0 ? 0f : band == 1 ? 1f : Mathf.Sin(time * (band == 3 ? 14f : 6f)) > 0f ? 1f : 0.15f;
             WriteEmission(lamp, color * (on * lampIntensity));
         }

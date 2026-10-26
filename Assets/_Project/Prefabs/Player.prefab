@@ -2394,6 +2394,16 @@ MonoBehaviour:
   - {fileID: 5378217674291643309}
   - {fileID: 3806211978283325553}
   barIntensity: 2
+  greenScale: {fileID: 2100000, guid: 9b7d03bf0a8d8b34380953d7d683234e, type: 2}
+  orangeScale: {fileID: 2100000, guid: bc6d4fa809828664e8744080592647d5, type: 2}
+  redScale: {fileID: 2100000, guid: 4951930d7c750f847acaee5eef212935, type: 2}
+  compassStrip: {fileID: 6196325133266121587}
+  headingSource: {fileID: 0}
+  compassCenter: {x: 0, y: -0.019, z: 0.046}
+  compassRadius: 0.097
+  compassArcHalf: 45
+  compassWindowHalf: 75
+  compassLetterHeight: 0.009
   sweepDegrees: 270
   needleResponse: 6
   startDepth: 2040
@@ -2405,6 +2415,11 @@ MonoBehaviour:
 --- !u!4 &4517492609445443063 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1949637505871103927, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
+  m_PrefabInstance: {fileID: 2720133959396323904}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &6196325133266121587 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: 8089062573417005363, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
   m_PrefabInstance: {fileID: 2720133959396323904}
   m_PrefabAsset: {fileID: 0}
 --- !u!23 &7889809911297304325 stripped
