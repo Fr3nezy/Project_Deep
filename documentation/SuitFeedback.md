@@ -9,7 +9,7 @@ Attualmente gestisce:
 
 ## File e componenti
 - `Assets/_Project/Code/Player/Feedback/SuitDebugOverlay.cs`: Controller unificato di feedback diegetico/debug e post-processing URP.
-- `Assets/_Project/Code/Player/Feedback/HelmetHud.cs`: HUD diegetico del casco (CRT, gauge O₂ con quadrante pressione, bussola), costruito a runtime.
+- `Assets/_Project/Code/Player/Feedback/HelmetInstruments.cs`: strumenti 3D del casco (gauge O₂ con quadrante pressione, CRT, spie), pilotati da codice.
 
 ## Dipendenze e flusso dati
 - **Tuta e Vitali**: Sottoscrive `OnOxygenChanged` (`OxygenSystem`), `OnStressChanged` (`StressSystem`), `OnModeChanged` (`DiverFlashlight`).
@@ -56,16 +56,18 @@ flowchart TD
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - Tutti i riferimenti ai sistemi della tuta prevedono fallback automatico in `Awake()`. Se `volume` o `vignette` sono assenti, la regolazione post-processing viene semplicemente ignorata senza eccezioni.
 
-### HelmetHud
-Implementato e verificato in Play il 2026-10-26 (layout del mockup `Mockup-HUD-Casco.html`, GDD sezione UI/UX). Non ancora fatti: schermo comunicazioni a scomparsa, menu di pausa, crepa sul vetro, ERR della bussola, localizzazione IT/EN, passaggio sotto il finish analogico.
-- **Responsabilità e ciclo di vita**: `Awake()` trova `OxygenSystem` e `DiverFlashlight` (`FindFirstObjectByType`) e crea un Canvas proprio (`HelmetHudCanvas`, Screen Space Overlay, 960x540 di riferimento, match sull'altezza). Tutta la grafica è una sola mesh UI (`HudLayer`, ridisegnata ogni `Update()`) più 7 `Text` e 4 per le lettere della bussola. La cornice dell'oblò non è disegnata: c'è già il casco 3D.
-- **Strumenti**: CRT in basso a sinistra (profondità in metri, modalità torcia con tre tacche, scanline); gauge O₂ in basso a destra con quadrante PRESS interno e due spie; bussola in alto al centro dalla rotta della camera. Torcia in `Red`: tutti gli strumenti passano al rosso d'emergenza.
-- **Fasce**: O₂ dalle `OxygenLevel` (Safe=spenta, Warning=gialla fissa, Critical=arancione lampeggiante, Emergency/Depleted=rossa veloce); pressione dalla profondità (`orangeDepth`, `redDepth`). Le fasce colorate dei quadranti sono fisse (O₂ 15/30/50%), non leggono `OxygenProfile`.
-- **Campi Inspector**: `oxygen`, `flashlight`, `depthSource` (default transform di `OxygenSystem`), `headingSource` (default camera principale), `startDepth` (2040), `metersPerUnit` (2: metri di profondità per metro di scena), `orangeDepth` (2200), `redDepth` (2400), `gaugeMinDepth` (1800), `gaugeMaxDepth` (2600), `sortingOrder` (-5, i fade a schermo coprono il casco).
+### HelmetInstruments
+Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `HelmetHud` (stesso giorno, rimosso): gli strumenti sono mesh 3D nel casco (`Helmet.fbx`), come nel concept di Manu, e il codice li muove. Non fatti: bussola (la mesh c'è, `Cylinder.007`/`.008` con `PH_Compass`, ma non è pilotata), schermo comunicazioni a scomparsa, menu di pausa, crepa sul vetro, localizzazione dei testi, materiali definitivi (tutti `PH_*` placeholder).
+- **Responsabilità e ciclo di vita**: sull'istanza `Helmet` del `Player.prefab`. `Awake()` trova `OxygenSystem` e `DiverFlashlight` (`FindFirstObjectByType`) e memorizza la posa di riposo delle lancette; `Start()` allinea le lancette ai valori attuali; `Update()` ruota le lancette con smorzamento, accende le spie e riscrive i testi del CRT.
+- **Lancette**: due perni vuoti nel modello (`Needle_O2_Pivot`, `Needle_Press_Pivot`), con asse Y verso l'alto e Z verso chi guarda; il codice li ruota attorno a Z a partire dalla posa di riposo (positivo = senso orario visto da chi guarda). La scala va dal verde (0, in basso a sinistra) al rosso (1, in basso a destra) su `sweepDegrees` (270°): l'ossigeno usa `1 - NormalizedOxygen` (la lancetta si sposta mentre si consuma), la pressione `InverseLerp(gaugeMinDepth, gaugeMaxDepth, profondità)`. In fascia arancione o rossa la lancetta trema.
+- **Spie**: `MSH_Lamp_O2` e `MSH_Lamp_Press`, emissione scritta con `MaterialPropertyBlock` (`_EmissionColor`): spenta in fascia verde, gialla fissa, arancione lampeggiante, rossa veloce. O₂ dalle `OxygenLevel`, pressione da `orangeDepth` e `redDepth`.
+- **CRT**: testi `TextMeshPro` (3D) figli di `CTR_Texts`, davanti a `MSH_CTR_Screen`: profondità (lampeggia in rosso oltre `redDepth`), etichette `PROFONDITÀ` e `LUCE`, modalità torcia (PIENA, BASSA, ROSSA) e tre tacche (`LightBar_0-2`, emissione per renderer). In torcia `Red` tutti i testi e le tacche passano al rosso d'emergenza. I testi sono italiani fissi: font e traduzioni si cambiano su questi `TMP_Text`.
+- **Campi Inspector**: `oxygen`, `flashlight`, `depthSource` (default transform dell'`OxygenSystem`); `oxygenNeedle`, `pressureNeedle`; `oxygenLamp`, `pressureLamp`, `lampIntensity` (3); `depthLabel`, `depthValue`, `lightLabel`, `lightValue`, `lightBars`, `barIntensity` (2); `sweepDegrees` (270), `needleResponse` (6); `startDepth` (2040), `metersPerUnit` (2: metri di profondità per metro di scena), `orangeDepth` (2200), `redDepth` (2400), `gaugeMinDepth` (1800), `gaugeMaxDepth` (2600).
 - **API pubbliche**: nessuna, osservatore in sola lettura.
-- **Riferimenti mancanti**: senza `OxygenSystem` O₂ pieno e profondità fissa a `startDepth`; senza `DiverFlashlight` torcia `Full`.
-- **Setup**: componente aggiunto alla radice di `Assets/_Project/Prefabs/Player.prefab`. Il testo di `SuitDebugOverlay` (in alto a destra) resta: va spento a mano per la demo se non serve.
-- **Limiti**: Canvas Overlay, quindi non passa sotto il post-processing analogico; l'azione "pressione arancione aumenta il consumo di O₂" del GDD non è implementata; testi in italiano fissi.
+- **Riferimenti mancanti**: ogni riferimento nullo viene ignorato (la parte relativa non si aggiorna); senza `OxygenSystem` la lancetta O₂ resta a pieno e la profondità a `startDepth`.
+- **Modello e materiali**: `Assets/_Project/Assets/Models/Helmet/Helmet.fbx`, esportato da `Desktop/Deeplonauts/Blend/Helmet.blend` (oggetti della collection `COL_HelmetStatic` più `MSH_Visor`, assi Blender di default: avanti -Z, su Y). Nel .blend: testi 3D tolti, `MSH_PressDial_*` (sfondo e tre archi verde/arancione/rosso), `MSH_Needle_Press` con perno `Needle_Press_Pivot`, `Needle_O2_Pivot` che porta la lancetta esistente (`Cube.001`), due spie, `MSH_CTR_Screen`. I materiali sono rinominati `PH_*` (placeholder temporanei, da sostituire con le texture di Painter) e estratti in `Assets/_Project/Assets/Models/Helmet/Materials_Placeholder/`: URP Lit, con emissione per le fasce, le lancette, le spie e lo schermo (parola chiave `_EMISSION` e `globalIlluminationFlags` = `RealtimeEmissive`; senza il flag Unity le perde alla reimportazione). `PH_Glass` è trasparente (alpha 0.1). Il .blend precedente è in `Helmet.blend1`.
+- **Setup**: dopo una nuova esportazione dell'FBX, perni, spie e testi restano collegati solo se i nomi non cambiano; i testi `CTR_Texts` sono nel prefab e vanno riposizionati a mano se lo schermo si sposta.
+- **Limiti**: i testi usano le risorse essenziali di TextMeshPro, importate il 2026-10-26 in `Assets/TextMesh Pro/`; l'azione "pressione arancione aumenta il consumo di O₂" del GDD non è implementata; il vetro riflette la torcia sullo schermo del CRT (placeholder).
 
 ## Layout e Contenuto dell'HUD a Schermo
 1. **Parametri Vitali**:
