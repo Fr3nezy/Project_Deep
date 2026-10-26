@@ -15,6 +15,11 @@ namespace Deeploration.Creatures
         // Inclinazione massima della rotta: i pesci nuotano quasi in piano anche quando cambiano quota.
         private const float MaxClimb = 0.5f;
         private const float FloorProbeDistance = 100f;
+        // Chi striscia: velocità massima con cui segue la quota del fondale (m/s) e prontezza dell'inclinazione (1/s).
+        private const float CrawlFollowSpeed = 2f;
+        private const float CrawlTiltResponse = 6f;
+        // Chi striscia percorre le superfici con la normale più verticale di così (circa 45°); più ripide sono ostacoli.
+        private const float CrawlWalkableNormalY = 0.7f;
 
         // Buffer condiviso da tutte le creature: il manager le fa avanzare una alla volta sul main thread.
         private static readonly Collider[] OverlapBuffer = new Collider[4];
@@ -143,6 +148,9 @@ namespace Deeploration.Creatures
 
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
+        // Normale del fondale e asse "su" del corpo (liscio), per le creature che strisciano.
+        private Vector3 floorNormal = Vector3.up;
+        private Vector3 bodyUp = Vector3.up;
         private Vector3 avoidDirection;
         private float avoidWeight;
         // Ultima posizione in cui il corpo non toccava ostacoli, per uscirne dalla parte da cui è entrato.
@@ -254,6 +262,12 @@ namespace Deeploration.Creatures
             lastInterestTime = float.NegativeInfinity;
             perceived = StimulusCategory.None;
             floorY = float.NaN;
+            floorNormal = bodyUp = Vector3.up;
+            if (profile.crawlsOnFloor)
+            {
+                heading.y = 0f;
+                heading = heading.sqrMagnitude > 1e-4f ? heading.normalized : Vector3.forward;
+            }
             avoidWeight = 0f;
             hasFreePosition = false;
             Lod = CreatureLod.Near;
@@ -603,6 +617,7 @@ namespace Deeploration.Creatures
                     QueryTriggerInteraction.Ignore))
             {
                 floorY = floorHit.point.y;
+                floorNormal = floorHit.normal;
             }
             else if (Physics.Raycast(position + Vector3.up * FloorProbeDistance, Vector3.down, out floorHit,
                          FloorProbeDistance, mask, QueryTriggerInteraction.Ignore))
@@ -644,8 +659,17 @@ namespace Deeploration.Creatures
             hasFreePosition = true;
 
             float lookDistance = profile.bodyRadius + Mathf.Max(1f, speed * profile.lookAhead);
-            if (Physics.SphereCast(position, profile.bodyRadius, heading, out RaycastHit hit, lookDistance, mask,
-                    QueryTriggerInteraction.Ignore))
+            // Chi striscia guarda avanti lungo il pendio e non conta come ostacolo il terreno che può percorrere.
+            Vector3 lookDirection = heading;
+            if (profile.crawlsOnFloor)
+            {
+                Vector3 along = Vector3.ProjectOnPlane(heading, floorNormal);
+                if (along.sqrMagnitude > 1e-4f) lookDirection = along.normalized;
+            }
+            bool blocked = Physics.SphereCast(position, profile.bodyRadius, lookDirection, out RaycastHit hit, lookDistance,
+                mask, QueryTriggerInteraction.Ignore);
+            if (blocked && profile.crawlsOnFloor && hit.normal.y > CrawlWalkableNormalY) blocked = false;
+            if (blocked)
             {
                 // Scivola lungo la superficie e se ne stacca un po', solo in orizzontale: la quota la decide
                 // HeightCorrection, così un pendio sopra il soffitto diventa una parete da aggirare invece di una
@@ -793,14 +817,28 @@ namespace Deeploration.Creatures
 
             Vector3 previousHeading = heading;
             heading = Vector3.RotateTowards(heading, desired.normalized, turnRate * Mathf.Deg2Rad * deltaTime, 0f);
-            heading.y = Mathf.Clamp(heading.y, -MaxClimb, MaxClimb);
+            heading.y = profile.crawlsOnFloor ? 0f : Mathf.Clamp(heading.y, -MaxClimb, MaxClimb);
             heading.Normalize();
             speed = Mathf.MoveTowards(speed, targetSpeed, acceleration * deltaTime);
 
             position += heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime) +
                         diverPush * (DiverClearanceSlip * deltaTime);
-            if (!float.IsNaN(floorY)) position.y = Mathf.Max(position.y, floorY + profile.bodyRadius);
-            cachedTransform.SetPositionAndRotation(position, Quaternion.LookRotation(heading));
+            if (!float.IsNaN(floorY))
+            {
+                // Chi striscia segue il fondale: sale e scende con il terreno invece che con la rotta.
+                position.y = profile.crawlsOnFloor
+                    ? Mathf.MoveTowards(position.y, floorY + profile.heightAboveFloor, CrawlFollowSpeed * deltaTime)
+                    : Mathf.Max(position.y, floorY + profile.bodyRadius);
+            }
+
+            Quaternion rotation = Quaternion.LookRotation(heading);
+            if (profile.crawlsOnFloor)
+            {
+                bodyUp = Vector3.Slerp(bodyUp, floorNormal, 1f - Mathf.Exp(-CrawlTiltResponse * deltaTime));
+                Vector3 along = Vector3.ProjectOnPlane(heading, bodyUp);
+                if (along.sqrMagnitude > 1e-4f) rotation = Quaternion.LookRotation(along, bodyUp);
+            }
+            cachedTransform.SetPositionAndRotation(position, rotation);
 
             if (swimAnimator != null)
                 swimAnimator.speed = swimAnimationSpeed * Mathf.Max(0.3f, speed / profile.cruiseSpeed);

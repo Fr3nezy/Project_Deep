@@ -38,6 +38,11 @@ namespace Deeploration.Creatures
         [Range(0f, 10f)]
         public float heightTolerance = 1f;
 
+        [Tooltip("Vive sul fondale invece di nuotare: resta a heightAboveFloor dal terreno senza salire né scendere " +
+                 "di rotta, e il corpo si inclina sulla pendenza. heightAboveFloor deve superare bodyRadius, " +
+                 "altrimenti il corpo tocca il fondale e la creatura si blocca.")]
+        public bool crawlsOnFloor;
+
         [Header("Vagare")]
         [Tooltip("Virata massima del vagare (gradi al secondo): più alta, traiettoria più nervosa")]
         [Range(0f, 360f)]
