@@ -17,7 +17,7 @@ MonoBehaviour:
   fleeSpeed: 1.2
   acceleration: 1.5
   turnRate: 100
-  heightAboveFloor: 0.15
+  heightAboveFloor: 0.18300001
   heightTolerance: 0.05
   crawlsOnFloor: 1
   wanderTurn: 60
@@ -55,5 +55,5 @@ MonoBehaviour:
   startleGlow: 0
   startleGlowDuration: 1.2
   alarmRadius: 0
-  bodyRadius: 0.1
+  bodyRadius: 0.122
   lookAhead: 1

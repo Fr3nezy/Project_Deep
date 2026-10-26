@@ -77,10 +77,11 @@ MonoBehaviour:
   - {fileID: 3969382054724923058}
   - {fileID: 6627159152839349794}
   - {fileID: 3812904818414718030}
-  strideLength: 0.12
+  strideLength: 0.14472301
   swingAngle: 25
   liftAngle: 22
   waveLag: 0.12
+  dutyFactor: 0.65
   stillSpeed: 0.02
   antennaLeft:
   - {fileID: 1603606991770670340}
@@ -107,15 +108,15 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalScale.x
-      value: 1.5
+      value: 1.83
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalScale.y
-      value: 1.5
+      value: 1.83
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalScale.z
-      value: 1.5
+      value: 1.83
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalPosition.x
@@ -123,11 +124,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.14844161
+      value: -0.18109877
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 0.008637159
+      value: 0.010537335
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
       propertyPath: m_LocalRotation.w

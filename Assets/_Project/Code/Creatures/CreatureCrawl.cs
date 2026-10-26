@@ -33,6 +33,10 @@ namespace Deeploration.Creatures
                  "lungo il corpo.")]
         [SerializeField, Range(0f, 0.5f)] private float waveLag = 0.12f;
 
+        [Tooltip("Frazione del ciclo in cui la zampa è a terra e arretra a velocità costante; il resto è il ritorno " +
+                 "in avanti, più rapido e sollevato.")]
+        [SerializeField, Range(0.5f, 0.9f)] private float dutyFactor = 0.65f;
+
         [Tooltip("Velocità (m/s) sotto la quale il passo si spegne del tutto. Sopra, l'ampiezza sale fino al massimo " +
                  "alla velocità di crociera.")]
         [SerializeField, Min(0f)] private float stillSpeed = 0.02f;
@@ -125,10 +129,24 @@ namespace Deeploration.Creatures
             float sideOffset = side < 0f ? 0.5f : 0f;
             for (int i = 0; i < legs.Length; i++)
             {
-                float cycle = (phase - i * waveLag + sideOffset) * 2f * Mathf.PI;
-                float swing = Mathf.Sin(cycle) * swingAngle * walk;
-                // La zampa si alza solo mentre torna avanti.
-                float lift = Mathf.Max(0f, Mathf.Cos(cycle)) * liftAngle * walk;
+                float cycle = Mathf.Repeat(phase - i * waveLag + sideOffset, 1f);
+                float reach, raise;
+                if (cycle < dutyFactor)
+                {
+                    // A terra: arretra in modo lineare, come una zampa piantata mentre il corpo avanza.
+                    reach = 1f - 2f * cycle / dutyFactor;
+                    raise = 0f;
+                }
+                else
+                {
+                    // Ritorno: torna avanti con partenza e arrivo morbidi, sollevata a metà corsa.
+                    float t = (cycle - dutyFactor) / (1f - dutyFactor);
+                    reach = Mathf.SmoothStep(-1f, 1f, t);
+                    raise = Mathf.Sin(t * Mathf.PI);
+                }
+                // Rotazione positiva su Y porta la punta indietro su entrambi i lati, da qui il segno meno.
+                float swing = -reach * swingAngle * walk;
+                float lift = raise * liftAngle * walk;
                 Pose(legs[i], rest[i], toRoot[i], Quaternion.Euler(0f, swing * side, lift * side));
             }
         }

@@ -20,9 +20,15 @@ namespace Deeploration.Creatures
         private const float CrawlTiltResponse = 6f;
         // Chi striscia percorre le superfici con la normale più verticale di così (circa 45°); più ripide sono ostacoli.
         private const float CrawlWalkableNormalY = 0.7f;
+        // Chi striscia, dopo aver toccato una parete, continua a girarle attorno per questo tempo (s) anche se lo
+        // SphereCast in avanti la vede libera: senza, tornava subito contro la roccia e restava bloccato.
+        private const float CrawlAvoidHold = 0.8f;
 
         // Buffer condiviso da tutte le creature: il manager le fa avanzare una alla volta sul main thread.
         private static readonly Collider[] OverlapBuffer = new Collider[4];
+        // Sfera condivisa per Physics.ComputePenetration, che vuole un collider abilitato: trigger sul layer
+        // Ignore Raycast, lontano dalla scena, fuori dalla ObstacleMask.
+        private static SphereCollider penetrationProbe;
 
         [Tooltip("Animator con la clip di nuoto del modello provvisorio (opzionale). La clip accelera e rallenta " +
                  "con la velocità della creatura. Verrà sostituito dalla catena di joint procedurale.")]
@@ -153,6 +159,7 @@ namespace Deeploration.Creatures
         private Vector3 bodyUp = Vector3.up;
         private Vector3 avoidDirection;
         private float avoidWeight;
+        private float avoidHoldUntil;
         // Ultima posizione in cui il corpo non toccava ostacoli, per uscirne dalla parte da cui è entrato.
         private Vector3 lastFreePosition;
         private bool hasFreePosition;
@@ -635,7 +642,14 @@ namespace Deeploration.Creatures
             // posizione libera (appena uscito dal pool dentro un ostacolo) esce allontanandosi dal centro, in alto.
             int overlaps = Physics.OverlapSphereNonAlloc(position, profile.bodyRadius, OverlapBuffer, mask,
                 QueryTriggerInteraction.Ignore);
-            if (overlaps > 0)
+            if (overlaps > 0 && profile.crawlsOnFloor && CrawlDepenetrate(ref position, overlaps))
+            {
+                cachedTransform.position = position;
+                lastFreePosition = position;
+                hasFreePosition = true;
+                if (Time.time < avoidHoldUntil) return;
+            }
+            else if (overlaps > 0)
             {
                 Vector3 away;
                 if (hasFreePosition)
@@ -669,7 +683,18 @@ namespace Deeploration.Creatures
             bool blocked = Physics.SphereCast(position, profile.bodyRadius, lookDirection, out RaycastHit hit, lookDistance,
                 mask, QueryTriggerInteraction.Ignore);
             if (blocked && profile.crawlsOnFloor && hit.normal.y > CrawlWalkableNormalY) blocked = false;
-            if (blocked)
+            if (!blocked && profile.crawlsOnFloor && CrawlEdgeAhead(position, lookDirection, mask, out Vector3 edgeNormal))
+            {
+                // Bordo davanti (pendio troppo ripido o salto): lo costeggia girando dal lato verso cui già piega,
+                // un po' all'indietro. Senza, scendeva per pendii da cui non sapeva risalire e restava in fondo.
+                Vector3 flatHeading = new Vector3(heading.x, 0f, heading.z);
+                Vector3 side = Vector3.Cross(Vector3.up, edgeNormal);
+                if (Vector3.Dot(side, flatHeading) < 0f) side = -side;
+                avoidDirection = (side - edgeNormal * 0.5f).normalized;
+                avoidWeight = 1f;
+                avoidHoldUntil = Time.time + CrawlAvoidHold;
+            }
+            else if (blocked)
             {
                 // Scivola lungo la superficie e se ne stacca un po', solo in orizzontale: la quota la decide
                 // HeightCorrection, così un pendio sopra il soffitto diventa una parete da aggirare invece di una
@@ -687,10 +712,92 @@ namespace Deeploration.Creatures
                 if (state == CreatureState.Stalk && avoidWeight > 0.5f && Time.time - lastOrbitFlipTime > 2f)
                     FlipOrbit(Time.time, true);
             }
-            else
+            else if (Time.time >= avoidHoldUntil)
             {
                 avoidWeight = 0f;
             }
+        }
+
+        /// <summary>
+        /// Chi striscia guarda il fondale poco davanti a sé: è un bordo se lì il terreno è più ripido del
+        /// percorribile, se scende di colpo di più di tre raggi del corpo o se manca. <paramref name="edgeNormal"/> è
+        /// la direzione orizzontale verso il vuoto (giù per il pendio, o in avanti se il terreno manca).
+        /// </summary>
+        private bool CrawlEdgeAhead(Vector3 position, Vector3 lookDirection, LayerMask mask, out Vector3 edgeNormal)
+        {
+            Vector3 flatLook = new Vector3(lookDirection.x, 0f, lookDirection.z);
+            edgeNormal = flatLook.sqrMagnitude > 1e-6f ? flatLook.normalized : Vector3.forward;
+            if (float.IsNaN(floorY)) return false;
+
+            float drop = profile.bodyRadius * 3f;
+            Vector3 ahead = position + edgeNormal * (profile.bodyRadius * 3f);
+            float rayStart = profile.heightAboveFloor + profile.bodyRadius;
+            if (!Physics.Raycast(ahead + Vector3.up * rayStart, Vector3.down, out RaycastHit edge,
+                    rayStart + profile.heightAboveFloor + drop, mask, QueryTriggerInteraction.Ignore))
+                return true;
+            if (edge.point.y < floorY - drop) return true;
+            if (edge.normal.y >= CrawlWalkableNormalY) return false;
+
+            // Pendio ripido: è un bordo solo se scende nella direzione di marcia; in salita ci pensa lo SphereCast.
+            Vector3 downhill = new Vector3(edge.normal.x, 0f, edge.normal.z);
+            if (Vector3.Dot(downhill, edgeNormal) <= 0f) return false;
+            edgeNormal = downhill.normalized;
+            return true;
+        }
+
+        /// <summary>
+        /// Chi striscia tocca di continuo fondale e rocce: invece di tornare all'ultima posizione libera (che lo
+        /// rimandava contro lo stesso sasso all'infinito) esce dalla compenetrazione. Un dosso percorribile lo
+        /// solleva; una parete lo spinge fuori in orizzontale e lo fa girare lungo la parete per
+        /// <see cref="CrawlAvoidHold"/> secondi. Falso se nessuna compenetrazione è risolvibile.
+        /// </summary>
+        private bool CrawlDepenetrate(ref Vector3 position, int overlaps)
+        {
+            if (penetrationProbe == null)
+            {
+                var probeObject = new GameObject("CreaturePenetrationProbe") { hideFlags = HideFlags.HideAndDontSave };
+                probeObject.layer = 2;
+                probeObject.transform.position = new Vector3(0f, -10000f, 0f);
+                penetrationProbe = probeObject.AddComponent<SphereCollider>();
+                penetrationProbe.isTrigger = true;
+            }
+            penetrationProbe.radius = profile.bodyRadius;
+
+            bool resolved = false;
+            Vector3 wall = Vector3.zero;
+            for (int i = 0; i < overlaps; i++)
+            {
+                Collider other = OverlapBuffer[i];
+                Transform otherTransform = other.transform;
+                if (!Physics.ComputePenetration(penetrationProbe, position, Quaternion.identity, other,
+                        otherTransform.position, otherTransform.rotation, out Vector3 direction, out float distance))
+                    continue;
+                resolved = true;
+                if (direction.y > CrawlWalkableNormalY)
+                {
+                    position.y += distance / direction.y;
+                }
+                else
+                {
+                    Vector3 flat = new Vector3(direction.x, 0f, direction.z);
+                    if (flat.sqrMagnitude < 1e-6f) continue;
+                    flat.Normalize();
+                    position += flat * distance;
+                    wall += flat;
+                }
+            }
+
+            if (wall.sqrMagnitude > 1e-6f)
+            {
+                wall.Normalize();
+                Vector3 flatHeading = new Vector3(heading.x, 0f, heading.z);
+                Vector3 slide = Vector3.ProjectOnPlane(flatHeading, wall);
+                if (slide.sqrMagnitude < 0.01f) slide = Vector3.Cross(Vector3.up, wall);
+                avoidDirection = (slide.normalized + wall * 0.5f).normalized;
+                avoidWeight = 1f;
+                avoidHoldUntil = Time.time + CrawlAvoidHold;
+            }
+            return resolved;
         }
 
         private void Move(float deltaTime)
