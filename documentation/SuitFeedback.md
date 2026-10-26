@@ -1,5 +1,5 @@
 # Suit Feedback & Debug Overlay
-Ultima verifica: 2026-09-12
+Ultima verifica: 2026-10-26
 
 ## Scopo e confini
 Rappresenta l'anello di congiunzione tra le letture dei sistemi interni della tuta (`OxygenSystem`, `StressSystem`, `DiverFlashlight`), le interazioni fisiche (`PlayerHands`, `PlayerInteraction`), la progressione narrativa (`QuestManager`) e i canali percettivi del giocatore.
@@ -9,6 +9,7 @@ Attualmente gestisce:
 
 ## File e componenti
 - `Assets/_Project/Code/Player/Feedback/SuitDebugOverlay.cs`: Controller unificato di feedback diegetico/debug e post-processing URP.
+- `Assets/_Project/Code/Player/Feedback/HelmetHud.cs`: HUD diegetico del casco (CRT, gauge O₂ con quadrante pressione, bussola), costruito a runtime.
 
 ## Dipendenze e flusso dati
 - **Tuta e Vitali**: Sottoscrive `OnOxygenChanged` (`OxygenSystem`), `OnStressChanged` (`StressSystem`), `OnModeChanged` (`DiverFlashlight`).
@@ -54,6 +55,17 @@ flowchart TD
   - Il componente non espone API pubbliche di manipolazione diretta, operando in modalità Observer / Consumer su eventi.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - Tutti i riferimenti ai sistemi della tuta prevedono fallback automatico in `Awake()`. Se `volume` o `vignette` sono assenti, la regolazione post-processing viene semplicemente ignorata senza eccezioni.
+
+### HelmetHud
+Implementato e verificato in Play il 2026-10-26 (layout del mockup `Mockup-HUD-Casco.html`, GDD sezione UI/UX). Non ancora fatti: schermo comunicazioni a scomparsa, menu di pausa, crepa sul vetro, ERR della bussola, localizzazione IT/EN, passaggio sotto il finish analogico.
+- **Responsabilità e ciclo di vita**: `Awake()` trova `OxygenSystem` e `DiverFlashlight` (`FindFirstObjectByType`) e crea un Canvas proprio (`HelmetHudCanvas`, Screen Space Overlay, 960x540 di riferimento, match sull'altezza). Tutta la grafica è una sola mesh UI (`HudLayer`, ridisegnata ogni `Update()`) più 7 `Text` e 4 per le lettere della bussola. La cornice dell'oblò non è disegnata: c'è già il casco 3D.
+- **Strumenti**: CRT in basso a sinistra (profondità in metri, modalità torcia con tre tacche, scanline); gauge O₂ in basso a destra con quadrante PRESS interno e due spie; bussola in alto al centro dalla rotta della camera. Torcia in `Red`: tutti gli strumenti passano al rosso d'emergenza.
+- **Fasce**: O₂ dalle `OxygenLevel` (Safe=spenta, Warning=gialla fissa, Critical=arancione lampeggiante, Emergency/Depleted=rossa veloce); pressione dalla profondità (`orangeDepth`, `redDepth`). Le fasce colorate dei quadranti sono fisse (O₂ 15/30/50%), non leggono `OxygenProfile`.
+- **Campi Inspector**: `oxygen`, `flashlight`, `depthSource` (default transform di `OxygenSystem`), `headingSource` (default camera principale), `startDepth` (2040), `metersPerUnit` (2: metri di profondità per metro di scena), `orangeDepth` (2200), `redDepth` (2400), `gaugeMinDepth` (1800), `gaugeMaxDepth` (2600), `sortingOrder` (-5, i fade a schermo coprono il casco).
+- **API pubbliche**: nessuna, osservatore in sola lettura.
+- **Riferimenti mancanti**: senza `OxygenSystem` O₂ pieno e profondità fissa a `startDepth`; senza `DiverFlashlight` torcia `Full`.
+- **Setup**: componente aggiunto alla radice di `Assets/_Project/Prefabs/Player.prefab`. Il testo di `SuitDebugOverlay` (in alto a destra) resta: va spento a mano per la demo se non serve.
+- **Limiti**: Canvas Overlay, quindi non passa sotto il post-processing analogico; l'azione "pressione arancione aumenta il consumo di O₂" del GDD non è implementata; testi in italiano fissi.
 
 ## Layout e Contenuto dell'HUD a Schermo
 1. **Parametri Vitali**:

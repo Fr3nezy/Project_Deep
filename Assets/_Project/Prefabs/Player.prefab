@@ -865,6 +865,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 923543129504440592}
+  - component: {fileID: 4271963253877843468}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -891,6 +892,29 @@ Transform:
   - {fileID: 5446934738901400048}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4271963253877843468
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5963854485263641623}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1d4775eb96c217346889d5ef36f71a7c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Player.HelmetHud
+  oxygen: {fileID: 0}
+  flashlight: {fileID: 0}
+  depthSource: {fileID: 0}
+  headingSource: {fileID: 0}
+  startDepth: 2040
+  metersPerUnit: 2
+  orangeDepth: 2200
+  redDepth: 2400
+  gaugeMinDepth: 1800
+  gaugeMaxDepth: 2600
+  sortingOrder: -5
 --- !u!1 &6630055026913839003
 GameObject:
   m_ObjectHideFlags: 0
