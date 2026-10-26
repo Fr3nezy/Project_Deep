@@ -180,14 +180,14 @@ namespace Deeploration.Player
 
         private void BuildCompassLetters()
         {
-            if (compassStrip == null || depthLabel == null) return;
+            if (compassStrip == null || depthValue == null) return;
             for (int i = 0; i < compassLetters.Length; i++)
             {
                 var go = new GameObject("Compass_" + CompassNames[i]);
                 go.transform.SetParent(transform, false);
                 var t = go.AddComponent<TextMeshPro>();
-                t.font = depthLabel.font;
-                t.fontSharedMaterial = depthLabel.fontSharedMaterial;
+                t.font = depthValue.font;
+                t.fontSharedMaterial = depthValue.fontSharedMaterial;
                 t.fontStyle = FontStyles.Bold;
                 t.alignment = TextAlignmentOptions.Center;
                 t.enableWordWrapping = false;
