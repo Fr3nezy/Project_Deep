@@ -62,6 +62,8 @@ namespace Deeploration.Creatures
 
         private Creature creature;
         private Quaternion[] legRestLeft, legRestRight, antennaRestLeft, antennaRestRight;
+        // Rotazione a riposo di ogni osso rispetto alla radice: le oscillazioni usano gli assi della creatura, non quelli dell'osso importato.
+        private Quaternion[] legRootLeft, legRootRight, antennaRootLeft, antennaRootRight;
         private float phase;
         private float alert;
         private float seed;
@@ -71,18 +73,30 @@ namespace Deeploration.Creatures
             creature = GetComponent<Creature>();
             seed = Random.value * 100f;
             phase = Random.value;
-            legRestLeft = Capture(legsLeft);
-            legRestRight = Capture(legsRight);
-            antennaRestLeft = Capture(antennaLeft);
-            antennaRestRight = Capture(antennaRight);
+            legRestLeft = Capture(legsLeft, out legRootLeft);
+            legRestRight = Capture(legsRight, out legRootRight);
+            antennaRestLeft = Capture(antennaLeft, out antennaRootLeft);
+            antennaRestRight = Capture(antennaRight, out antennaRootRight);
         }
 
-        private static Quaternion[] Capture(Transform[] bones)
+        private Quaternion[] Capture(Transform[] bones, out Quaternion[] toRoot)
         {
             int count = bones != null ? bones.Length : 0;
             var rest = new Quaternion[count];
-            for (int i = 0; i < count; i++) rest[i] = bones[i].localRotation;
+            toRoot = new Quaternion[count];
+            Quaternion rootInverse = Quaternion.Inverse(transform.rotation);
+            for (int i = 0; i < count; i++)
+            {
+                rest[i] = bones[i].localRotation;
+                toRoot[i] = rootInverse * bones[i].rotation;
+            }
             return rest;
+        }
+
+        // Applica una rotazione espressa negli assi della creatura (X destra, Y su, Z avanti) all'osso a riposo.
+        private static void Pose(Transform bone, Quaternion rest, Quaternion toRoot, Quaternion delta)
+        {
+            bone.localRotation = rest * (Quaternion.Inverse(toRoot) * delta * toRoot);
         }
 
         private void LateUpdate()
@@ -98,13 +112,13 @@ namespace Deeploration.Creatures
             if (visibilityRenderer != null && !visibilityRenderer.isVisible) return;
 
             float walk = Mathf.Clamp01((speed - stillSpeed) / cruise);
-            AnimateLegs(legsLeft, legRestLeft, -1f, walk);
-            AnimateLegs(legsRight, legRestRight, 1f, walk);
-            AnimateAntenna(antennaLeft, antennaRestLeft, -1f);
-            AnimateAntenna(antennaRight, antennaRestRight, 1f);
+            AnimateLegs(legsLeft, legRestLeft, legRootLeft, -1f, walk);
+            AnimateLegs(legsRight, legRestRight, legRootRight, 1f, walk);
+            AnimateAntenna(antennaLeft, antennaRestLeft, antennaRootLeft, -1f);
+            AnimateAntenna(antennaRight, antennaRestRight, antennaRootRight, 1f);
         }
 
-        private void AnimateLegs(Transform[] legs, Quaternion[] rest, float side, float walk)
+        private void AnimateLegs(Transform[] legs, Quaternion[] rest, Quaternion[] toRoot, float side, float walk)
         {
             if (legs == null) return;
             // Le due file camminano in controfase.
@@ -115,11 +129,11 @@ namespace Deeploration.Creatures
                 float swing = Mathf.Sin(cycle) * swingAngle * walk;
                 // La zampa si alza solo mentre torna avanti.
                 float lift = Mathf.Max(0f, Mathf.Cos(cycle)) * liftAngle * walk;
-                legs[i].localRotation = rest[i] * Quaternion.Euler(0f, swing * side, lift * side);
+                Pose(legs[i], rest[i], toRoot[i], Quaternion.Euler(0f, swing * side, lift * side));
             }
         }
 
-        private void AnimateAntenna(Transform[] segments, Quaternion[] rest, float side)
+        private void AnimateAntenna(Transform[] segments, Quaternion[] rest, Quaternion[] toRoot, float side)
         {
             if (segments == null) return;
             float time = Time.time + seed;
@@ -130,7 +144,7 @@ namespace Deeploration.Creatures
                 sway += alert * Mathf.Sin(time * 11f + i + side * 2f) * 3f;
                 float raise = alert * antennaAlertRaise;
                 float spread = alert * antennaAlertSpread * side;
-                segments[i].localRotation = rest[i] * Quaternion.Euler(-raise, sway + spread, 0f);
+                Pose(segments[i], rest[i], toRoot[i], Quaternion.Euler(-raise, sway + spread, 0f));
             }
         }
     }
