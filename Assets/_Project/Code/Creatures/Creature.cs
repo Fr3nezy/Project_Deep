@@ -23,9 +23,13 @@ namespace Deeploration.Creatures
         // Chi striscia, dopo aver toccato una parete, continua a girarle attorno per questo tempo (s) anche se lo
         // SphereCast in avanti la vede libera: senza, tornava subito contro la roccia e restava bloccato.
         private const float CrawlAvoidHold = 0.8f;
+        // Chi striscia che resta bloccato da pareti per questo tempo (s) è incastrato in un angolo: torna indietro.
+        private const float CrawlStuckTime = 0.6f;
 
         // Buffer condiviso da tutte le creature: il manager le fa avanzare una alla volta sul main thread.
         private static readonly Collider[] OverlapBuffer = new Collider[4];
+        private static readonly RaycastHit[] SweepBuffer = new RaycastHit[6];
+        private const float CrawlSweepSkin = 0.02f;
         // Sfera condivisa per Physics.ComputePenetration, che vuole un collider abilitato: trigger sul layer
         // Ignore Raycast, lontano dalla scena, fuori dalla ObstacleMask.
         private static SphereCollider penetrationProbe;
@@ -667,6 +671,15 @@ namespace Deeploration.Creatures
                 }
                 avoidDirection = away.normalized;
                 avoidWeight = 1f;
+                if (profile.crawlsOnFloor)
+                {
+                    // Tornare indietro non basta: senza cambiare rotta rifà la stessa traiettoria nello stesso sasso.
+                    Vector3 back = new Vector3(avoidDirection.x, 0f, avoidDirection.z);
+                    if (back.sqrMagnitude < 1e-4f) back = new Vector3(-heading.x, 0f, -heading.z);
+                    heading = Quaternion.AngleAxis(Random.Range(-45f, 45f), Vector3.up) * back.normalized;
+                    avoidDirection = heading;
+                    avoidHoldUntil = 0f;
+                }
                 return;
             }
             lastFreePosition = position;
@@ -800,6 +813,60 @@ namespace Deeploration.Creatures
             return resolved;
         }
 
+        private float crawlBlockedTime;
+
+        /// <summary>
+        /// Chi striscia non ha collider né il probe a ogni frame (LOD Mid/Far): lo step orizzontale è quindi verificato
+        /// con uno SphereCast, altrimenti tra un probe e l'altro entra nelle rocce (e in un MeshCollider non convesso,
+        /// senza interno per le query, da dentro non vede più nulla). Il terreno percorribile (normale verso l'alto) non ferma; una parete accorcia
+        /// lo step prima del contatto e gira la rotta lungo di essa.
+        /// </summary>
+        private Vector3 CrawlSweep(Vector3 position, Vector3 step)
+        {
+            step.y = 0f;
+            float length = step.magnitude;
+            if (length < 1e-5f) return step;
+
+            Vector3 direction = step / length;
+            int count = Physics.SphereCastNonAlloc(position, profile.bodyRadius + CrawlSweepSkin, direction, SweepBuffer,
+                length, manager.ObstacleMask, QueryTriggerInteraction.Ignore);
+            float nearest = float.MaxValue;
+            Vector3 normal = Vector3.zero;
+            for (int i = 0; i < count; i++)
+            {
+                RaycastHit hit = SweepBuffer[i];
+                // Distanza zero: parte già dentro quel collider, ci pensa il probe a farlo uscire.
+                if (hit.distance <= 0f || hit.normal.y >= CrawlWalkableNormalY || hit.distance >= nearest) continue;
+                nearest = hit.distance;
+                normal = hit.normal;
+            }
+            if (nearest == float.MaxValue)
+            {
+                crawlBlockedTime = Mathf.Max(0f, crawlBlockedTime - Time.deltaTime * 0.5f);
+                return step;
+            }
+
+            normal.y = 0f;
+            if (normal.sqrMagnitude < 1e-6f) normal = -direction;
+            normal.Normalize();
+            Vector3 slide = Vector3.ProjectOnPlane(direction, normal);
+            if (slide.sqrMagnitude < 0.01f) slide = Vector3.Cross(Vector3.up, normal);
+            Vector3 turn = (slide.normalized + normal * 0.5f).normalized;
+            crawlBlockedTime += Time.deltaTime;
+            if (crawlBlockedTime > CrawlStuckTime)
+            {
+                // Incastrato tra due pareti: scorrere lungo una lo porta contro l'altra. Fa dietrofront con un
+                // angolo a caso, così a ogni tentativo prova un'uscita diversa.
+                crawlBlockedTime = 0f;
+                turn = Quaternion.AngleAxis(Random.Range(-60f, 60f), Vector3.up) * -direction;
+            }
+            heading = turn;
+            avoidDirection = turn;
+            avoidWeight = 1f;
+            avoidHoldUntil = Time.time + CrawlAvoidHold;
+            return direction * Mathf.Max(0f, nearest - 0.001f);
+        }
+
         private void Move(float deltaTime)
         {
             Vector3 position = cachedTransform.position;
@@ -928,8 +995,10 @@ namespace Deeploration.Creatures
             heading.Normalize();
             speed = Mathf.MoveTowards(speed, targetSpeed, acceleration * deltaTime);
 
-            position += heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime) +
-                        diverPush * (DiverClearanceSlip * deltaTime);
+            Vector3 step = heading * (speed * deltaTime) + separationSteer * (SeparationSlip * deltaTime) +
+                           diverPush * (DiverClearanceSlip * deltaTime);
+            if (profile.crawlsOnFloor) step = CrawlSweep(position, step);
+            position += step;
             if (!float.IsNaN(floorY))
             {
                 // Chi striscia segue il fondale: sale e scende con il terreno invece che con la rotta.

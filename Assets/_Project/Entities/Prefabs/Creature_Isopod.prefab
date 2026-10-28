@@ -83,6 +83,13 @@ MonoBehaviour:
   waveLag: 0.12
   dutyFactor: 0.65
   stillSpeed: 0.02
+  body: {fileID: 2584807164707737034}
+  bodyBob: 0.004
+  bodyStepRoll: 2
+  bodyTurnRoll: 4
+  bodyTurnYaw: 3
+  breathAmount: 0.0015
+  breathRate: 0.25
   antennaLeft:
   - {fileID: 1603606991770670340}
   - {fileID: 4743767737628772024}
@@ -93,7 +100,12 @@ MonoBehaviour:
   - {fileID: 5880725248644486313}
   - {fileID: 1798256839558997248}
   - {fileID: 4689966467943412443}
-  antennaSway: 7
+  antennaSway: 20
+  antennaWhip: 16
+  antennaWhipRate: 1.2
+  antennaWhipLag: 0.12
+  antennaTwitch: 28
+  antennaTwitchInterval: {x: 1, y: 3}
   antennaAlertRaise: 12
   antennaAlertSpread: 6
   antennaResponse: 8
@@ -199,6 +211,11 @@ Transform:
 --- !u!4 &2464887736402862328 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
+  m_PrefabInstance: {fileID: 2720089698516010771}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2584807164707737034 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8763820978649888039, guid: 9e05e3efc8284604099a18904c0cbbf5, type: 3}
   m_PrefabInstance: {fileID: 2720089698516010771}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &2613666032508827513 stripped
