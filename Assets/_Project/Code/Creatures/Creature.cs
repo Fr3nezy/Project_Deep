@@ -23,6 +23,9 @@ namespace Deeploration.Creatures
         // Chi striscia, dopo aver toccato una parete, continua a girarle attorno per questo tempo (s) anche se lo
         // SphereCast in avanti la vede libera: senza, tornava subito contro la roccia e restava bloccato.
         private const float CrawlAvoidHold = 0.8f;
+        private const int SpotAttempts = 4;
+        private const float SwimStuckTime = 1.5f;
+        private const float SwimDetourHold = 2.5f;
         // Chi striscia che resta bloccato da pareti per questo tempo (s) è incastrato in un angolo: torna indietro.
         private const float CrawlStuckTime = 0.6f;
 
@@ -280,6 +283,8 @@ namespace Deeploration.Creatures
                 heading = heading.sqrMagnitude > 1e-4f ? heading.normalized : Vector3.forward;
             }
             avoidWeight = 0f;
+            avoidHoldUntil = 0f;
+            swimBlockedSince = -1f;
             hasFreePosition = false;
             Lod = CreatureLod.Near;
             swimPhase = Random.value * 2f * Mathf.PI;
@@ -543,6 +548,7 @@ namespace Deeploration.Creatures
             {
                 CreatureStimulus stimulus = stimuli[i];
                 if (ReferenceEquals(stimulus.Emitter, this)) continue;
+                if (stimulus.OnlySpecies != null && !ReferenceEquals(stimulus.OnlySpecies, profile)) continue;
                 // Un predatore non si spaventa per il lampo d'allarme delle sue prede: è quello che sta cacciando.
                 if (profile.prey != null && stimulus.Emitter != null &&
                     ReferenceEquals(stimulus.Emitter.Profile, profile.prey))
@@ -562,6 +568,9 @@ namespace Deeploration.Creatures
 
                 float distance = Mathf.Sqrt(sqrDistance);
                 float score = distance / reach;
+                // Fra le luci che attirano vince sempre quella del sub: senza, una sorgente ambientale vicina (il cavo
+                // della chiusa) teneva la creatura anche con la torcia bassa puntata addosso.
+                if (reaction == StimulusReaction.Approach && stimulus.FromPlayer) score -= 1f;
                 bool upgradesToFlee = reaction == StimulusReaction.Flee && best != StimulusReaction.Flee;
                 if (!upgradesToFlee && score >= bestScore) continue;
 
@@ -590,13 +599,31 @@ namespace Deeploration.Creatures
         /// </summary>
         private void PickSpot(float now)
         {
-            spotYaw = Random.Range(-0.8f, 0.8f);
-            spotPitch = Random.Range(-0.8f, 0.8f);
-            Vector2 flat = Random.insideUnitCircle.normalized;
-            spotDirection = new Vector3(flat.x, Random.Range(0.15f, 0.8f), flat.y).normalized;
-            spotDistanceFactor = Random.Range(0.75f, 1.3f);
+            // Scarta i posti che la sorgente non vede (dietro una parete o dentro una roccia): la creatura ci
+            // restava a spingere contro l'ostacolo. Dopo SpotAttempts tentativi falliti si avvicina alla sorgente.
+            for (int attempt = 0; attempt < SpotAttempts; attempt++)
+            {
+                spotYaw = Random.Range(-0.8f, 0.8f);
+                spotPitch = Random.Range(-0.8f, 0.8f);
+                Vector2 flat = Random.insideUnitCircle.normalized;
+                spotDirection = new Vector3(flat.x, Random.Range(0.15f, 0.8f), flat.y).normalized;
+                spotDistanceFactor = Random.Range(0.75f, 1.3f);
+                if (!SpotBlocked()) break;
+                if (attempt == SpotAttempts - 1) spotDistanceFactor = 0.4f;
+            }
             float interval = profile.inspectRepositionInterval;
             nextRepositionTime = now + Random.Range(interval * 0.5f, interval * 1.5f);
+        }
+
+        /// <summary>True se fra la sorgente osservata e il posto scelto c'è un ostacolo.</summary>
+        private bool SpotBlocked()
+        {
+            // Alzata di poco: una luce posata sul fondale vedrebbe il terreno stesso come ostacolo.
+            Vector3 origin = interest.Position + Vector3.up * 0.2f;
+            Vector3 toSpot = SpotPosition() - origin;
+            float distance = toSpot.magnitude;
+            return distance > 0.01f && Physics.Raycast(origin, toSpot / distance, distance + profile.bodyRadius,
+                manager.ObstacleMask, QueryTriggerInteraction.Ignore);
         }
 
         /// <summary>Posizione attuale del posto personale rispetto alla sorgente che la creatura osserva.</summary>
@@ -689,6 +716,7 @@ namespace Deeploration.Creatures
                 }
                 avoidDirection = away.normalized;
                 avoidWeight = 1f;
+                SwimStuckCheck(new Vector3(away.x, 0f, away.z));
                 if (profile.crawlsOnFloor)
                 {
                     // Tornare indietro non basta: senza cambiare rotta rifà la stessa traiettoria nello stesso sasso.
@@ -742,11 +770,38 @@ namespace Deeploration.Creatures
                 // parete verso il sub. In un corridoio fa avanti e indietro sul lato libero, alla sua distanza.
                 if (state == CreatureState.Stalk && avoidWeight > 0.5f && Time.time - lastOrbitFlipTime > 2f)
                     FlipOrbit(Time.time, true);
+
+                if (avoidWeight > 0.5f) SwimStuckCheck(normal);
             }
             else if (Time.time >= avoidHoldUntil)
             {
                 avoidWeight = 0f;
+                swimBlockedSince = -1f;
             }
+        }
+
+        /// <summary>
+        /// Chi nuota contro una parete da più di <see cref="SwimStuckTime"/> secondi (la coesione del banco o il
+        /// richiamo del nido lo rispingono lì) si stacca verso <paramref name="away"/> con un angolo a caso e tiene
+        /// la rotta per <see cref="SwimDetourHold"/> secondi. Chi striscia ha la sua gestione in CrawlSweep.
+        /// </summary>
+        private void SwimStuckCheck(Vector3 away)
+        {
+            if (profile.crawlsOnFloor) return;
+            float now = Time.time;
+            if (swimBlockedSince < 0f)
+            {
+                swimBlockedSince = now;
+                return;
+            }
+            if (now - swimBlockedSince <= SwimStuckTime) return;
+
+            if (away.sqrMagnitude < 1e-6f) away = new Vector3(-heading.x, 0f, -heading.z);
+            heading = Quaternion.AngleAxis(Random.Range(-60f, 60f), Vector3.up) * away.normalized;
+            avoidDirection = heading;
+            avoidWeight = 1f;
+            avoidHoldUntil = now + SwimDetourHold;
+            swimBlockedSince = -1f;
         }
 
         /// <summary>
@@ -832,6 +887,7 @@ namespace Deeploration.Creatures
         }
 
         private float crawlBlockedTime;
+        private float swimBlockedSince = -1f;
 
         /// <summary>
         /// Chi striscia non ha collider né il probe a ogni frame (LOD Mid/Far): lo step orizzontale è quindi verificato

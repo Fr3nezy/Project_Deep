@@ -1,5 +1,5 @@
 # Environment Systems
-Ultima verifica: 2026-10-09
+Ultima verifica: 2026-10-28
 
 ## Scopo e confini
 Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appartenenti alla fauna autonoma:
@@ -8,6 +8,7 @@ Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appa
 - L'uscita guidata dalla capsula (`HatchExit`): a portello aperto, [E] porta il diver attraverso l'apertura fino al fondale a controlli bloccati.
 - La stazione di rifornimento ossigeno (`OxygenRefillStation`), che ripristina la bombola del diver e avanza gli obiettivi di sopravvivenza.
 - L'effetto atmosferico particellare della neve marina (`MarineSnowFollower`), ottimizzato per seguire il punto di vista del giocatore.
+- Il cavo scoperto della chiusa (`ShortedCable`, puzzle Z2 della slice): fa luce debole che attira gli isopodi; con isopodi sopra il circuito è in corto e la leva non ridà corrente.
 - Le isole di luce protetta (`StressLightZone`), documentate in dettaglio in [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md).
 
 ## File e componenti
@@ -15,6 +16,7 @@ Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appa
 - `Assets/_Project/Code/Environment/HatchDoor.cs`: Apertura a rotazione su un asse di un portello incernierato, con curva di easing ed eventi di inizio/fine.
 - `Assets/_Project/Code/Environment/HatchExit.cs`: `IInteractable` che, a portello aperto, sposta il diver lungo una curva interno → apertura → fondale e poi restituisce i controlli.
 - `Assets/_Project/Code/Environment/OxygenRefillStation.cs`: Ricaricatore continuo di O₂ per il diver in sosta sul trigger.
+- `Assets/_Project/Code/Environment/ShortedCable.cs`: `IStimulusSource` che emette luce debole per le creature, conta gli esemplari di una specie entro un raggio (corto) e ridà corrente a circuito libero.
 - `Assets/_Project/Code/Environment/MarineSnowFollower.cs`: Script ad esecuzione immediata (`ExecuteAlways`) che ancora il sistema particellare della neve marina davanti alla camera.
 - `Assets/_Project/Code/Environment/StressLightZone.cs`: Trigger volumetrico di sollievo dallo stress (vedere [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md)).
 
@@ -23,6 +25,7 @@ Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appa
 - **Portello capsula**: `HatchDoor` non legge input. Lo attiva un `SimpleInteractable` sullo stesso oggetto, il cui `onInteracted` chiama `HatchDoor.Open()` (vedi [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)).
 - **Uscita capsula**: `HatchExit` è un `IInteractable` raggiunto da `PlayerInteraction`. Legge `HatchDoor.IsOpen`/`IsMoving`; durante l'uscita disabilita `CharacterController` e `DiverController` del giocatore, scrive direttamente posizione e yaw del diver e posa di `DiverController.CameraTarget`, poi li riabilita, azzera `ViewRoll`, sblocca `LockMovement` e chiama `SetViewPitch(0)` e `ResetMotion()`.
 - **Ricarica O₂**: `OxygenRefillStation` rileva l'`OxygenSystem` sul diver e chiama `Refill(Time.deltaTime)` durante la permanenza nel trigger.
+- **Chiusa (puzzle Z2)**: `ShortedCable` si registra con `CreatureManager.AddSource` in `OnEnable` e ogni frame aggiunge uno stimolo `WeakLight` puntiforme. In `Update` scorre `CreatureManager.ActiveCreatures` e conta le creature con `Profile == shortingSpecies` entro `shortRadius`. La leva (`SimpleInteractable` riusabile) chiama `ShortedCable.TryRestorePower` da `onInteracted`; a circuito libero `onPowerRestored` apre il gate (`AirlockDoor.HandleQuestCompleted`).
 - **Rendering & Atmosfera**: `MarineSnowFollower` calcola in `LateUpdate()` la posizione delle particelle oceaniche in base alla posizione e rotazione della `Camera.main`.
 
 ```mermaid
@@ -55,6 +58,26 @@ flowchart TD
   - `bool isOpen` (debug sola lettura).
 - **API pubbliche**:
   - `void HandleQuestCompleted()`: Avvia l'apertura della paratia e colora la luce di verde.
+
+### ShortedCable
+- **Responsabilità e ciclo di vita**:
+  - `OnEnable()` / `OnDisable()`: registra e toglie il componente come sorgente di stimoli nel `CreatureManager`. Senza manager logga un errore e il cavo non attira nessuno.
+  - `EmitStimuli(List<CreatureStimulus>)`: aggiunge `CreatureStimulus.PointLight(posizione, lightRadius, WeakLight, false)` con `OnlySpecies = shortingSpecies` a ogni frame, anche dopo che la corrente è tornata: la luce del cavo attira solo gli isopodi (prima richiamava anche 48 lanternfish, che si ammassavano contro il muro della chiusa).
+  - `Update()`: aggiorna `IsShorted` (almeno una creatura di `shortingSpecies` entro `shortRadius`); finché non c'è corrente aggiorna il prompt della leva e fa sfarfallare `cableLight` (rumore di Perlin sull'intensità iniziale) quando è in corto.
+- **Campi Inspector**:
+  - `CreatureManager manager`: obbligatorio.
+  - `CreatureProfile shortingSpecies`: specie che manda in corto il cavo (`Creature_Isopod`). Vuoto = mai in corto.
+  - `SimpleInteractable lever` (opzionale): riceve `SetPromptText` con lo stato del circuito e `SetInteractable(false)` quando torna la corrente.
+  - `Light cableLight` (opzionale): sfarfalla durante il corto.
+  - `float lightRadius` (default `10`): portata della luce debole per sensibilità 1 (m).
+  - `float shortRadius` (default `3.5`): raggio del corto (m). Va tenuto sopra l'`inspectDistance` della specie (2,5 per l'isopode), dove le creature si fermano a guardare la luce.
+  - `string shortedPrompt` (default `"Leva: circuito in corto"`), `string readyPrompt` (default `"Riattiva la chiusa"`).
+  - `UnityEvent onPowerRestored`: lanciato una volta sola, quando la leva viene tirata a circuito libero.
+  - `UnityEvent onShortedAttempt`: lanciato quando la leva viene tirata durante il corto (feedback, dialoghi).
+- **API pubbliche**:
+  - `bool IsShorted { get; }`, `bool IsPowered { get; }`.
+  - `void TryRestorePower()`: da collegare a `SimpleInteractable.onInteracted` (leva con `isReusable = true`).
+  - `void EmitStimuli(List<CreatureStimulus> output)` (`IStimulusSource`).
 
 ### HatchDoor
 - **Responsabilità e ciclo di vita**:
@@ -138,6 +161,11 @@ flowchart TD
 4. **Marine Snow**:
    - Creare un Particle System con particelle fluttuanti a bassa velocità e assegnare `MarineSnowFollower`.
    - Per l'aspetto a fiocchi: materiale `M_MarineSnow` sul `ParticleSystemRenderer` e `Texture Sheet Animation` 4×4 (vedi sopra).
+5. **Chiusa (cavo in corto)**:
+   - Oggetto cavo sul fondale con `ShortedCable`: `manager` = `CreatureManager` di scena, `shortingSpecies` = `Creature_Isopod`, opzionale `cableLight`.
+   - Un `CreatureNest` di isopodi con il cavo dentro la portata della luce (`lightRadius` × `lightSensitivity` 0,8 dell'isopode), altrimenti gli isopodi del nido non lo vedono.
+   - Leva con `Collider` e `SimpleInteractable` (`isReusable = true`), `onInteracted → ShortedCable.TryRestorePower`; assegnare la leva al campo `lever` del cavo.
+   - Gate con `AirlockDoor` senza dipendere dalla quest: `onPowerRestored → AirlockDoor.HandleQuestCompleted`.
 
 ## Configurazione verificata in prefab e scene
 - Nella scena `Prototype.unity` (rimossa il 2026-10-07 nel commit `f0fb87b`, recuperabile dalla storia di Git; configurazione non riverificata dopo la rimozione):
@@ -153,8 +181,13 @@ flowchart TD
   - Verificato da Manu in Play Mode con input reale (2026-10-04): [E] apre il portello e [E] su "Esci" porta il diver fuori dalla capsula.
   - Al 2026-10-09 il player parte seduto sul sedile (vedi `PlayerWakeUpSequence` in [Prologue.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Prologue.md)), piedi a `(-4.08, 0.26, -2.75)`. `HatchExitPoint` è a `(-4.62, 0.93, -6.06)`, circa 0.5 m sopra il `Cliff`: il raycast di `snapExitToGround` porta l'atterraggio a y 0.464.
   - Verificato in Play Mode il 2026-10-09 (Unity 6000.3.19f1, `Interact()` chiamato da codice, non con tastiera): da seduto il raggio di `PlayerInteraction` colpisce `SimpleInteractable` del portello e poi, ad apertura finita, `HatchExit`. Uscita completa in 2.45 s: raccolta, spinta attraverso l'apertura, parabola (picco piedi y 0.61), atterraggio a y 0.464. Il roll del sedile scende da 16.8° a 0 prima del passaggio dal portello. Fine con `LockMovement` falso, `grounded` vero, `ViewRoll` 0, posizione invariata un secondo dopo (nessun assestamento del `CharacterController`).
+- Chiusa del settore, blocking del puzzle Z2 (2026-10-28, `SCN_Gameplay`, radice `Z2_Chiusa_Blocking` a `(-10, -2.24, -40)`, graybox di primitive da sostituire): pareti `Wall_L`/`Wall_R` 8×7×0.6 m, `Lintel`, `Gate` con `AirlockDoor` (`doorPanel` = `GatePanel` 4×5×0.4 m, `openOffset` `(0, 5.2, 0)`, `doorStatusLight` = `GateStatusLight`). `ExposedCable` (cilindro senza collider, spostato da Manu a `(-7.41, -0.70, -39.02)` lungo `Wall_R`) con `ShortedCable` (manager di scena, `Creature_Isopod`, leva `Lever`, `CableLight` arancione range 4, `shortRadius` 1.8 impostato da Manu in Inspector al posto del default 3.5). `Lever` (cubo con `BoxCollider` trigger allargato a size `(7, 2.4, 7)`, center `(0, -0.4, 0)` in spazio locale, circa 0.8 × 1.7 × 1.4 m attorno a leva e palo: il cubo da 12 cm era quasi impossibile da puntare e il palo, senza `SimpleInteractable`, fermava il raggio; `SimpleInteractable` riusabile, prompt `"Riattiva la chiusa"`) su `LeverPost` nel corridoio piano davanti al gate, a `(-10.8, -0.79, -38.45)` (suolo -2.19), con `LeverLight` (punto luce azzurro, range 3.5) sopra; la prima posizione `(-13, 0.88, -38.5)` stava 3 m sopra il corridoio su un pendio non percorribile e Manu non la trovava; listener persistenti (`RuntimeOnly`: in modalità edit non scattano) `onInteracted → ShortedCable.TryRestorePower` e `onPowerRestored → AirlockDoor.HandleQuestCompleted`. `Nest_Isopod_Chiusa`: copia di `Nest_Isopod` sul cavo, `count` 4, `spawnRadius` 1.5, `leashRadius` 12.
+  - Verificato in Play il 2026-10-28 (stimoli simulati da codice, non con input reale): all'avvio 4 isopodi entro 1.7 m dal cavo, `IsShorted` vero e `TryRestorePower` senza effetto; un `Flash` simulato 3 m a lato del cavo li porta a 5-14 m, `IsShorted` falso, la leva ridà corrente, il pannello sale da y 2.5 a 7.7 e la luce diventa verde. Build Windows di `SCN_Gameplay` riuscita (`Builds/Gameplay_Z2`). Non verificato: il puzzle giocato con mouse e tastiera, la leggibilità del graybox, il ritorno degli isopodi sul cavo dopo la fuga.
+  - Riverificato in Play il 2026-10-28 dopo la prova di Manu (sub spostato da codice a `(-9, -0.69, -31)`, stimoli simulati): un fascio `WeakLight` del sub a 6 m dal cavo porta i 4 isopodi a 2.5-3 m dal cavo verso la lampada e il circuito si libera; in 60 s nessuna creatura resta a contatto con il muro in due campioni consecutivi (prima 17 lanternfish incastrate); un `Flash` ad altezza casco (2 m sopra il cavo) li fa scappare e la leva ridà corrente. Un flash simulato a 1 m dal suolo non raggiungeva due isopodi coperti dal pendio. Build `Builds/Gameplay_Z2` rifatta. Non verificato con input reale.
+  - Leva spostata e riverificata in Play il 2026-10-28: dal corridoio, a 1.8-2.4 m, il raggio di `PlayerInteraction` (`interactionLayers` tutti, 2.6 m) colpisce il trigger di `Lever` con prompt `"Riattiva la chiusa"`; a circuito libero `SimpleInteractable.Interact` ridà corrente e il pannello sale a y 7.7 con luce verde. Build rifatta.
 
 ## Limiti e problemi noti
+- `ShortedCable`: il cavo è un punto solo, non una linea; per un cavo lungo il raggio del corto va coperto con più componenti (oggi non previsto). Gli isopodi attratti dal cavo lo raggiungono solo se il loro nido ha il cavo dentro il guinzaglio. La lampada di servizio come esca, il collegamento con la stazione O₂ e i dialoghi di H.E.L.M. non sono implementati.
 - `HatchDoor`: nessuna chiusura né stato salvato. Gli override del componente vivono sull'istanza del `.blend` in scena: rinominare `MSH_Hatch_Door` in Blender li fa perdere.
 - Il `CharacterController` del player (altezza 2 m, raggio 0,5) non può muoversi dentro la capsula: l'interno è una sfera di 2 m e il pavimento `MSH_PV_BaseRing` è una conca. Per questo il diver resta seduto con il controller spento (`PlayerWakeUpSequence`) e l'uscita è guidata (`HatchExit`), non a piedi.
 - `HatchExit` disabilita `DiverController` per intero: durante l'uscita (2,45 s) il giocatore non controlla la visuale.

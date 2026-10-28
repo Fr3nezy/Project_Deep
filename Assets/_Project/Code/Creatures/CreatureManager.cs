@@ -89,6 +89,9 @@ namespace Deeploration.Creatures
         /// <summary>Creature attive in questo momento.</summary>
         public int ActiveCount => active.Count;
 
+        /// <summary>Elenco delle creature attive in questo momento (sola lettura).</summary>
+        public IReadOnlyList<Creature> ActiveCreatures => active;
+
         /// <summary>Creature attive nel livello indicato durante l'ultimo frame.</summary>
         public int CountAtLod(CreatureLod lod) => lodCounts[(int)lod];
 

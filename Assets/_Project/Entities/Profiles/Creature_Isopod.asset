@@ -24,7 +24,7 @@ MonoBehaviour:
   wanderFrequency: 0.25
   lightSensitivity: 0.8
   hearingSensitivity: 1.5
-  weakLightReaction: 0
+  weakLightReaction: 1
   strongLightReaction: 2
   flashReaction: 2
   noiseReaction: 2

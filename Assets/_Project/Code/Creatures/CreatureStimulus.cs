@@ -39,6 +39,9 @@ namespace Deeploration.Creatures
         /// <summary>Creatura che ha emesso lo stimolo (null per il sub e l'ambiente): non percepisce sé stessa.</summary>
         public Creature Emitter;
 
+        /// <summary>Se assegnata, solo questa specie percepisce lo stimolo (il cavo della chiusa attira solo gli isopodi).</summary>
+        public CreatureProfile OnlySpecies;
+
         /// <summary>True per le luci (serve la linea di vista), false per il rumore (passa attraverso tutto).</summary>
         public bool IsLight => Category != StimulusCategory.Noise;
 
