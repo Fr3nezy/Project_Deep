@@ -646,6 +646,24 @@ namespace Deeploration.Creatures
             // posizione libera (appena uscito dal pool dentro un ostacolo) esce allontanandosi dal centro, in alto.
             int overlaps = Physics.OverlapSphereNonAlloc(position, profile.bodyRadius, OverlapBuffer, mask,
                 QueryTriggerInteraction.Ignore);
+            // Con i MeshCollider non convessi l'overlap vede solo la superficie: chi nuota già dentro una roccia non
+            // tocca niente. Un raggio verso l'alto che colpisce una faccia rivolta in su, vista da dietro, dice che
+            // il corpo sta dentro il solido.
+            bool insideSolid = false;
+            if (overlaps == 0 && !profile.crawlsOnFloor)
+            {
+                Physics.queriesHitBackfaces = true;
+                insideSolid = Physics.Raycast(position, Vector3.up, out RaycastHit ceilingHit, FloorProbeDistance, mask,
+                    QueryTriggerInteraction.Ignore) && ceilingHit.normal.y > 0f;
+                Physics.queriesHitBackfaces = false;
+                if (insideSolid && !hasFreePosition)
+                {
+                    // Nessuna posizione libera a cui tornare: esce sopra la superficie che lo copre.
+                    position.y = ceilingHit.point.y + profile.heightAboveFloor;
+                    cachedTransform.position = position;
+                    return;
+                }
+            }
             if (overlaps > 0 && profile.crawlsOnFloor && CrawlDepenetrate(ref position, overlaps))
             {
                 cachedTransform.position = position;
@@ -653,7 +671,7 @@ namespace Deeploration.Creatures
                 hasFreePosition = true;
                 if (Time.time < avoidHoldUntil) return;
             }
-            else if (overlaps > 0)
+            else if (overlaps > 0 || insideSolid)
             {
                 Vector3 away;
                 if (hasFreePosition)
