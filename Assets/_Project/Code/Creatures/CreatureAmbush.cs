@@ -17,7 +17,9 @@ namespace Deeploration.Creatures
         /// <summary>Nuota piano rasente il fondo verso un nuovo posto nella zona.</summary>
         Return,
         /// <summary>Si tuffa nel fango in avanti, finché tutto il corpo è sotto.</summary>
-        Bury
+        Bury,
+        /// <summary>Esce dal fango in avanti e in su, per cambiare nascondiglio.</summary>
+        Emerge
     }
 
     /// <summary>
@@ -89,8 +91,34 @@ namespace Deeploration.Creatures
         [Tooltip("Raggio (m) in cui sceglie il nuovo posto dopo lo scatto.")]
         [SerializeField, Min(0.5f)] private float returnRadius = 4f;
 
+        [Header("Vita da insabbiata")]
+        [Tooltip("Secondi fra un cambio di nascondiglio e il successivo (minimo, massimo): esce, nuota a un altro posto vicino al nido e si reinsabbia.")]
+        [SerializeField] private Vector2 relocateInterval = new Vector2(45f, 90f);
+
+        [Tooltip("Secondi dell'uscita dal fango.")]
+        [SerializeField, Min(0.1f)] private float emergeDuration = 1.2f;
+
+        [Tooltip("Secondi fra due piccoli spostamenti sotto il fango (minimo, massimo).")]
+        [SerializeField] private Vector2 shuffleInterval = new Vector2(12f, 30f);
+
+        [Tooltip("Lunghezza (m) di un piccolo spostamento sotto il fango (minimo, massimo).")]
+        [SerializeField] private Vector2 shuffleDistance = new Vector2(1f, 3f);
+
+        [Tooltip("Velocità (m/s) dei piccoli spostamenti sotto il fango.")]
+        [SerializeField, Min(0.05f)] private float shuffleSpeed = 0.4f;
+
+        [Header("Rigonfiamento del fondale")]
+        [Tooltip("Materiale del rigonfiamento sopra il corpo insabbiato: lo stesso del fondale (UV in spazio mondo, si fonde). Vuoto = nessun rigonfiamento.")]
+        [SerializeField] private Material moundMaterial;
+
+        [Tooltip("Altezza (m) del rigonfiamento al centro. 0 = nessun segno.")]
+        [SerializeField, Min(0f)] private float moundHeight = 0.04f;
+
+        [Tooltip("Larghezza e lunghezza (m) del rigonfiamento (ellisse lungo il corpo).")]
+        [SerializeField] private Vector2 moundSize = new Vector2(0.7f, 1.8f);
+
         [Header("Effetti e suoni (debug)")]
-        [Tooltip("Materiale delle particelle di sedimento. Vuoto = URP Particles/Unlit creato a runtime (solo editor).")]
+        [Tooltip("Materiale delle particelle di fango: atlante 4x4, righe in alto nuvole, righe in basso grumi. Vuoto = URP Particles/Unlit creato a runtime (solo editor).")]
         [SerializeField] private Material puffMaterial;
 
         [Tooltip("Suoni sintetici di debug per gli indizi e l'attacco.")]
@@ -144,8 +172,23 @@ namespace Deeploration.Creatures
         private bool bitten;
         private float alertFromY;
         private float buryFromY;
+        private float emergeFromY;
+        private float burrowMoveSpeed;
+        private bool relocating;
+        private float nextRelocate;
+        private float nextShuffle;
+
+        private Mesh moundMesh;
+        private MeshRenderer moundRenderer;
+        private Vector3[] moundVertices;
+        private float moundAmount;
+        private Vector3 moundBuiltAt;
+        private float moundBuiltAmount = -1f;
+        private const int MoundCols = 17, MoundRows = 9;
+        private const float MoundRimSink = 0.025f;
 
         private ParticleSystem fx;
+        private ParticleSystem clumpFx;
         private AudioSource loopSource;
         private AudioSource jumpscareSource;
         private static AudioClip tapClip, rustleClip, jumpscareClip, warnClip, puffClip;
@@ -179,17 +222,22 @@ namespace Deeploration.Creatures
             chain = GetComponent<SwimChain>();
             bodyRenderers = GetComponentsInChildren<Renderer>(true);
             CreateDebugOutput();
+            CreateMound();
         }
 
         private void OnDisable()
         {
             if (loopSource != null) loopSource.Stop();
             if (jumpscareSource != null) jumpscareSource.Stop();
+            if (moundRenderer != null) moundRenderer.enabled = false;
         }
 
         private void OnDestroy()
         {
             if (fx != null) Destroy(fx.gameObject);
+            if (clumpFx != null) Destroy(clumpFx.gameObject);
+            if (moundRenderer != null) Destroy(moundRenderer.gameObject);
+            if (moundMesh != null) Destroy(moundMesh);
         }
 
         /// <summary>Chiamata da <see cref="Creature.OnSpawn"/>: sceglie il posto e la insabbia subito.</summary>
@@ -204,6 +252,9 @@ namespace Deeploration.Creatures
             cooldownUntil = warnUntil = 0f;
             float now = Time.time;
             nextTapTime = now + Random.Range(tapInterval.x, tapInterval.y);
+            nextRelocate = now + Random.Range(relocateInterval.x, relocateInterval.y);
+            relocating = false;
+            moundAmount = 1f;
 
             Vector3 spot = TryFloor(transform.position, out Vector3 floor) && InZone(floor) ? floor : RandomSpot(home, leash);
             floorY = spot.y;
@@ -228,10 +279,12 @@ namespace Deeploration.Creatures
                 case AmbushPhase.Lunge: StepLunge(now, deltaTime); break;
                 case AmbushPhase.Return: StepReturn(now, deltaTime); break;
                 case AmbushPhase.Bury: StepBury(now, deltaTime); break;
+                case AmbushPhase.Emerge: StepEmerge(now, deltaTime); break;
             }
 
             if (visible && now >= hideAt) SetVisible(false);
             Write();
+            UpdateMound(deltaTime);
         }
 
         // shortcut: sente solo il rumore del sub (FromPlayer); con la dimostrazione dell'isopode dovrà sentire anche
@@ -260,7 +313,8 @@ namespace Deeploration.Creatures
 
             UpdateBuriedAudio(now, emerge);
 
-            if (!think || !Heard(now) || now < cooldownUntil) return;
+            if (think && !Heard(now) && now >= cooldownUntil) Idle(now, emerge);
+            if (phase != AmbushPhase.Buried || !think || !Heard(now) || now < cooldownUntil) return;
 
             if (CanStrikeFrom(emerge))
             {
@@ -273,8 +327,7 @@ namespace Deeploration.Creatures
             {
                 if (TryPlaceAhead(out Vector3 ahead) && FlatDistance(ahead, emerge) > 1f)
                 {
-                    target = ahead;
-                    Enter(AmbushPhase.Burrow, now);
+                    StartBurrow(ahead, burrowSpeed, now);
                     return;
                 }
                 if (now >= warnUntil)
@@ -286,6 +339,40 @@ namespace Deeploration.Creatures
                 }
             }
         }
+
+        // Nessun rumore: ogni tanto cambia nascondiglio (esce e nuota) o si sposta di poco sotto il fango.
+        // Mai col sub entro strikeRange: uscirebbe davanti a lui senza attaccare.
+        private void Idle(float now, Vector3 emerge)
+        {
+            if (manager.HasPlayer && FlatDistance(emerge, manager.PlayerPosition) <= strikeRange) return;
+            if (now >= nextRelocate)
+            {
+                relocating = true;
+                Enter(AmbushPhase.Emerge, now);
+                return;
+            }
+            if (now < nextShuffle) return;
+            nextShuffle = now + Random.Range(shuffleInterval.x, shuffleInterval.y);
+            for (int i = 0; i < 4; i++)
+            {
+                Vector3 step = Quaternion.Euler(0f, Random.Range(0f, 360f), 0f) * Vector3.forward *
+                               Random.Range(shuffleDistance.x, shuffleDistance.y);
+                if (TryFloor(emerge + step, out Vector3 floor) && InZone(floor))
+                {
+                    StartBurrow(floor, shuffleSpeed, now);
+                    return;
+                }
+            }
+        }
+
+        private void StartBurrow(Vector3 to, float moveSpeed, float now)
+        {
+            target = to;
+            burrowMoveSpeed = moveSpeed;
+            Enter(AmbushPhase.Burrow, now);
+        }
+
+        private bool Shuffling => burrowMoveSpeed < burrowSpeed;
 
         private void UpdateBuriedAudio(float now, Vector3 emerge)
         {
@@ -337,26 +424,34 @@ namespace Deeploration.Creatures
 
         private void StepBurrow(float now, bool think, float deltaTime)
         {
-            speed = burrowSpeed;
-            if (think && Heard(now) && TryPlaceAhead(out Vector3 ahead) && FlatDistance(ahead, target) > 1.5f)
+            if (think && Heard(now) && TryPlaceAhead(out Vector3 ahead) &&
+                (Shuffling || FlatDistance(ahead, target) > 1.5f))
+            {
                 target = ahead;
+                burrowMoveSpeed = burrowSpeed;
+                if (loopSource != null && debugSounds) loopSource.volume = 0.2f;
+            }
+            speed = burrowMoveSpeed;
 
             Vector3 flat = target - position;
             flat.y = 0f;
             float distance = flat.magnitude;
-            if (distance > 1e-4f) heading = flat / distance;
-            position += heading * Mathf.Min(distance, burrowSpeed * deltaTime);
+            if (distance > 1e-4f)
+                heading = Shuffling
+                    ? Vector3.RotateTowards(heading, flat / distance, Mathf.PI * 0.5f * deltaTime, 0f)
+                    : flat / distance;
+            position += heading * Mathf.Min(distance, burrowMoveSpeed * deltaTime);
             if (TryFloor(position, out Vector3 floor, false)) floorY = floor.y;
             position.y = floorY - buryDepth;
 
-            // Scia sotto il fango: lieve sbuffo in superficie
-            if (now >= nextRidgePuff)
+            // Scia sotto il fango: lieve sbuffo in superficie (non nei piccoli spostamenti: li tradirebbe)
+            if (!Shuffling && now >= nextRidgePuff)
             {
                 nextRidgePuff = now + RidgePuffInterval;
                 Puff(new Vector3(position.x, floorY, position.z), 4);
             }
 
-            if (distance <= ArriveDistance || now - phaseStart > BurrowMaxTime)
+            if (distance <= ArriveDistance || now - phaseStart > (Shuffling ? BurrowMaxTime * 2f : BurrowMaxTime))
             {
                 Enter(AmbushPhase.Buried, now);
                 Vector3 emerge = new Vector3(position.x, floorY, position.z);
@@ -397,7 +492,7 @@ namespace Deeploration.Creatures
                 {
                     bitten = true;
                     Puff(headPos, 35); // nuvola di fango attorno alla testa all'arrivo
-                    creature.MarkBite(now);
+                    // niente MarkBite qui: chiuderebbe la mandibola di scatto proprio durante la tenuta a fauci aperte
                     if (manager.HasPlayer) manager.ReportBite(creature);
                 }
             }
@@ -411,6 +506,7 @@ namespace Deeploration.Creatures
 
             if (elapsed >= lungeDuration + faceHold)
             {
+                if (bitten) creature.MarkBite(now); // la mandibola si chiude di scatto alla ritirata
                 cooldownUntil = now + (bitten ? profile.strikeCooldown : profile.strikeCooldown * 0.5f);
                 Enter(AmbushPhase.Return, now);
             }
@@ -448,12 +544,127 @@ namespace Deeploration.Creatures
             float t = Mathf.Clamp01((now - phaseStart) / buryDuration);
             position.y = Mathf.Lerp(buryFromY, floorY - buryDepth, Mathf.SmoothStep(0f, 1f, t));
             heading = Vector3.Slerp(forward, (forward + Vector3.down).normalized, 1f - t);
+            DiveTrail(now);
             if (t >= 1f)
             {
                 heading = forward;
                 hideAt = now + 0.3f;
+                relocating = false;
+                nextRelocate = now + Random.Range(relocateInterval.x, relocateInterval.y);
+                nextShuffle = now + Random.Range(shuffleInterval.x, shuffleInterval.y);
                 Enter(AmbushPhase.Buried, now);
             }
+        }
+
+        // Uscita: il contrario del tuffo, in avanti e in su fino alla quota di nuoto, poi Return verso il nuovo posto.
+        private void StepEmerge(float now, float deltaTime)
+        {
+            float t = Mathf.Clamp01((now - phaseStart) / emergeDuration);
+            Vector3 forward = new Vector3(heading.x, 0f, heading.z);
+            forward = forward.sqrMagnitude > 1e-6f ? forward.normalized : Vector3.forward;
+            speed = DiveLength / emergeDuration;
+            position += forward * (speed * deltaTime);
+            if (TryFloor(position, out Vector3 floor, false)) floorY = floor.y;
+            position.y = Mathf.Lerp(emergeFromY, floorY + profile.heightAboveFloor, Mathf.SmoothStep(0f, 1f, t));
+            heading = Vector3.Slerp((forward + Vector3.up).normalized, forward, t);
+            DiveTrail(now);
+            if (t >= 1f)
+            {
+                heading = forward;
+                Enter(AmbushPhase.Return, now);
+            }
+        }
+
+        // Nuvola continua dove la radice attraversa il fondale: la catena del corpo passa dallo stesso punto, così
+        // tuffo e uscita restano coperti per tutta la lunghezza.
+        private void DiveTrail(float now)
+        {
+            if (now < nextRidgePuff || Mathf.Abs(position.y - floorY) > 0.6f) return;
+            nextRidgePuff = now + 0.12f;
+            Puff(new Vector3(position.x, floorY, position.z), 8);
+        }
+
+        // Centro del rigonfiamento: la radice è la nuca, il corpo sta dietro lungo heading.
+        private Vector3 MoundCentre()
+        {
+            Vector3 back = new Vector3(heading.x, 0f, heading.z);
+            back = back.sqrMagnitude > 1e-6f ? back.normalized : Vector3.forward;
+            return new Vector3(position.x, floorY, position.z) - back * (moundSize.y * 0.4f);
+        }
+
+        // Ampiezza voluta del rigonfiamento per fase: pieno da insabbiata, cresce col tuffo, sparisce fuori dal fango.
+        private void UpdateMound(float deltaTime)
+        {
+            if (moundRenderer == null) return;
+            float goal = phase switch
+            {
+                AmbushPhase.Buried or AmbushPhase.Burrow => 1f,
+                AmbushPhase.Bury => Mathf.Clamp01((Time.time - phaseStart) / buryDuration),
+                _ => 0f
+            };
+            moundAmount = goal <= 0f ? 0f : Mathf.MoveTowards(moundAmount, goal, deltaTime * 2f);
+            bool show = moundAmount > 0.01f && moundHeight > 0f;
+            moundRenderer.enabled = show;
+            if (!show) return;
+
+            Vector3 centre = MoundCentre();
+            if ((centre - moundBuiltAt).sqrMagnitude < 0.0004f && Mathf.Abs(moundAmount - moundBuiltAmount) < 0.01f) return;
+            moundBuiltAt = centre;
+            moundBuiltAmount = moundAmount;
+            BuildMound(centre);
+        }
+
+        // Ellisse con profilo (1-r²)²: pendenza nulla al bordo, così le normali combaciano col fondale; il bordo
+        // affonda di MoundRimSink per non sfarfallare. Ogni vertice segue il fondale con un raggio verso il basso.
+        private void BuildMound(Vector3 centre)
+        {
+            Transform t = moundRenderer.transform;
+            t.SetPositionAndRotation(centre, Quaternion.identity);
+            Vector3 along = new Vector3(heading.x, 0f, heading.z);
+            along = along.sqrMagnitude > 1e-6f ? along.normalized : Vector3.forward;
+            Vector3 across = new Vector3(along.z, 0f, -along.x);
+            float h = moundHeight * moundAmount;
+            int i = 0;
+            for (int row = 0; row < MoundRows; row++)
+            for (int col = 0; col < MoundCols; col++, i++)
+            {
+                float u = col / (MoundCols - 1f) * 2f - 1f, v = row / (MoundRows - 1f) * 2f - 1f;
+                Vector3 world = centre + along * (u * moundSize.y * 0.5f) + across * (v * moundSize.x * 0.5f);
+                float y = TryFloor(world, out Vector3 floor) ? floor.y : centre.y; // solo fango: non sale sulle rocce
+                float r2 = Mathf.Min(u * u + v * v, 1f);
+                float f = (1f - r2) * (1f - r2);
+                moundVertices[i] = new Vector3(world.x - centre.x, y - centre.y + h * f - MoundRimSink * (1f - f), world.z - centre.z);
+            }
+            moundMesh.vertices = moundVertices;
+            moundMesh.RecalculateNormals();
+            moundMesh.RecalculateTangents();
+            moundMesh.RecalculateBounds();
+        }
+
+        private void CreateMound()
+        {
+            if (moundMaterial == null) return;
+            var go = new GameObject(name + "_Mound");
+            go.AddComponent<MeshFilter>().sharedMesh = moundMesh = new Mesh { name = "AmbushMound" };
+            moundMesh.MarkDynamic();
+            moundRenderer = go.AddComponent<MeshRenderer>();
+            moundRenderer.sharedMaterial = moundMaterial;
+            moundRenderer.enabled = false;
+            moundVertices = new Vector3[MoundCols * MoundRows];
+            var uvs = new Vector2[moundVertices.Length];
+            var tris = new int[(MoundCols - 1) * (MoundRows - 1) * 6];
+            for (int row = 0, i = 0, k = 0; row < MoundRows; row++)
+            for (int col = 0; col < MoundCols; col++, i++)
+            {
+                uvs[i] = new Vector2(col / (MoundCols - 1f), row / (MoundRows - 1f));
+                if (row == MoundRows - 1 || col == MoundCols - 1) continue;
+                // colonne lungo heading, righe verso destra: questo ordine dà normali verso l'alto
+                tris[k++] = i; tris[k++] = i + 1; tris[k++] = i + MoundCols;
+                tris[k++] = i + 1; tris[k++] = i + MoundCols + 1; tris[k++] = i + MoundCols;
+            }
+            moundMesh.vertices = moundVertices;
+            moundMesh.uv = uvs;
+            moundMesh.triangles = tris;
         }
 
         private Vector3 GetLungeTargetHead()
@@ -482,7 +693,7 @@ namespace Deeploration.Creatures
                     nextRidgePuff = now;
                     if (loopSource != null && debugSounds)
                     {
-                        loopSource.volume = 0.2f;
+                        loopSource.volume = Shuffling ? 0.08f : 0.2f;
                         if (!loopSource.isPlaying) loopSource.Play();
                     }
                     break;
@@ -513,7 +724,7 @@ namespace Deeploration.Creatures
                     break;
                 case AmbushPhase.Return:
                     noiseTime = float.NegativeInfinity;
-                    diveTarget = RandomSpot(position, returnRadius);
+                    diveTarget = relocating ? RandomSpot(home, leash) : RandomSpot(position, returnRadius);
                     Vector3 approach = position - diveTarget;
                     approach.y = 0f;
                     approach = approach.sqrMagnitude > 1e-4f ? approach.normalized : -heading;
@@ -521,8 +732,17 @@ namespace Deeploration.Creatures
                     break;
                 case AmbushPhase.Bury:
                     buryFromY = position.y;
-                    Puff(surface, 15);
+                    nextRidgePuff = now;
+                    Puff(surface, 20);
                     Play(puffClip, surface, 0.04f); // reinsabbiamento quasi inudibile
+                    break;
+                case AmbushPhase.Emerge:
+                    emergeFromY = position.y;
+                    SetVisible(true);
+                    moundAmount = 0f; // il rigonfiamento scoppia nella nuvola
+                    Puff(surface, 40);
+                    Puff(MoundCentre(), 25);
+                    Play(puffClip, surface, 0.06f);
                     break;
             }
 
@@ -653,11 +873,12 @@ namespace Deeploration.Creatures
                 if (bodyRenderers[i] != null) bodyRenderers[i].enabled = show;
         }
 
+        // Nuvola di limo (count particelle) più grumi di fango che ricadono (circa metà).
         private void Puff(Vector3 at, int count)
         {
-            if (fx == null) return;
             var emit = new ParticleSystem.EmitParams { position = at, applyShapeToPosition = true };
-            fx.Emit(emit, count);
+            if (fx != null) fx.Emit(emit, count);
+            if (clumpFx != null) clumpFx.Emit(emit, Mathf.Max(1, count / 2));
         }
 
         private void Play(AudioClip clip, Vector3 at, float volume)
@@ -667,42 +888,67 @@ namespace Deeploration.Creatures
 
         private void CreateDebugOutput()
         {
-            var fxObject = new GameObject(name + "_AmbushDebugFX");
-            fx = fxObject.AddComponent<ParticleSystem>();
-            fx.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            ParticleSystem.MainModule main = fx.main;
-            main.loop = false;
-            main.playOnAwake = false;
-            main.simulationSpace = ParticleSystemSimulationSpace.World;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.4f);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(0.2f, 0.9f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.12f, 0.35f);
-            main.startColor = Color.white;
-            main.gravityModifier = 0.02f;
-            main.maxParticles = 500;
-            ParticleSystem.EmissionModule emission = fx.emission;
-            emission.enabled = false;
-            ParticleSystem.ShapeModule shape = fx.shape;
-            shape.shapeType = ParticleSystemShapeType.Hemisphere;
-            shape.radius = 0.35f;
-            shape.rotation = new Vector3(-90f, 0f, 0f);
-            ParticleSystem.ColorOverLifetimeModule fade = fx.colorOverLifetime;
-            fade.enabled = true;
-            var gradient = new Gradient();
-            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
-                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.7f, 0.15f), new GradientAlphaKey(0f, 1f) });
-            fade.color = gradient;
-            ParticleSystem.SizeOverLifetimeModule size = fx.sizeOverLifetime;
-            size.enabled = true;
-            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.6f, 1f, 2f));
-            var particleRenderer = fxObject.GetComponent<ParticleSystemRenderer>();
             Material material = puffMaterial;
+            bool atlas = material != null;
             if (material == null)
             {
                 Shader shader = Shader.Find("Universal Render Pipeline/Particles/Unlit");
                 if (shader != null) material = CreateSoftParticleMaterial(shader);
             }
-            particleRenderer.sharedMaterial = material;
+
+            // Nuvola di limo: lenta, si allarga e resta sospesa (drag), fotogrammi morbidi dell'atlante (metà alta).
+            fx = CreateMudSystem(name + "_AmbushDebugFX", material, atlas, new Vector2(0f, 0.499f));
+            ParticleSystem.MainModule main = fx.main;
+            main.startLifetime = new ParticleSystem.MinMaxCurve(2.5f, 5f);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(0.3f, 1.3f);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.25f, 0.7f);
+            main.gravityModifier = -0.004f;
+            ParticleSystem.ShapeModule shape = fx.shape;
+            shape.radius = 0.45f;
+            ParticleSystem.LimitVelocityOverLifetimeModule drag = fx.limitVelocityOverLifetime;
+            drag.enabled = true;
+            drag.limit = 0.15f;
+            drag.dampen = 0.08f;
+            drag.drag = 0.6f;
+            ParticleSystem.ColorOverLifetimeModule fade = fx.colorOverLifetime;
+            fade.enabled = true;
+            var gradient = new Gradient();
+            gradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(0f, 0f), new GradientAlphaKey(0.6f, 0.08f), new GradientAlphaKey(0.35f, 0.5f), new GradientAlphaKey(0f, 1f) });
+            fade.color = gradient;
+            ParticleSystem.SizeOverLifetimeModule size = fx.sizeOverLifetime;
+            size.enabled = true;
+            size.size = new ParticleSystem.MinMaxCurve(1f, AnimationCurve.EaseInOut(0f, 0.5f, 1f, 2.6f));
+
+            // Grumi di fango: piccoli, schizzano su e ricadono sul fondale (fotogrammi a bordo netto, metà bassa).
+            clumpFx = CreateMudSystem(name + "_AmbushClumpFX", material, atlas, new Vector2(0.5f, 0.999f));
+            ParticleSystem.MainModule clumpMain = clumpFx.main;
+            clumpMain.startLifetime = new ParticleSystem.MinMaxCurve(1.2f, 2.2f);
+            clumpMain.startSpeed = new ParticleSystem.MinMaxCurve(0.8f, 2f);
+            clumpMain.startSize = new ParticleSystem.MinMaxCurve(0.025f, 0.08f);
+            clumpMain.gravityModifier = 0.12f;
+            ParticleSystem.ShapeModule clumpShape = clumpFx.shape;
+            clumpShape.radius = 0.3f;
+            ParticleSystem.LimitVelocityOverLifetimeModule clumpDrag = clumpFx.limitVelocityOverLifetime;
+            clumpDrag.enabled = true;
+            clumpDrag.drag = 1.2f;
+            clumpDrag.limit = 3f;
+            ParticleSystem.ColorOverLifetimeModule clumpFade = clumpFx.colorOverLifetime;
+            clumpFade.enabled = true;
+            var clumpGradient = new Gradient();
+            clumpGradient.SetKeys(new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                new[] { new GradientAlphaKey(1f, 0f), new GradientAlphaKey(1f, 0.75f), new GradientAlphaKey(0f, 1f) });
+            clumpFade.color = clumpGradient;
+            ParticleSystem.RotationOverLifetimeModule spin = clumpFx.rotationOverLifetime;
+            spin.enabled = true;
+            spin.z = new ParticleSystem.MinMaxCurve(-3f, 3f);
+            ParticleSystem.CollisionModule collision = clumpFx.collision;
+            collision.enabled = true;
+            collision.type = ParticleSystemCollisionType.World;
+            collision.collidesWith = mudMask;
+            collision.quality = ParticleSystemCollisionQuality.Low;
+            collision.bounce = 0.05f;
+            collision.dampen = 0.9f;
 
             if (tapClip == null)
             {
@@ -727,6 +973,38 @@ namespace Deeploration.Creatures
             jumpscareSource.playOnAwake = false;
             jumpscareSource.spatialBlend = 0f; // 2D jumpscare in-ear
             jumpscareSource.volume = 1f;
+        }
+
+        // Sistema a emissione manuale in spazio mondo, senza genitore (la radice sta sotto il fango e si inclina).
+        // frames: intervallo (0..1) dell'atlante 4x4 da cui ogni particella pesca un fotogramma fisso.
+        private static ParticleSystem CreateMudSystem(string objectName, Material material, bool atlas, Vector2 frames)
+        {
+            var system = new GameObject(objectName).AddComponent<ParticleSystem>();
+            system.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            ParticleSystem.MainModule main = system.main;
+            main.loop = false;
+            main.playOnAwake = false;
+            main.simulationSpace = ParticleSystemSimulationSpace.World;
+            main.startColor = Color.white;
+            main.startRotation = new ParticleSystem.MinMaxCurve(0f, Mathf.PI * 2f);
+            main.maxParticles = 400;
+            ParticleSystem.EmissionModule emission = system.emission;
+            emission.enabled = false;
+            ParticleSystem.ShapeModule shape = system.shape;
+            shape.shapeType = ParticleSystemShapeType.Hemisphere;
+            shape.rotation = new Vector3(-90f, 0f, 0f);
+            if (atlas)
+            {
+                ParticleSystem.TextureSheetAnimationModule sheet = system.textureSheetAnimation;
+                sheet.enabled = true;
+                sheet.numTilesX = 4;
+                sheet.numTilesY = 4;
+                sheet.animation = ParticleSystemAnimationType.WholeSheet;
+                sheet.frameOverTime = new ParticleSystem.MinMaxCurve(frames.x, frames.y);
+                sheet.cycleCount = 1;
+            }
+            system.GetComponent<ParticleSystemRenderer>().sharedMaterial = material;
+            return system;
         }
 
         private static Material CreateSoftParticleMaterial(Shader shader)

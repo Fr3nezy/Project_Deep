@@ -137,7 +137,15 @@ MonoBehaviour:
   warnCooldown: 6
   buryDuration: 2.5
   returnRadius: 4
-  puffMaterial: {fileID: 0}
+  relocateInterval: {x: 45, y: 90}
+  emergeDuration: 1.2
+  shuffleInterval: {x: 12, y: 30}
+  shuffleDistance: {x: 1, y: 3}
+  shuffleSpeed: 0.4
+  moundMaterial: {fileID: 2100000, guid: f9a198a07671c8b4fbc47031e3b0bcdc, type: 2}
+  moundHeight: 0.04
+  moundSize: {x: 0.7, y: 1.8}
+  puffMaterial: {fileID: 2100000, guid: 90c617756d4b11746863b41740166822, type: 2}
   debugSounds: 1
   attackClip: {fileID: 8300000, guid: e8d45c2fccbbaf24c82536323ca730a9, type: 3}
   growlClips:

@@ -2408,6 +2408,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
       insertIndex: -1
       addedObject: {fileID: 8194844412188602940}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8779163842777341294}
   m_SourcePrefab: {fileID: 100100000, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
 --- !u!4 &2464984200134399403 stripped
 Transform:
@@ -2466,6 +2469,35 @@ MonoBehaviour:
   redDepth: 2400
   gaugeMinDepth: 1800
   gaugeMaxDepth: 2600
+--- !u!114 &8779163842777341294
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2990023729373138705}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7884cc9ac5c21544ead660bdb273ef88, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Player.HelmetDamage
+  biteReceiver: {fileID: 536422760283156005}
+  viewCamera: {fileID: 2136362581478521679}
+  crackMaterial: {fileID: 2100000, guid: 524f7e3ca6d23844abab11cb201f055d, type: 2}
+  crackSize: 0.09
+  sizeVariation: {x: 0.8, y: 1.25}
+  impactJitter: 0.12
+  growPerBite: 1.25
+  maxGrowth: 1.8
+  glassDistance: 0.39
+  criticalBites: 3
+  creakInterval: {x: 5, y: 12}
+  crackClip: {fileID: 0}
+  creakClip: {fileID: 0}
+  alarmClip: {fileID: 0}
+  crackVolume: 0.8
+  creakVolume: 0.35
+  alarmVolume: 0.5
 --- !u!4 &4517492609445443063 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1949637505871103927, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}

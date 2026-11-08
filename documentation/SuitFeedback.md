@@ -1,5 +1,5 @@
 # Suit Feedback & Debug Overlay
-Ultima verifica: 2026-10-26
+Ultima verifica: 2026-11-08
 
 ## Scopo e confini
 Rappresenta l'anello di congiunzione tra le letture dei sistemi interni della tuta (`OxygenSystem`, `StressSystem`, `DiverFlashlight`), le interazioni fisiche (`PlayerHands`, `PlayerInteraction`), la progressione narrativa (`QuestManager`) e i canali percettivi del giocatore.
@@ -10,6 +10,8 @@ Attualmente gestisce:
 ## File e componenti
 - `Assets/_Project/Code/Player/Feedback/SuitDebugOverlay.cs`: Controller unificato di feedback diegetico/debug e post-processing URP.
 - `Assets/_Project/Code/Player/Feedback/HelmetInstruments.cs`: strumenti 3D del casco (gauge O₂ con quadrante pressione, CRT, spie), pilotati da codice.
+- `Assets/_Project/Code/Player/Feedback/HelmetDamage.cs`: crepe sul vetro del casco a ogni morso, con allarme e scricchiolii (bozza).
+- `Assets/_Project/Materials/Player/T_HelmetCracks.png` e `M_HelmetCrack.mat`: atlante 2x2 di crepe generato proceduralmente (linee bianche su alfa) e materiale `Universal Render Pipeline/Unlit` trasparente, senza culling, colore (0.78, 0.84, 0.9, 0.5).
 
 ## Dipendenze e flusso dati
 - **Tuta e Vitali**: Sottoscrive `OnOxygenChanged` (`OxygenSystem`), `OnStressChanged` (`StressSystem`), `OnModeChanged` (`DiverFlashlight`).
@@ -71,6 +73,37 @@ Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `Helme
 - **Setup**: dopo una nuova esportazione dell'FBX, perni, spie e testi restano collegati solo se i nomi non cambiano; i testi `CTR_Texts` sono nel prefab e vanno riposizionati a mano se lo schermo si sposta.
 - **Limiti**: i testi usano le risorse essenziali di TextMeshPro, importate il 2026-10-26 in `Assets/TextMesh Pro/`; l'azione "pressione arancione aumenta il consumo di O₂" del GDD non è implementata; il vetro riflette la torcia sullo schermo del CRT (placeholder); il nastro della bussola è in cima al campo visivo e con il casco a riposo si vede solo la fascia bassa delle lettere; se il nastro cambia forma nel .blend, `compassCenter` e `compassRadius` vanno rimisurati dai vertici della mesh.
 
+### HelmetDamage
+Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, vedi *Verifica*.
+- **Responsabilità e ciclo di vita**: sul GameObject `Helmet` (figlio di `MainCamera/HelmetVisualPivot`), accanto a `HelmetInstruments`. In `Awake` risolve camera (genitori) e `DiverBiteReceiver` (se vuoto, `FindFirstObjectByType`), aggiunge un `AudioSource` 2D e genera i suoni sintetici; in `OnEnable`/`OnDisable` si iscrive e si toglie da `DiverBiteReceiver.OnBitten`. A ogni morso (`AddCrack`):
+  1. le crepe già presenti si allargano di `growPerBite`, fino a `maxGrowth` volte la loro dimensione iniziale;
+  2. una crepa nuova nasce nel punto d'impatto: centro della visuale più uno scarto casuale entro `impactJitter` (viewport), a `glassDistance` dall'occhio lungo quel raggio, quad rivolto alla camera con rotazione casuale, una delle 4 crepe dell'atlante, lato `crackSize × sizeVariation`;
+  3. suona lo schiocco di vetro; al morso numero `criticalBites` anche l'allarme (tre bip);
+  4. dal secondo morso il vetro scricchiola ogni `creakInterval` secondi (intervallo dimezzato e volume pieno da critico, al 60% prima).
+  Le crepe sono figlie di `Helmet`, quindi seguono l'ondeggiare del casco, e restano fino a `ResetDamage`. Nessun effetto su ossigeno o stress oltre a quelli del morso.
+- **Campi Inspector**:
+
+| Campo | Tipo | Default | Significato |
+|---|---|---|---|
+| `biteReceiver` | `DiverBiteReceiver` | null | Chi riceve i morsi; vuoto = cercato in scena. Prefab: `PlayerCapsule` |
+| `viewCamera` | `Camera` | null | Camera del sub; vuoto = fra i genitori. Prefab: `MainCamera` |
+| `crackMaterial` | `Material` | null | Materiale delle crepe; vuoto = avviso in console e nessuna crepa. Prefab: `M_HelmetCrack` |
+| `crackSize` | float ≥ 0.01 | 0.09 | Lato di una crepa nuova (m) |
+| `sizeVariation` | `Vector2` | (0.8, 1.25) | Moltiplicatore casuale della dimensione |
+| `impactJitter` | float [0, 0.5] | 0.12 | Raggio (viewport) attorno al centro per il punto d'impatto |
+| `growPerBite` | float ≥ 1 | 1.25 | Allargamento delle crepe vecchie a ogni morso |
+| `maxGrowth` | float ≥ 1 | 1.8 | Allargamento massimo rispetto alla dimensione iniziale |
+| `glassDistance` | float ≥ 0.15 | 0.39 | Distanza dall'occhio lungo il raggio (la visiera è a 0.407 m sull'asse) |
+| `criticalBites` | int ≥ 1 | 3 | Morsi dopo i quali il vetro è critico |
+| `creakInterval` | `Vector2` | (5, 12) | Secondi fra due scricchiolii dal secondo morso |
+| `crackClip`, `creakClip`, `alarmClip` | `AudioClip` | null | Suoni di design; vuoti = sintetici |
+| `crackVolume`, `creakVolume`, `alarmVolume` | float [0, 1] | 0.8, 0.35, 0.5 | Volumi |
+
+- **API pubbliche**: `int Bites { get; }`; `bool Critical { get; }` (da `criticalBites`); `event Action<int> OnDamageChanged` (a ogni crepa e alla riparazione, con il numero di morsi); `void AddCrack()`; `void ResetDamage()` (toglie le crepe, per la riparazione alla stazione di aggancio, non ancora collegata).
+- **Suoni sintetici**: schiocco (clic di 4 ms, rumore passa-alto, risonanze a 3150 e 4720 Hz, tonfo a 90 Hz; 0.7 s), scricchiolio (impulsi di attrito da 18 a 45 al secondo filtrati, 1.3 s), allarme (tre bip a 1.1 kHz).
+- **Riferimenti obbligatori**: `crackMaterial` e una camera. Senza `DiverBiteReceiver` non riceve morsi, ma `AddCrack` resta chiamabile.
+- **Limiti**: distanza fissa invece di un raggio sulla visiera, perché la mesh di `Helmet.fbx` non è leggibile a runtime: dove una crepa supera il bordo dell'apertura, parte delle linee si disegna sopra la cornice del casco. L'apertura della visiera non è centrata sulla camera, e l'impatto (centro della visuale, dove arriva la testa della lucertola) cade verso il suo bordo destro. Texture e suoni sono provvisori.
+
 ## Layout e Contenuto dell'HUD a Schermo
 1. **Parametri Vitali**:
    - `O₂  XX.X%`
@@ -93,6 +126,7 @@ Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `Helme
 - In [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
   - Il testo dell'HUD è allineato nell'angolo superiore destro con margine di 24 px.
   - Il `Volume` post-processing è agganciato al profilo globale con `Vignette` attiva.
+  - `HelmetDamage` su `MainCamera/HelmetVisualPivot/Helmet`, con `biteReceiver` = `PlayerCapsule`, `viewCamera` = `MainCamera`, `crackMaterial` = `M_HelmetCrack`, `crackSize` 0.09 (2026-11-08).
 
 ## Estensione del sistema
 - Sostituzione con HUD diegetico: proiettare le stringhe o i valori numerici su display all'interno della visiera 3D del casco del diver anziché sul canvas a schermo.
@@ -100,7 +134,11 @@ Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `Helme
 ## Limiti e problemi noti
 - Se il `VolumeProfile` non include un override `Vignette`, `profile.TryGet(out vignette)` restituirà `false` e la vignetta non verrà pilotata.
 
+## Verifica
+- **HelmetDamage (2026-11-08)**, Play in `SCN_Gameplay`, creature disattivate, tre `DiverBiteReceiver.ReceiveBite` a 2 s di distanza: `Bites` 1, 2, 3, `Critical` vero al terzo, tre quad `Crack_*` sotto `Helmet`, a 0.39 m dall'occhio, con lato 0.140 e 0.134 m (le prime due, allargate) e 0.088 m (l'ultima). Screenshot `Assets/Screenshots/HelmetCracks_Test_20261108.png`: crepe visibili sul vetro, le vecchie si allargano, la cornice ne copre una parte. Un primo tentativo le metteva a 0.53 m (dietro la visiera), perché `ViewportPointToRay` parte dal piano near: corretto partendo dall'occhio. Non verificato dal vivo: suoni (schiocco, allarme, scricchiolii) e resa durante un vero attacco della lucertola.
+
 ## Sistemi collegati
+- [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) (`DiverBiteReceiver.OnBitten`)
 - [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md)
 - [Stress.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Stress.md)
 - [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)
