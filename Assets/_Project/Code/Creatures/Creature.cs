@@ -302,7 +302,23 @@ namespace Deeploration.Creatures
             preyTarget = null;
             satedUntil = 0f;
             swallowedBy = null;
+            // Specie all'agguato (lucertola abissale): il componente guida la creatura al posto di Think e Move.
+            ambush = GetComponent<CreatureAmbush>();
+            if (ambush != null) ambush.Begin(this, manager, home, leashRadius);
         }
+
+        private CreatureAmbush ambush;
+
+        /// <summary>Stato, velocità e rotta scritti da <see cref="CreatureAmbush"/>, letti da mandibola e catena.</summary>
+        internal void SetDriven(CreatureState drivenState, float drivenSpeed, Vector3 drivenHeading)
+        {
+            state = drivenState;
+            speed = drivenSpeed;
+            if (drivenHeading.sqrMagnitude > 1e-6f) heading = drivenHeading.normalized;
+        }
+
+        /// <summary>Segna il morso per <see cref="LastBiteTime"/> (scatto della mandibola).</summary>
+        internal void MarkBite(float now) => lastBiteTime = now;
 
         /// <summary>
         /// Preda presa: resta attaccata al predatore nella posizione in cui è stata presa (nel suo spazio locale,
@@ -342,6 +358,11 @@ namespace Deeploration.Creatures
             if (swallowedBy != null)
             {
                 SwallowStep();
+                return;
+            }
+            if (ambush != null)
+            {
+                ambush.Step(deltaTime, think);
                 return;
             }
             if (think) Think();

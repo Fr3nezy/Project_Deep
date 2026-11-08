@@ -86,6 +86,9 @@ namespace Deeploration.Creatures
         /// <summary>Layer che bloccano vista e movimento delle creature.</summary>
         public LayerMask ObstacleMask => obstacleMask;
 
+        /// <summary>Camera usata per la visibilità (null prima di <c>Start</c> se non assegnata).</summary>
+        public Camera ViewCamera => viewCamera;
+
         /// <summary>Creature attive in questo momento.</summary>
         public int ActiveCount => active.Count;
 

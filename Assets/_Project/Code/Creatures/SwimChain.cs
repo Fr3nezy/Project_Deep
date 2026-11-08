@@ -37,6 +37,7 @@ namespace Deeploration.Creatures
 
         private Creature creature;
         private Vector3[] points;
+        private Vector3[] displaced;
         private float[] lengths;
         private Quaternion[] restOffsets;
         private float chainLength;
@@ -55,17 +56,34 @@ namespace Deeploration.Creatures
             restOffsets = new Quaternion[count];
             chainLength = 0f;
 
-            // Posa di riposo: lunghezze dei segmenti e rotazione di ogni osso rispetto alla direzione verso
-            // l'osso davanti, così l'asse delle ossa del rig può essere qualunque.
+            displaced = new Vector3[count];
+
+            // Posa di riposo: lunghezze dei segmenti e rotazione di ogni osso rispetto alla sua direzione di catena
+            // (vedi AimDirection), così l'asse delle ossa del rig può essere qualunque.
             Vector3 up = transform.up;
             for (int i = 1; i < count; i++)
             {
-                Vector3 toFront = bones[i - 1].position - bones[i].position;
-                lengths[i] = toFront.magnitude;
+                lengths[i] = (bones[i - 1].position - bones[i].position).magnitude;
                 chainLength += lengths[i];
-                Quaternion look = Quaternion.LookRotation(toFront.sqrMagnitude > 1e-8f ? toFront : transform.forward, up);
+                displaced[i - 1] = bones[i - 1].position;
+            }
+            if (count > 0) displaced[count - 1] = bones[count - 1].position;
+            for (int i = 1; i < count; i++)
+            {
+                Vector3 aim = AimDirection(i);
+                Quaternion look = Quaternion.LookRotation(aim.sqrMagnitude > 1e-8f ? aim : transform.forward, up);
                 restOffsets[i] = Quaternion.Inverse(look) * bones[i].rotation;
             }
+        }
+
+        // Direzione verso la testa per l'osso i: bisettrice fra il segmento davanti e quello dietro (la corda
+        // dall'osso davanti a quello dietro), l'ultimo segue il segmento davanti. Un osso pesa la carne fra sé e
+        // l'osso dietro: orientarlo sul solo segmento davanti la ruotava con un segmento di ritardo e apriva
+        // gradini alle giunture.
+        private Vector3 AimDirection(int i)
+        {
+            int behind = Mathf.Min(i + 1, displaced.Length - 1);
+            return displaced[i - 1] - displaced[behind];
         }
 
         private void OnEnable() => needsReset = true;
@@ -116,10 +134,10 @@ namespace Deeploration.Creatures
             if (visibilityRenderer != null && !visibilityRenderer.isVisible) return;
 
             // Onda laterale sopra la catena (non entra nella simulazione, altrimenti si accumulerebbe), poi ossa
-            // orientate verso l'osso davanti già spostato.
+            // orientate sulla catena già spostata.
             float amplitude = waveAmplitude * chainLength * Mathf.Clamp(pace, 0.3f, 1.5f);
             float k = waveCount * 2f * Mathf.PI;
-            Vector3 frontPosition = headPosition;
+            displaced[0] = headPosition;
             for (int i = 1; i < count; i++)
             {
                 float u = i / (float)(count - 1);
@@ -127,12 +145,13 @@ namespace Deeploration.Creatures
                 Vector3 side = Vector3.Cross(up, back);
                 side = side.sqrMagnitude > 1e-10f ? side.normalized : transform.right;
                 float envelope = Mathf.Lerp(headAmplitude, 1f, u * u);
-                Vector3 position = points[i] + side * (amplitude * envelope * Mathf.Sin(phase - u * k));
-
-                Vector3 toFront = frontPosition - position;
-                if (toFront.sqrMagnitude < 1e-10f) toFront = -back;
-                bones[i].SetPositionAndRotation(position, Quaternion.LookRotation(toFront, up) * restOffsets[i]);
-                frontPosition = position;
+                displaced[i] = points[i] + side * (amplitude * envelope * Mathf.Sin(phase - u * k));
+            }
+            for (int i = 1; i < count; i++)
+            {
+                Vector3 aim = AimDirection(i);
+                if (aim.sqrMagnitude < 1e-10f) aim = points[i - 1] - points[i];
+                bones[i].SetPositionAndRotation(displaced[i], Quaternion.LookRotation(aim, up) * restOffsets[i]);
             }
         }
 

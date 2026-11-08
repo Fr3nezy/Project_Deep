@@ -1,9 +1,14 @@
 fileFormatVersion: 2
-guid: 0e3e203154364ad4493f44ee9d2dc6f5
+guid: 071238625ae0d7a46a636190e0bd4f0d
 ModelImporter:
   serializedVersion: 24300
   internalIDToNameTable: []
-  externalObjects: {}
+  externalObjects:
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: MTL_LizardFish
+    second: {fileID: 2100000, guid: f6f233e2df065ba41b7d0e0da0a1324d, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0

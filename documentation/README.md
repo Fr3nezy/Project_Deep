@@ -37,6 +37,8 @@ Assets/_Project/Code/
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
 | `Assets/_Project/Code/Creatures/Creature.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/BurrowZone.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/Creatures/CreatureAmbush.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureCrawl.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureEnums.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureEyes.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |

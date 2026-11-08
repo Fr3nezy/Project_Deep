@@ -185,7 +185,7 @@ Transform:
   m_GameObject: {fileID: 1967103050359168061}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.021999955, z: 0}
+  m_LocalPosition: {x: 0.0046714903, y: 0.011751771, z: -0.0043360074}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -471,6 +471,7 @@ GameObject:
   m_Component:
   - component: {fileID: 2028583716377721849}
   - component: {fileID: 94077359422341953}
+  - component: {fileID: 6461613431632971365}
   m_Layer: 0
   m_Name: EmergencyLight
   m_TagString: Untagged
@@ -558,6 +559,35 @@ Light:
   m_LightUnit: 1
   m_LuxAtDistance: 1
   m_EnableSpotReflector: 1
+--- !u!114 &6461613431632971365
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3574288461831675297}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 474bcb49853aa07438625e644c072ee6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Unity.RenderPipelines.Universal.Runtime::UnityEngine.Rendering.Universal.UniversalAdditionalLightData
+  m_UsePipelineSettings: 1
+  m_AdditionalLightsShadowResolutionTier: 2
+  m_CustomShadowLayers: 0
+  m_LightCookieSize: {x: 1, y: 1}
+  m_LightCookieOffset: {x: 0, y: 0}
+  m_SoftShadowQuality: 0
+  m_RenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_ShadowRenderingLayersMask:
+    serializedVersion: 0
+    m_Bits: 1
+  m_Version: 4
+  m_LightLayerMask: 1
+  m_ShadowLayerMask: 1
+  m_RenderingLayers: 1
+  m_ShadowRenderingLayers: 1
 --- !u!1 &3578882018625086332
 GameObject:
   m_ObjectHideFlags: 0
@@ -845,7 +875,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: LUCE
+  m_text: LIGHT
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
   m_sharedMaterial: {fileID: -4545925210989299102, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
@@ -1026,7 +1056,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "PROFONDIT\xC0"
+  m_text: DEPTH
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
   m_sharedMaterial: {fileID: -4545925210989299102, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
@@ -1053,7 +1083,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 0.056
+  m_fontSize: 0.066
   m_fontSizeBase: 0.056
   m_fontWeight: 400
   m_enableAutoSizing: 0
@@ -1207,7 +1237,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: PIENA
+  m_text: FULL
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
   m_sharedMaterial: {fileID: -4545925210989299102, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
@@ -2310,15 +2340,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -3038296596362089026, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 0
+      value: 0.0046714903
       objectReference: {fileID: 0}
     - target: {fileID: -3038296596362089026, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.021999955
+      value: 0.011751771
+      objectReference: {fileID: 0}
+    - target: {fileID: -3038296596362089026, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: -0.0043360074
+      objectReference: {fileID: 0}
+    - target: {fileID: -1255605710908113952, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: -0.0896
       objectReference: {fileID: 0}
     - target: {fileID: -1255605710908113952, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.12644815
+      value: 0.1162
+      objectReference: {fileID: 0}
+    - target: {fileID: -1255605710908113952, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0.0842
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 8f0d72efccbd4d141a75d8b0c852a8e2, type: 3}
       propertyPath: m_Name

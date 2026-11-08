@@ -286,7 +286,7 @@ namespace Deeploration.Player
             if (shownMode != mode)
             {
                 shownMode = mode;
-                if (lightValue != null) lightValue.SetText(mode == FlashlightMode.Full ? "PIENA" : mode == FlashlightMode.Low ? "BASSA" : "ROSSA");
+                if (lightValue != null) lightValue.SetText(mode == FlashlightMode.Full ? "FULL" : mode == FlashlightMode.Low ? "LOW" : "RED");
             }
 
             int lit = mode == FlashlightMode.Full ? 3 : 1;
