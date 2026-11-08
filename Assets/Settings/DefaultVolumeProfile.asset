@@ -299,6 +299,34 @@ MonoBehaviour:
   cropToFit:
     m_OverrideState: 1
     m_Value: 1
+--- !u!114 &-2226554829561956003
+MonoBehaviour:
+  m_ObjectHideFlags: 3
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6f5597d22d391db4d8fba0d813e5141b, type: 3}
+  m_Name: AnalogLook
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Rendering.AnalogLook
+  active: 1
+  intensity:
+    m_OverrideState: 1
+    m_Value: 0
+  pixelSize:
+    m_OverrideState: 1
+    m_Value: 3
+  colorLevels:
+    m_OverrideState: 1
+    m_Value: 12
+  dither:
+    m_OverrideState: 1
+    m_Value: 1
+  scanlines:
+    m_OverrideState: 1
+    m_Value: 0.15
 --- !u!114 &-1410297666881709256
 MonoBehaviour:
   m_ObjectHideFlags: 3
@@ -468,6 +496,7 @@ MonoBehaviour:
   - {fileID: -6288072647309666549}
   - {fileID: 7518938298396184218}
   - {fileID: -1410297666881709256}
+  - {fileID: -2226554829561956003}
 --- !u!114 &853819529557874667
 MonoBehaviour:
   m_ObjectHideFlags: 3

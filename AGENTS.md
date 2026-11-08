@@ -2,6 +2,12 @@
 
 Questo repository utilizza una disciplina rigorosa di documentazione e coerenza architetturale. Ogni agente che opera su questo progetto è tenuto a rispettare le seguenti regole tassative:
 
+## Contesto
+
+- Come sono costruiti i sistemi: `documentation/README.md` (catalogo) e `documentation/<Sistema>.md`.
+- Stato, roadmap, GDD e decisioni nel vault Obsidian, cartella `Z:\_VAULTS\NEXUS\Progetti\OpenProjects\Unity\Deeplonauts\`: `Contesto-Stato.md` (stato attuale), `Roadmap.md` (task numerate), `DEEPLONAUTS GDD.md`, `Reports/` (log delle sessioni). Cerca con `hx vault --project deeplonauts <termini>`.
+- Task aperte: `Z:\_VAULTS\NEXUS\_Claude\TASKS.md`, sezione `#deeplonauts`.
+
 # Documentazione dei sistemi
 
 - Prima di modificare un sistema, leggere documentation/README.md
