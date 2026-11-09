@@ -1,5 +1,5 @@
 # Creatures
-Ultima verifica: 2026-11-07
+Ultima verifica: 2026-11-09
 
 ## Scopo e confini
 Fa vivere la fauna della slice: le creature escono dai nidi, vagano attorno a casa evitando rocce e fondale e reagiscono agli stimoli del sub: la luce della torcia, il rumore dei passi e la scia luminosa del prato di penne. Il sistema è progettato per molte creature a basso costo: un solo componente per creatura, un solo ciclo di aggiornamento per tutta la scena, livelli di dettaglio dell'intelligenza (LOD) e pool senza allocazioni a regime.
@@ -475,7 +475,7 @@ Implementato il 2026-11-08 (terza iterazione con jumpscare coreografato esattame
 | `growlClips` | `AudioClip[]` | vuoto | Grugniti della vescica natatoria: uno a caso al posto dei tocchi della fascia lontana, 3D nel punto di emersione. Vuoto = tocchi sintetici. Prefab: `SFX_Lizardfish_Growl_0-2` |
 | `growlVolume` | float [0, 1] | 0.6 | Volume dei grugniti |
 
-- API pubbliche: `AmbushPhase Phase { get; }`; `Vector3 LastNoisePoint { get; }`; `float LastNoiseTime { get; }` (-infinito se nessuno); `float FarClueDistance { get; }`; `float NearClueDistance { get; }`. Interne: `Begin(Creature, CreatureManager, Vector3 home, float leash)`, `Step(float deltaTime, bool think)`.
+- API pubbliche: `AmbushPhase Phase { get; }`; `Vector3 LastNoisePoint { get; }`; `float LastNoiseTime { get; }` (-infinito se nessuno); `float FarClueDistance { get; }`; `float NearClueDistance { get; }`; `float FaceDistance { get; }` (distanza d'arresto della testa davanti alla camera, m); `float FaceHold { get; }` (secondi a fauci aperte davanti alla camera); `Vector2 ViewportCenterRange { get; }` (intervallo centrale di viewport per l'emersione, 0..1). Interne: `Begin(Creature, CreatureManager, Vector3 home, float leash)`, `Step(float deltaTime, bool think)`.
 - Gizmo (selezionata, in Play): cerchi di `strikeRange` (rosso), `nearClueDistance` (giallo) e `farClueDistance` (ciano) attorno all'emersione, sfera e linea verticale del colore della fase, linea verso la testa in `Lunge`.
 - Riferimenti obbligatori: `Creature` sullo stesso GameObject (`RequireComponent`); creatura presa dal pool del manager. Con `SwimChain` il tuffo usa la sua `ChainLength`, senza 2 m.
 - Suoni: clip sintetiche di debug (`Synth`, `SynthRustle` e `SynthJumpscare`): tocchi sordi a bassa frequenza, fruscio continuo filtrato, jumpscare 2D (transiente secco + stridio FM che sale + sub-bass boom, volume 1.0), avviso basso e reinsabbiamento quasi inudibile.
@@ -875,6 +875,18 @@ Letture:
 - Nel nuovo sistema il costo cresce in modo lineare, circa 10-12 µs per creatura in Editor, e non alloca memoria per frame.
 - Il LOD dimezza il costo a 300 creature (6.8 → 3.5 ms prima delle correzioni anti-compenetrazione), con 272 creature su 300 fuori inquadratura.
 - Provato e scartato: togliere il padre comune (`CreaturePool`) alle istanze non cambia il costo, quindi la gerarchia resta ordinata.
+
+Chiusura di M2 (2026-11-09): costo con la popolazione vera della slice, stessa sonda (`CreatureBenchmark` aggiunto a runtime, `Application.runInBackground = true`, 3 s di riscaldamento e 10 s di misura), `SCN_Gameplay` in Play con il sub nella capsula (prologo), Editor, Mono, Scene view non controllata. Popolazione della scena: 100 lanternfish, 4 viperfish, 7 isopodi (due nidi), 1 lucertola abissale, più il banco GPU da 500. Lo stress triplica i nidi con `CreatureNest.Respawn` (300 + 12 + 21 + 3).
+
+| Configurazione | Main thread | Update | FixedUpdate | GC per frame |
+|---|---|---|---|---|
+| Vuoto (nidi a 0, banco spento) | 5.85 ms | 0.24 ms | 0.00 ms | 18.7 KB |
+| Slice reale, 112 entità + banco 500 | 7.69 ms | 1.41 ms | 0.00 ms | 19.0 KB |
+| Stress ×3, 336 entità + banco 500 | 10.55 ms | 3.23 ms | 0.00 ms | 19.5 KB |
+
+- Le creature della slice costano circa 1.2 ms di Update sopra il vuoto, lo stress ×3 circa 3 ms: sempre lineare, circa 9 µs per creatura con il mix vero (viperfish, isopodi con `CreatureCrawl`, lucertola con `CreatureAmbush`), in linea con i cubi.
+- Nessuna allocazione delle creature a regime: il GC resta quello della scena a vuoto. La prima misura della slice, presa subito dopo l'avvio del Play, dava 57 KB/frame e un picco di 164 ms: era il caricamento iniziale, la ripetizione dà 19 KB.
+- Console senza errori in tutte e tre le prove. Non misurati: sub fuori dalla capsula in movimento fra i nidi, build standalone, GPU.
 
 Le misure sono prese con la Scene view puntata nel vuoto: se inquadra la scena, il suo rendering entra nel main thread (con 50 pesci animati e la Scene view sulla scena: 44.4 ms). Con il placeholder animato, durante il prologo, quasi tutti i pesci sono fuori inquadratura e il loro Animator è fermo (`CullCompletely`): il costo dell'animazione con molti pesci inquadrati non è ancora misurato.
 
