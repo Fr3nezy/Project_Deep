@@ -8,6 +8,14 @@ Questo repository utilizza una disciplina rigorosa di documentazione e coerenza 
 - Stato, roadmap, GDD e decisioni nel vault Obsidian, cartella `Z:\_VAULTS\NEXUS\Progetti\OpenProjects\Unity\Deeplonauts\`: `Contesto-Stato.md` (stato attuale), `Roadmap.md` (task numerate), `DEEPLONAUTS GDD.md`, `Reports/` (log delle sessioni). Cerca con `hx vault --project deeplonauts <termini>`.
 - Task aperte: `Z:\_VAULTS\NEXUS\_Claude\TASKS.md`, sezione `#deeplonauts`.
 
+## Fine sessione: obbligatorio
+
+Tra il 2026-10-17 e il 2026-11-07 nessuna sessione ha scritto il log e le decisioni sono rimaste solo nei transcript. Per non ripeterlo:
+
+- **Ogni sessione con lavoro rilevante chiude con `brain-log`**: log in `Reports/` della cartella Deeplonauts e aggiornamento di `TASKS.md`. Se Manu chiude senza chiederlo, proponilo prima di fermarti.
+- **Aggiorna `Roadmap.md` e `Flusso-Slice.md` nello stesso intervento** in cui cambia qualcosa che descrivono: task chiusa o spezzata, creatura aggiunta, tagliata o sostituita, milestone che cambia ordine, zona o puzzle ridisegnati. Riscrivi anche la riga «Prossimo passo» in fondo alla Roadmap.
+- Una decisione presa in chat vale solo quando è scritta nel vault: `TASKS.md` da solo non basta.
+
 # Documentazione dei sistemi
 
 - Prima di modificare un sistema, leggere documentation/README.md
