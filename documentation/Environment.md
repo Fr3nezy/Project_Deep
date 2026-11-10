@@ -1,5 +1,5 @@
 # Environment Systems
-Ultima verifica: 2026-10-28
+Ultima verifica: 2026-11-10
 
 ## Scopo e confini
 Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appartenenti alla fauna autonoma:
@@ -24,7 +24,8 @@ Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appa
 - **Progressione**: `AirlockDoor` si iscrive a `QuestManager.Instance.OnQuestCompleted` in `Start()`. All'apertura del portale si sposta verso `targetPosition`.
 - **Portello capsula**: `HatchDoor` non legge input. Lo attiva un `SimpleInteractable` sullo stesso oggetto, il cui `onInteracted` chiama `HatchDoor.Open()` (vedi [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)).
 - **Uscita capsula**: `HatchExit` è un `IInteractable` raggiunto da `PlayerInteraction`. Legge `HatchDoor.IsOpen`/`IsMoving`; durante l'uscita disabilita `CharacterController` e `DiverController` del giocatore, scrive direttamente posizione e yaw del diver e posa di `DiverController.CameraTarget`, poi li riabilita, azzera `ViewRoll`, sblocca `LockMovement` e chiama `SetViewPitch(0)` e `ResetMotion()`.
-- **Ricarica O₂**: `OxygenRefillStation` rileva l'`OxygenSystem` sul diver e chiama `Refill(Time.deltaTime)` durante la permanenza nel trigger.
+- **Ricarica O₂**: `OxygenRefillStation` rileva l'`OxygenSystem` sul diver e, se è accesa, chiama `Refill(Time.deltaTime)` durante la permanenza nel trigger e registra il checkpoint su `DiverRespawn`. Spenta (`startsPowered` falso) non ricarica finché `PowerOn()` (in scena da `GrabSocket.onSocketed`).
+- **Chiusa 1 (dal 2026-11-10)**: cella trascinata nello slot → stazione accesa; modulo flash → `DiverFlashlight.UnlockFlash`; lampo sulla `Photocell` → `AirlockDoor.HandleQuestCompleted`.
 - **Chiusa (puzzle Z2)**: `ShortedCable` si registra con `CreatureManager.AddSource` in `OnEnable` e ogni frame aggiunge uno stimolo `WeakLight` puntiforme. In `Update` scorre `CreatureManager.ActiveCreatures` e conta le creature con `Profile == shortingSpecies` entro `shortRadius`. La leva (`SimpleInteractable` riusabile) chiama `ShortedCable.TryRestorePower` da `onInteracted`; a circuito libero `onPowerRestored` apre il gate (`AirlockDoor.HandleQuestCompleted`).
 - **Rendering & Atmosfera**: `MarineSnowFollower` calcola in `LateUpdate()` la posizione delle particelle oceaniche in base alla posizione e rotazione della `Camera.main`.
 
@@ -126,14 +127,25 @@ flowchart TD
 ### OxygenRefillStation
 - **Responsabilità e ciclo di vita**:
   - Richiede un `Collider` con `isTrigger = true`.
-  - `OnTriggerEnter(Collider other)`: Cerca `OxygenSystem`, notifica l'obiettivo `"o2_beacon"` a `QuestManager.Instance` se non ancora inviato, e cambia la luce del beacon in `activeColor`.
-  - `OnTriggerStay(Collider other)`: Chiama `playerOxygen.Refill(Time.deltaTime)`.
+  - `Awake()`: stato acceso da `startsPowered`; `respawnPoint` vuoto = se stesso; luce del beacon in `standbyColor`, spenta se la stazione è spenta.
+  - `OnTriggerEnter(Collider other)`: Cerca `OxygenSystem`; se la stazione è accesa "aggancia" il diver: notifica `questObjectiveId` a `QuestManager.Instance` una volta (saltato se l'id è vuoto, dal 2026-11-10), registra `respawnPoint` su `DiverRespawn` e porta la luce ad `activeColor`.
+  - `PowerOn()`: accende stazione e beacon, invoca `onPowered`; se il diver è già dentro lo aggancia subito.
+  - `OnTriggerStay(Collider other)`: se accesa chiama `playerOxygen.Refill(Time.deltaTime)`.
   - `OnTriggerExit(Collider other)`: Ripristina la luce in `standbyColor` e azzera il riferimento al player.
 - **Campi Inspector**:
-  - `float refillRatePerSecond` (default: `10f`): Parametro locale (nota: la velocità effettiva di ricarica è determinata da `OxygenProfile.refillRatePerSecond`).
-  - `string questObjectiveId` (default: `"o2_beacon"`).
+  - `float refillRatePerSecond` (default: `10f`): Parametro locale non usato (la velocità effettiva è `OxygenProfile.refillRate`).
+  - `string questObjectiveId` (default: `"o2_beacon"`; vuoto = nessuna notifica).
+  - `bool startsPowered` (default: `true`), `UnityEvent onPowered`.
+  - `Transform respawnPoint` (default: vuoto = se stesso): checkpoint registrato su `DiverRespawn`.
+- **API pubbliche**: `bool IsPowered { get; }`, `void PowerOn()`.
   - `Light stationBeaconLight`: Faro di segnalazione della colonnina.
   - `Color standbyColor` (default: ambra/giallo), `Color activeColor` (default: ciano/verde).
+
+### Photocell *(2026-11-10)*
+- **Responsabilità e ciclo di vita**: fotocellula delle porte di Tidal Dynamics. In `Awake` cerca il `DiverFlashlight` della scena e colora `indicatorLight` in `lockedColor`. In `Update`, finché non è scattata, controlla il fascio della torcia (`SpotLight`) e le `extraLights`: una luce la fa scattare se è accesa, ha `intensity ≥ minSourceIntensity`, la cella è entro `range` e, per gli spot, dentro metà di `spotAngle`, e un `RaycastAll` dalla cella verso la luce (trigger ignorati) non incontra collider tranne quelli che contengono la luce (la capsula del diver) e la cella stessa. Scatta una volta: luce in `triggeredColor`, `onTriggered`. Pensata per le chiuse 1 (flash) e 3 (faro di sicurezza in `extraLights`).
+- **Campi Inspector**: `float minSourceIntensity` (`200`; torcia Full 55, lampo 800), `Light[] extraLights` (vuoto), `LayerMask occluders` (tutti), `Light indicatorLight` (opzionale), `Color lockedColor` (rosso), `Color triggeredColor` (verde), `UnityEvent onTriggered`, `bool triggered` (debug).
+- **API pubbliche**: `bool Triggered { get; }`, `void Trigger()`, `bool IsLitBy(Light light)`.
+- **Limiti**: la soglia è sull'intensità della sorgente, non sulla luce ricevuta: la distanza conta solo come `range` della luce. La cella va staccata di qualche cm dalla parete, perché il raggio di linea di vista parte dal suo centro.
 
 ### MarineSnowFollower
 - **Responsabilità e ciclo di vita**:
@@ -187,6 +199,12 @@ flowchart TD
   - Leva spostata e riverificata in Play il 2026-10-28: dal corridoio, a 1.8-2.4 m, il raggio di `PlayerInteraction` (`interactionLayers` tutti, 2.6 m) colpisce il trigger di `Lever` con prompt `"Riattiva la chiusa"`; a circuito libero `SimpleInteractable.Interact` ridà corrente e il pannello sale a y 7.7 con luce verde. Build rifatta.
 
 - `SCN_Gameplay`, `Ambience_Abyss` (2026-11-08): GameObject alla radice con un solo `AudioSource` 2D (`spatialBlend` 0), `loop` acceso, `playOnAwake` acceso, `volume` 0.2, clip `Assets/_Project/Assets/Audio/Ambience/AMB_Abyss.mp3` (297.8 s, import *Streaming*). Sottofondo abissale fornito da Manu (Pixabay, autore dragon-studio, file `dragon-studio-abyss-ambience-467492.mp3`). Nessuno script: niente dissolvenze né cambi per zona. Non ancora ascoltato in Play.
+
+- Chiusa 1, puzzle con cella, modulo flash e fotocellula (2026-11-10, `SCN_Gameplay`). Sostituisce il puzzle degli isopodi sul cavo: `ExposedCable`, `ShortedCable` e la leva non sono più in scena (rimossi da Manu), `LeverLight` cancellata; la sezione sopra sulla chiusa del settore è storica.
+  - `Chiusa1_Gate` (ex `Z2_Chiusa_Blocking`, radice ancora a `(-10, -2.24, -40)`): pareti, architrave e `GatePanel` spostati da Manu a z −91.8, x −10, dove il canyon è largo circa 16 m; `GateStatusLight` portata a `(-10, -4.8, -91.0)`. Figlio nuovo `Photocell` a `(-10, -6.43, -91.25)` davanti all'architrave (sfera `Visual` 0.35 m senza collider, `IndicatorLight` punto range 2.5), `Photocell` con i default e `onTriggered → AirlockDoor.HandleQuestCompleted` del `Gate`. Dal gate a circa 1.6 m dal suolo la cima della torre (sopra y −10) è in vista libera a circa 430 m; il resto è coperto dalla curva del canyon.
+  - `Chiusa1_Puzzle` a `(-10, ~-10.6, -82)`: `O2Station_1` (ex `05_Node_OxygenRefill` del blockout, graybox invariato) a `(-14.5, -10.52, -82)`, con `SafeOxygenStressZone` (`OxygenRefillStation` `startsPowered` falso, `questObjectiveId` vuoto, `respawnPoint` = figlio `RespawnPoint` a `(-12, -10.98, -82)`), `PowerSocket` e `PowerCell` (vedi [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)) a `(-7, ~-6.9, -72)`. `FlashModule` a `(-7.5, -10.72, -84)`: `BoxCollider` trigger 0.8 × 0.6 × 0.8, cubo `Visual`, `ModuleLight` azzurra, `SimpleInteractable` (`"Monta il modulo flash"`) con `onInteracted → DiverFlashlight.UnlockFlash` e `GameObject.SetActive(false)`.
+  - Blockout deprecato spento: `_BLOCKOUT_OBJECTIVE_1` disattivato (dentro restano generatori e comms); `08_UnderwaterAtmosphere` (neve marina) spostato alla radice e attivo; `_OBJECTIVE_1_INTERACTIONS/01_Generators` disattivato. I due `QuestManager` restano.
+  - Verificato in Play il 2026-11-10, da codice e non con mouse e tastiera: slot e stazione (vedi Interaction.md); torcia Full puntata sulla cella da 7.2 m e da 1 m: non scatta; modulo raccolto con `Interact`, `FireFlash` da 7.2 m: la cella scatta, il pannello sale (y da −10.69 a −5.49 in corsa), la torcia torna a 55; respawn alla stazione (vedi Oxygen.md). Non verificati: la sequenza giocata, la leggibilità del graybox, la linea di H.E.L.M. (non implementata).
 
 ## Limiti e problemi noti
 - `ShortedCable`: il cavo è un punto solo, non una linea; per un cavo lungo il raggio del corto va coperto con più componenti (oggi non previsto). Gli isopodi attratti dal cavo lo raggiungono solo se il loro nido ha il cavo dentro il guinzaglio. La lampada di servizio come esca, il collegamento con la stazione O₂ e i dialoghi di H.E.L.M. non sono implementati.

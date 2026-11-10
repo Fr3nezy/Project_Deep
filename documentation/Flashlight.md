@@ -1,5 +1,5 @@
 # Diver Flashlight
-Ultima verifica: 2026-10-13
+Ultima verifica: 2026-11-10
 
 ## Scopo e confini
 Gestisce la torcia montata sullo scafandro del diver, permettendo la commutazione ciclica tra le modalità di illuminazione subacquea implementate (`Full`, `Low`, `Red`).
@@ -17,6 +17,8 @@ Oltre alla funzione visiva essenziale per orientarsi nell'abisso oceanico, la to
 - **Luce fisica**: Modifica `enabled`, `intensity` e `range` sul componente `Light` (URP Spot Light) e accende la spia `emergencyLight` solo in `Red`. Non modifica `spotAngle` né il tipo di luce. Se il riferimento alla `Light` è assente, lo stato logico e il calcolo del sollievo continuano a funzionare.
 - **Darkness Stress**: Espone la proprietà `CurrentRelief` (1.0 in Full, 0.4 in Low, 0.0 in Red), letta da `DarknessStressSource` per mitigare l'accumulo di stress al buio.
 - **Creature**: `DiverStimulusSource` legge `CurrentMode` e `SpotLight` (posizione, direzione, `spotAngle`) e ne fa lo stimolo di luce per le creature; in `Red` nessuno stimolo. Vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md).
+- **Fotocellula**: `Photocell` (chiusa 1) legge `SpotLight` e scatta solo con intensità ≥ 200, cioè durante il lampo. Vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
+- **Modulo flash**: in `SCN_Gameplay` `Chiusa1_Puzzle/FlashModule` (`SimpleInteractable`) chiama `UnlockFlash` e si spegne.
 - **Overlay UI**: Notifica il cambio modalità tramite l'evento `OnModeChanged` a `SuitDebugOverlay`.
 
 ```mermaid
@@ -34,14 +36,27 @@ flowchart TD
 ### DiverFlashlight
 - **Responsabilità e ciclo di vita**:
   - `Awake()`: Se `spotLight` non è assegnato, tenta di risolverlo nei figli con `GetComponentInChildren<Light>(true)`. Chiama quindi `SetMode(initialMode)`.
-  - `Update()`: gestisce il tasto della torcia. Un tocco (rilascio prima di `holdToRedSeconds`) chiama `CycleMode()`; tenendo premuto, appena si supera `holdToRedSeconds` passa subito a `Red` senza aspettare il rilascio, e al rilascio non cicla. Con New Input System il tasto F è hardcoded (`Keyboard.current.fKey`); il campo serializzato `toggleKey` viene impiegato unicamente nel ramo legacy (`Input.GetKeyDown/GetKey/GetKeyUp(toggleKey)`). I tempi usano `Time.unscaledTime`.
-  - `OnDisable()`: annulla una pressione in corso.
+  - `Update()` (controlli dal 2026-11-10, come da TASKS: F tenuto carica il flash, R = rossa):
+    - **R** alterna `Red` e `Full`.
+    - **F**, tocco (rilascio prima di `holdToChargeSeconds`): `CycleMode()`.
+    - **F tenuto** con il flash sbloccato: dopo `holdToChargeSeconds` sale `FlashCharge` (0→1 in `flashChargeSeconds`). A carica piena si apre lo **sweet spot** (`FlashInSweetSpot`, per `sweetSpotSeconds`): rilasciando lì parte il lampo pieno; rilasciando prima parte un lampo debole; oltre la finestra il condensatore si scarica da solo con un lampo debole. Sul CRT del casco le tre tacche si riempiono in fila e l'ultima diventa verde nello sweet spot (vedi [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md)). Senza modulo, una pressione lunga non fa nulla (prima del 2026-11-10 passava a `Red`).
+    - A lampo finito (`flashDuration`) riporta la luce alla modalità corrente senza invocare `OnModeChanged`.
+    - Con New Input System i tasti sono hardcoded (`fKey`, `rKey`); `toggleKey` e `redKey` valgono solo nel ramo legacy. I tempi della pressione usano `Time.unscaledTime`, il lampo `Time.time`.
+  - `OnDisable()`: annulla pressione e carica, chiude un lampo in corso.
 - **Campi Inspector**:
   - `Light spotLight` (default: `null`): Riferimento alla sorgente luminosa.
   - `Light emergencyLight` (default: `null`): Spia rossa d'emergenza, accesa solo in `Red`. Opzionale: se manca, `Red` spegne soltanto il fascio.
   - `FlashlightMode initialMode` (default: `FlashlightMode.Full`): Modalità attiva all'avvio.
   - `KeyCode toggleKey` (default: `KeyCode.F`): Tasto impiegato nel ramo legacy manager.
-  - `float holdToRedSeconds` (min 0.05, default: `0.35f`): Durata della pressione oltre la quale si passa subito a `Red`.
+  - `KeyCode redKey` (default: `KeyCode.R`): Tasto della modalità rossa nel ramo legacy.
+  - `float holdToChargeSeconds` (min 0.05, default: `0.35f`): Pressione oltre la quale F non cicla e, col flash sbloccato, inizia la carica. Ex `holdToRedSeconds` (`[FormerlySerializedAs]`).
+  - **Flash (modulo a condensatore)**:
+    - `bool flashUnlocked` (default: `false`): Lo sblocca `UnlockFlash()` alla raccolta del modulo.
+    - `float flashChargeSeconds` (default: `1f`): tempo per riempire la carica.
+    - `float sweetSpotSeconds` (min 0.05, default: `0.4f`): finestra a carica piena per il lampo pieno.
+    - `float flashIntensity` (default: `800f`), `float flashRange` (default: `30f`): lampo pieno.
+    - `float weakFlashIntensity` (default: `150f`, sotto la soglia 200 della fotocellula), `float weakFlashRange` (default: `12f`): lampo debole.
+    - `float flashDuration` (default: `0.15f` s).
   - **Full - Fascio Diretto**:
     - `float fullIntensity` (default: `55f`).
     - `float fullRange` (default: `15f`).
@@ -60,12 +75,20 @@ flowchart TD
   FlashlightMode CurrentMode { get; }
   float CurrentRelief { get; }
   Light SpotLight { get; }   // fascio (può essere null), letto dagli stimoli delle creature
+  bool FlashUnlocked { get; }
+  float FlashCharge { get; }  // 0-1 mentre F è tenuto col flash sbloccato
+  bool FlashInSweetSpot { get; } // carica piena, nella finestra del lampo pieno
+  bool IsFlashing { get; }    // vero durante il lampo
   event Action<FlashlightMode> OnModeChanged;
+  event Action OnFlashFired;  // all'inizio di ogni lampo
   void CycleMode();
   void SetMode(FlashlightMode mode);
+  void UnlockFlash();
+  void FireFlash(bool full = true); // ignorato se il flash non è sbloccato; false = lampo debole
   ```
   - `OnModeChanged`: Invocato a ogni chiamata a `SetMode(mode)`, anche qualora la modalità richiesta coincida con quella già attiva.
-  - `CycleMode()`: Esegue la transizione ciclica `Full → Low → Red → Full`.
+  - `CycleMode()`: dal 2026-11-10 `Full → Low → Full`; da `Red` va a `Full` (prima `Full → Low → Red → Full`).
+  - `FireFlash()`: per `flashDuration` accende il fascio a `flashIntensity` e `flashRange`, anche da `Red`, e invoca `OnFlashFired`. `SetMode` durante il lampo aggiorna modalità e sollievo ma lascia la luce al massimo fino alla fine del lampo.
   - `SetMode(FlashlightMode mode)`: Imposta la modalità, applica `enabled`, `intensity` e `range` alla `Light` (se presente), accende `emergencyLight` solo in `Red`, assegna `currentRelief` e invoca `OnModeChanged`.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - `spotLight`: Se non assegnato, viene ricercato in `Awake()` tramite `GetComponentInChildren<Light>(true)`. Se non è presente alcun componente `Light`, il sistema opera comunque a livello logico aggiornando `CurrentMode` e `CurrentRelief` senza generare errori o bloccare l'esecuzione.
@@ -95,6 +118,7 @@ flowchart TD
 
 ## Limiti e problemi noti
 - Se la torcia viene messa in `Red` o in `Low` al di fuori di una `StressLightZone`, il sollievo scende rispettivamente a `0.0` o `0.4`, causando l'accumulo rapido dello stress da oscurità calcolato da `DarknessStressSource`.
+- Sweet spot verificato in Play il 2026-11-10 con eventi di tastiera simulati (`InputSystem.QueueStateEvent`, non tastiera vera): rilascio a 1.55 s dalla pressione (carica 1, sweet spot) → lampo 800; a 0.8 s → 150; tenuto 2.4 s → scarica da sola a 150, carica a 0. Le tacche verdi sul CRT non sono state guardate a schermo. Nessun suono di carica; la torcia non trema durante la carica.
 - Il tocco lungo non è stato provato con la tastiera vera (verificati in Play solo `SetMode` e gli stimoli); intensità e portata della spia rossa non sono state tarate a vista.
 
 ## Sistemi collegati

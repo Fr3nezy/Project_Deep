@@ -23,6 +23,9 @@ namespace Deeploration.Player
         [Header("Profilo")]
         [SerializeField] private OxygenProfile profile;
 
+        [Tooltip("Frazione del serbatoio all'avvio (1 = pieno).")]
+        [SerializeField, Range(0f, 1f)] private float startNormalized = 1f;
+
         [Header("Debug (sola lettura)")]
         [SerializeField] private float currentOxygen;
         [SerializeField] private OxygenLevel currentLevel = OxygenLevel.Safe;
@@ -49,8 +52,17 @@ namespace Deeploration.Player
                 return;
             }
 
-            currentOxygen = profile.maxOxygen;
+            currentOxygen = profile.maxOxygen * startNormalized;
             CollectDrainSources();
+            EvaluateLevel();
+        }
+
+        /// <summary>
+        /// Porta il serbatoio a una frazione della capacità (per esempio al respawn), uscendo anche da Depleted.
+        /// </summary>
+        public void SetNormalized(float normalized)
+        {
+            SetOxygen(profile.maxOxygen * Mathf.Clamp01(normalized));
         }
 
         /// <summary>

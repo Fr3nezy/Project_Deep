@@ -1,5 +1,5 @@
 # Player Movement
-Ultima verifica: 2026-10-09
+Ultima verifica: 2026-11-10
 
 ## Scopo e confini
 Gestisce la locomozione sul fondale marino del diver in scafandro pesante ispirata a *SOMA*. Non prevede salto convenzionale né manovre 6DOF in acqua libera: il movimento è vincolato al contatto col fondale tramite `CharacterController`, con inerzia percepibile, roll/pitch del casco e head-bob sinusoidale legato al passo. L'Hydropack per il traversal verticale è pianificato come componente a sé stante sbloccabile in seguito.
@@ -48,6 +48,7 @@ flowchart LR
   - `Transform CameraTarget { get; }`: Il `cameraTarget` assegnato in Inspector, per le sequenze scriptate che animano la testa (`PlayerWakeUpSequence`, `HatchExit`).
   - `float ViewRoll { get; set; }` (default 0): Roll fisso della visuale in gradi, sommato a quello del head-bob in `RotateView()` e in `ResetMotion()`. Usato da seduto sul sedile inclinato della capsula; `HatchExit` lo riporta a 0.
   - `void SetViewPitch(float pitch)`: Imposta pitch corrente e target della visuale senza smorzamento (limitato da `lookDownLimit`/`lookUpLimit`), per riprendere il controllo dalla posa di una sequenza senza scatti.
+  - `float SpeedMultiplier { get; set; }` (default 1, dal 2026-11-10): moltiplica `walkSpeed` e `sprintSpeed` in `Move()`. Lo abbassa `PlayerGrab` mentre il diver trascina un oggetto pesante (vedi [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md)).
   - `event Action OnFootstep`: Invocato a ogni appoggio del piede a terra durante la falcata.
   - `float CurrentSpeed { get; }`: Restituisce `currentSpeed`.
   - `bool IsGrounded { get; }`: Restituisce `grounded`.

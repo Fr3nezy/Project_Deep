@@ -27,12 +27,12 @@ Material:
     m_Ints: []
     m_Floats:
     - _BeaconBase: 0.03
-    - _BeaconBottom: -62.63202
+    - _BeaconBottom: -66.1
     - _BeaconFade: 10
     - _BeaconOn: 1
     - _BeaconPeriod: 4
     - _BeaconSweep: 0.6
-    - _BeaconTop: 76.60713
+    - _BeaconTop: 9.8
     - _MaxFog: 0.35
     - _Metallic: 0
     - _Smoothness: 0.2

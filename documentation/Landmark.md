@@ -1,5 +1,5 @@
 # Landmark — sagome visibili nella nebbia e luci di segnalazione
-Ultima verifica: 2026-10-09
+Ultima verifica: 2026-11-10
 
 ## Scopo e confini
 Rende un oggetto lontano (la torre di `SCN_Gameplay`) leggibile come punto di riferimento anche oltre la distanza in cui la nebbia di scena lo cancellerebbe, e aggiunge luci rosse che si accendono in sequenza dall'alto verso il basso.
@@ -57,7 +57,7 @@ Sequenza: `phase` va da 0 a `_BeaconTop` a 1 a `_BeaconBottom` (quota mondo del 
 `_BaseColor` (0.16, 0.16, 0.16), scurito da Manu il 2026-10-09 (prima 0.3, 0.3, 0.32), `_FarColor` nero, `_MaxFog` 0.5, nessuna emissione.
 
 ### M_Landmark_Beacon
-`_BaseColor` e `_FarColor` (0.1, 0.02, 0.02), `_MaxFog` 0.35, `_EmissionColor` (1, 0.05, 0.03) × 6 HDR, `_BeaconOn` 1, `_BeaconTop` 76.6 (cima della torre), `_BeaconBottom` −62.6 (fondo della torre + 10 m), `_BeaconFade` 10, il resto ai default.
+`_BaseColor` e `_FarColor` (0.1, 0.02, 0.02), `_MaxFog` 0.35, `_EmissionColor` (1, 0.05, 0.03) × 6 HDR, `_BeaconOn` 1, `_BeaconTop` 9.8 (cima della torre), `_BeaconBottom` −66.1 (fondo della torre + 10 m), aggiornati il 2026-11-10 con la torre nuova, `_BeaconFade` 10, il resto ai default.
 
 ## Setup in Unity
 1. Assegnare un materiale con shader `Deeplonauts/Landmark` all'oggetto. Regolare `_MaxFog` guardando la sagoma dalla distanza di gioco: 0.5 dà una sagoma scura leggibile sul fondo blu.
@@ -66,9 +66,9 @@ Sequenza: `phase` va da 0 a `_BeaconTop` a 1 a `_BeaconBottom` (quota mondo del 
 
 ## Configurazione verificata in prefab e scene
 `SCN_Gameplay`:
-- `MapBlocking/Towe` (mesh di blockout di 18 vertici, 11.5 × 149 × 9.4 m, centro a circa (−60, 2, −599)) con `M_Landmark_Tower`.
-- `MapBlocking/Towe_Beacons`: 32 sfere `Beacon_<fila>_<lato>`, 8 file da 2 a 12 m sotto la cima fino a 12 m sopra il fondo, una per lato (N, S, E, W), posizionate sulla superficie con un raycast sulla mesh e scostate di 0.6 m lungo la normale. `M_Landmark_Beacon`, ombre spente, nessun collider.
-- Camera del player: far clip 800 (la torre è a circa 600 m dallo spawn).
+- `MapBlocking/Cylinder.020/Towe` (mesh di blockout di 18 vertici, 6.6 × 86 × 5.4 m, base a −76, centro a circa (−85, −33, −516)) con `M_Landmark_Tower`, assegnato nella scena: dal 2026-11-10 la torre è figlia della base `Cylinder.020` nel blend, quindi l'override del vecchio `MapBlocking/Towe` non vale più.
+- `MapBlocking/Towe_Beacons`: 32 sfere `Beacon_<fila>_<lato>`, 8 file, una per lato (N, S, E, W), posizionate sulla superficie con un raycast sulla mesh e scostate di 0.6 m lungo la normale. Il 2026-11-10 sono state rimappate in proporzione sulla torre nuova (altezza e sezione ridotte), da −69 a 8.7 di quota. `M_Landmark_Beacon`, ombre spente, nessun collider.
+- Camera del player: far clip 800 (la torre è a circa 520 m dallo spawn dal 2026-11-10).
 
 ## Estensione del sistema
 - Altri landmark: stesso shader, `_MaxFog` più alto per quelli meno importanti.

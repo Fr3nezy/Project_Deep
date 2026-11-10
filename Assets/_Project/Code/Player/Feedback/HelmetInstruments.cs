@@ -18,6 +18,7 @@ namespace Deeploration.Player
         private static readonly Color LampYellow = new(0.94f, 0.82f, 0.35f);
         private static readonly Color LampOrange = new(1f, 0.55f, 0.16f);
         private static readonly Color LampRed = new(1f, 0.24f, 0.2f);
+        private static readonly Color SweetGreen = new(0.3f, 1f, 0.45f);
 
         [Header("Riferimenti (auto-trovati se vuoti)")]
         [SerializeField] private OxygenSystem oxygen;
@@ -90,6 +91,7 @@ namespace Deeploration.Player
         private float startY;
         private int shownDepth = int.MinValue;
         private FlashlightMode? shownMode;
+        private bool shownCharging;
         private FlashlightMode? scaleMode;
         private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
         private static readonly string[] CompassNames = { "N", "E", "S", "O" };
@@ -283,18 +285,32 @@ namespace Deeploration.Player
                 depthValue.color = depthColor;
             }
 
-            if (shownMode != mode)
+            // Carica del flash: le tacche si riempiono in fila e l'ultima diventa verde nello sweet spot.
+            bool charging = flashlight != null && flashlight.FlashCharge > 0f;
+            if (charging != shownCharging || (!charging && shownMode != mode))
             {
+                shownCharging = charging;
                 shownMode = mode;
-                if (lightValue != null) lightValue.SetText(mode == FlashlightMode.Full ? "FULL" : mode == FlashlightMode.Low ? "LOW" : "RED");
+                if (lightValue != null)
+                    lightValue.SetText(charging ? "FLASH" : mode == FlashlightMode.Full ? "FULL" : mode == FlashlightMode.Low ? "LOW" : "RED");
+            }
+
+            if (lightBars == null) return;
+            if (charging)
+            {
+                float fill = flashlight.FlashCharge * lightBars.Length;
+                for (int i = 0; i < lightBars.Length; i++)
+                {
+                    bool last = i == lightBars.Length - 1;
+                    Color barInk = last && flashlight.FlashInSweetSpot ? SweetGreen : ink;
+                    WriteEmission(lightBars[i], barInk * (Mathf.Lerp(0.12f, 1f, Mathf.Clamp01(fill - i)) * barIntensity));
+                }
+                return;
             }
 
             int lit = mode == FlashlightMode.Full ? 3 : 1;
-            if (lightBars != null)
-            {
-                for (int i = 0; i < lightBars.Length; i++)
-                    WriteEmission(lightBars[i], ink * ((i < lit ? 1f : 0.12f) * barIntensity));
-            }
+            for (int i = 0; i < lightBars.Length; i++)
+                WriteEmission(lightBars[i], ink * ((i < lit ? 1f : 0.12f) * barIntensity));
         }
 
         private void WriteEmission(Renderer target, Color color)

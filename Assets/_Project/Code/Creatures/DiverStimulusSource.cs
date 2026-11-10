@@ -101,14 +101,21 @@ namespace Deeploration.Creatures
             {
                 lastMode = flashlight.CurrentMode;
                 flashlight.OnModeChanged += HandleModeChanged;
+                flashlight.OnFlashFired += HandleFlashFired;
             }
         }
 
         private void OnDisable()
         {
             if (seaPenTouch != null) seaPenTouch.Touched -= HandleTouched;
-            if (flashlight != null) flashlight.OnModeChanged -= HandleModeChanged;
+            if (flashlight != null)
+            {
+                flashlight.OnModeChanged -= HandleModeChanged;
+                flashlight.OnFlashFired -= HandleFlashFired;
+            }
         }
+
+        private void HandleFlashFired() => flashTime = Time.time;
 
         private void HandleModeChanged(FlashlightMode mode)
         {
@@ -129,16 +136,21 @@ namespace Deeploration.Creatures
         {
             if (!isActiveAndEnabled) return;
 
-            if (flashlight != null && flashlight.SpotLight != null && flashlight.CurrentMode != FlashlightMode.Red)
+            if (flashlight != null && flashlight.SpotLight != null)
             {
                 Transform lamp = flashlight.SpotLight.transform;
-                bool full = flashlight.CurrentMode == FlashlightMode.Full;
-                float reach = full ? fullLightReach : lowLightReach;
                 float halfAngle = flashlight.SpotLight.spotAngle * 0.5f;
-                output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, reach, halfAngle, reach * haloFraction,
-                    full ? StimulusCategory.StrongLight : StimulusCategory.WeakLight, true));
+                if (flashlight.CurrentMode != FlashlightMode.Red)
+                {
+                    bool full = flashlight.CurrentMode == FlashlightMode.Full;
+                    float reach = full ? fullLightReach : lowLightReach;
+                    output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, reach, halfAngle, reach * haloFraction,
+                        full ? StimulusCategory.StrongLight : StimulusCategory.WeakLight, true));
+                }
 
-                if (full && Time.time - flashTime < flashDuration)
+                // Flash: passaggio a Full da un'altra modalità oppure lampo del modulo (anche da Red).
+                bool flashing = flashlight.CurrentMode == FlashlightMode.Full || flashlight.IsFlashing;
+                if (flashing && Time.time - flashTime < flashDuration)
                     output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
                         fullLightReach * flashHaloFraction, StimulusCategory.Flash, true));
             }

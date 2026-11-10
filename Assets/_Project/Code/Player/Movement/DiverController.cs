@@ -86,6 +86,9 @@ namespace Deeploration.Player
         /// </summary>
         public float ViewRoll { get; set; }
 
+        /// <summary>Moltiplicatore della velocità di camminata e corsa (1 = normale). Lo abbassa il grab di oggetti pesanti.</summary>
+        public float SpeedMultiplier { get; set; } = 1f;
+
         /// <summary>Emesso quando un piede tocca il fondale. Aggancio per il suono dei passi.</summary>
         public event System.Action OnFootstep;
 
@@ -170,7 +173,7 @@ namespace Deeploration.Player
             Vector3 inputDirection = (transform.right * input.move.x + transform.forward * input.move.y);
             if (inputDirection.sqrMagnitude > 1f) inputDirection.Normalize();
 
-            float targetSpeed = input.sprint ? profile.sprintSpeed : profile.walkSpeed;
+            float targetSpeed = (input.sprint ? profile.sprintSpeed : profile.walkSpeed) * SpeedMultiplier;
             Vector3 targetVelocity = inputDirection * targetSpeed;
 
             // Accelerazione e decelerazione separate: il diver parte lento e si ferma scivolando

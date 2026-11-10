@@ -1,5 +1,5 @@
 # Interaction System
-Ultima verifica: 2026-09-13
+Ultima verifica: 2026-11-10
 
 ## Scopo e confini
 Gestisce l'interazione del diver con l'ambiente sottomarino: rilevamento tramite raycast visuale, visualizzazione dei prompt contestuali, attivazione di interruttori/oggetti generici (`SimpleInteractable`), raccolta e trasporto a mano di oggetti fisici (`ItemPickup`, `PlayerHands`) e loro alloggiamento in alloggiamenti specifici (`ItemSocket`).
@@ -123,6 +123,33 @@ flowchart TD
   - `void SetInteractable(bool state)`: Abilita o disabilita l'interazione a runtime.
   - `public void SetPromptText(string text)`: Sostituisce `promptText` a runtime; accetta anche `null` e non modifica lo stato interagibile.
 
+### PlayerGrab *(2026-11-10)*
+Trascinamento fisico col crosshair, al posto del "prendi e ce l'hai in mano" per gli oggetti pesanti (celle nucleari). Non usa `PlayerHands`.
+- **Responsabilità e ciclo di vita**:
+  - `Awake()`: cerca `DiverController` sullo stesso oggetto e la camera (`playerCamera`, poi `GetComponentInChildren<Camera>()`, poi `Camera.main`).
+  - `Update()`: alla pressione del tasto sinistro del mouse (`Mouse.current.leftButton`; ramo legacy `grabKey`) chiama `TryGrab()`; al rilascio `Release()`.
+  - `FixedUpdate()`: bersaglio = camera + `forward × holdDistance`. Velocità cercata = distanza × `followStrength`, limitata a `maxFollowSpeed`; la forza per raggiungerla, applicata nel punto afferrato (`AddForceAtPosition`, quindi l'oggetto ruota appeso), è limitata a `maxForce`: con massa m l'accelerazione massima è `maxForce / m`, così gli oggetti pesanti arrivano lenti. Si stacca se il punto afferrato resta oltre `breakDistance` dal bersaglio, se l'oggetto entra in uno slot o si spegne.
+  - Mentre trascina imposta `DiverController.SpeedMultiplier = 1 / (1 + massa / massForHalfSpeed)`; `Release()` lo rimette a 1. `OnDisable()` rilascia.
+- **Campi Inspector**: `Camera playerCamera` (vuoto = risolta), `KeyCode grabKey` (`Mouse0`, solo legacy), `float grabDistance` (`3`), `float minHoldDistance` (`1.5`), `float breakDistance` (`2.5`), `float followStrength` (`6` 1/s), `float maxFollowSpeed` (`4` m/s), `float maxForce` (`400` N), `float massForHalfSpeed` (`40` kg), `Grabbable held` (debug).
+- **API pubbliche**: `Grabbable Held { get; }`, `bool TryGrab()` (raycast dal centro della viewport entro `grabDistance`, trigger ignorati, salta i collider del diver e gli oggetti già in uno slot), `void Release()`.
+
+### Grabbable *(2026-11-10)*
+Oggetto trascinabile. Implementa `IInteractable` solo per il prompt (E non fa nulla) e `IStimulusSource` per il bagliore.
+- **Responsabilità e ciclo di vita**:
+  - `Awake()`: sul `Rigidbody` spegne `useGravity`, imposta `linearDamping`/`angularDamping` ai valori in acqua, collisione `ContinuousDynamic`, interpolazione; salva posa iniziale e intensità della luce.
+  - `FixedUpdate()`: aggiunge `Physics.gravity × gravityScale` (gravità ridotta in acqua); sotto `posizione iniziale − fallResetDepth` torna alla posa iniziale (caduto in un crepaccio o attraverso il terreno). Riapplica `Physics.IgnoreCollision` con il `CharacterController` del diver ogni volta che questo si riaccende: Unity dimentica l'ignore quando un collider si spegne (diver seduto, uscita dal portello, respawn). Il diver è una testa volante senza massa, gli oggetti non lo toccano.
+  - `Update()`: intensità di `glowLight` = base + velocità × `glowPerSpeed`; se c'è `glowRenderer`, scrive `_Intensity` con un `MaterialPropertyBlock` = intensità del materiale × (1 + velocità × `glowRendererPerSpeed`).
+  - `OnEnable`/`OnDisable`: si registra in `CreatureManager` (cercato in scena) se `stimulusReach > 0`. `EmitStimuli` aggiunge un `PointLight` `WeakLight` di portata `stimulusReach + velocità × stimulusPerSpeed`, `fromPlayer` vero mentre è trascinato: la cella ferma brilla poco, trascinata si vede da lontano (lanternfish, viperfish).
+- **Campi Inspector**: `string itemId` (`"power_cell"`), `string promptText` (`"Tieni premuto il tasto sinistro per trascinare"`), `float gravityScale` (`0.3`), `float waterDrag` (`3`), `float waterAngularDrag` (`3`), `float fallResetDepth` (`40` m), `Light glowLight` (opzionale), `float glowPerSpeed` (`1.5`), `Renderer glowRenderer` (opzionale, materiale con `_Intensity`), `float glowRendererPerSpeed` (`0.5`), `float stimulusReach` (`6` m), `float stimulusPerSpeed` (`6` m per m/s).
+- **API pubbliche**: `string ItemId`, `Rigidbody Body`, `bool IsHeld { get; internal set; }`, `bool IsSocketed`, `void Socket(Transform snapPoint)` (cinematico e bloccato sulla posa dello slot).
+- **Riferimenti**: richiede `Rigidbody`. Senza `PlayerGrab` in scena non ignora il diver; senza `CreatureManager` nessuno stimolo.
+
+### GrabSocket *(2026-11-10)*
+Slot per oggetti trascinati, al posto di `ItemSocket` dove si usa il grab.
+- **Responsabilità**: `OnTriggerStay` sul proprio collider (deve essere trigger): il primo `Grabbable` con `ItemId == acceptedItemId` non ancora inserito viene bloccato su `snapPoint` (`Grabbable.Socket`), la luce passa a `filledColor` e parte `onSocketed`. Una volta sola. La presa si stacca da sola (`PlayerGrab` vede `IsSocketed`).
+- **Campi Inspector**: `string acceptedItemId` (`"power_cell"`), `Transform snapPoint` (vuoto = se stesso), `Light statusLight`, `Color emptyColor` (rosso), `Color filledColor` (verde), `UnityEvent onSocketed`, `Grabbable current` (debug).
+- **API pubbliche**: `bool IsOccupied`, `Grabbable Current`, `void Insert(Grabbable item)`.
+
 ## Setup in Unity
 1. Assicurarsi che `PlayerCapsule` abbia `PlayerInteraction` e `PlayerHands`.
 2. Assegnare a entrambi la camera principale o lasciare che la individuino in `Awake()`.
@@ -135,6 +162,10 @@ flowchart TD
   - Le celle energetiche (`ItemPickup`) con `itemId = "power_cell"` e gli alloggiamenti del generatore (`ItemSocket`) con `acceptedItemId = "power_cell"` sono disposti nel settore d'inizio.
 
 - Nella scena `SCN_Gameplay.unity` il portello della capsula (`MSH_Hatch_Door`) usa `SimpleInteractable` → `HatchDoor.Open`, con un trigger figlio `HatchInteractVolume` come bersaglio del raycast. Dettagli in [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
+
+- `SCN_Gameplay`, chiusa 1 (2026-11-10): `PlayerCapsule` ha `PlayerGrab` (default). `Chiusa1_Puzzle/PowerCell` (ex `PowerCell_Gen_1` del blockout, `ItemPickup` rimosso): `Rigidbody` massa 80 (30 nella prima prova: Manu la trovava troppo leggera), `CapsuleCollider`, `Grabbable` con `stimulusReach` 10 (default 6) e `glowLight` = `CellGlowLight` colorata blu Cherenkov `(0.25, 0.55, 1)`. `Chiusa1_Puzzle/O2Station_1/PowerSocket` (ex `Socket_Gen_A`, `ItemSocket` rimosso): `BoxCollider` trigger di 1.2 m per lato, `GrabSocket` con `statusLight` = `SocketStatusLight`, `onSocketed → OxygenRefillStation.PowerOn` della stazione.
+  - Verificato in Play il 2026-11-10, da codice e non con mouse e tastiera: `TryGrab` a 2.75 m prende la cella, il diver scende a velocità 0.57; dopo 5 s la cella resta appesa a 0.4 m dal bersaglio, ferma. Cella messa nel trigger dello slot: si blocca, la stazione si accende, l'ossigeno del diver dentro la stazione sale da 0.47 a 1.0 e il checkpoint passa a `RespawnPoint`. Provato da Manu con mouse e tastiera il 2026-11-10: la sequenza funziona; cella troppo leggera e lanternfish indifferenti (il loro nido era a z −14 con guinzaglio 12 m, la cella a z −72). Modello definitivo di Manu montato la sera del 2026-11-10: `PowerCell` a scala 1 (prima 0.35 × 0.45 × 0.35 del graybox), `MeshRenderer`/`MeshFilter` del graybox e il guscio provvisorio `GlowShell` tolti; figlio `Visual` a y locale −0.45 con l'istanza di `Assets/_Project/Assets/Models/NuclearCell/NuclearCell.fbx` (0.44 × 0.90 × 0.43 m, pivot alla base; mesh `MSH_Body` radice, `MSH_Cover`, `MSH_CellGlow`, `MSH_Connectors`, `MSH_HandRails`, `MSH_InneruelCells`, `MSH_OuterFuelCells`, `MSH_Rivets`, `MSH_RodsStacks`). Materiali in `NuclearCell/Materials/`: `M_NuclearCell` (URP Lit opaco, remap del materiale FBX `MTL_NuclearCell`; base, metallic-smoothness, normal di Painter), `M_NuclearCell_Cover` su `MSH_Cover` (stesso Lit con alpha clip 0.5 e due facce: l'alpha della texture fa i fori), `M_NuclearCell_Rods` su `MSH_InneruelCells`, `MSH_OuterFuelCells`, `MSH_RodsStacks` (copia di `M_NuclearCell` con emissione blu notte (0.02, 0.07, 0.18): la luce della cella sta al centro del fascio e non illumina le facce delle barre verso il giocatore, che senza emissione erano sagome nere contro il bagliore; prima prova a (0.08, 0.25, 0.5) giudicata troppo piatta in Scene view; valore attuale approvato da Manu in Play il 2026-11-10), `M_NuclearCell_Glow` su `MSH_CellGlow` (shader `Deeplonauts/CherenkovGlow` con `_EmissionMap` = emissione di Painter, `_MaskMap` = alpha dell'albedo, `_Color` bianco ×2, `_Intensity` 2, `_FresnelPower` 1; assegnato a `Grabbable.glowRenderer`, senza ombre; la mesh ha le normali verso l'interno, quindi con `Cull Back` si vedono solo le facce dietro le barre). Override per renderer sull'istanza, quindi i nomi delle mesh non vanno cambiati in Blender. Texture: normal come Normal Map, metallic-smoothness lineare. `CapsuleCollider` raggio 0.21, altezza 0.9, centro (0, 0, −0.039). Lo shader `CherenkovGlow` ha `_EmissionMap` (RGB) e `_MaskMap` (A) opzionali, bianche di default. Prima del modello: guscio provvisorio a capsula con `M_CherenkovGlow`, tolto. Corretti con massa 80 e il nido `Nest_Lanternfish_Chiusa1` (vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)); da riprovare.
+- Correzione del 2026-11-10: `ItemPickup` non ha `questObjectiveId` né `questAdvanceAmount` (i campi veri sono `itemId`, `itemName`, `isCarried`, `heldLocalOffset`, `heldLocalRotation`, `heldScaleFactor`); la sezione sopra li elencava.
 
 Il binding Localization verso `SetPromptText` è pianificato ma non verificato in scena o Play Mode.
 
