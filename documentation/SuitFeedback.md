@@ -134,7 +134,7 @@ Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, v
 - In [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
   - Il testo dell'HUD è allineato nell'angolo superiore destro con margine di 24 px.
   - Il `Volume` post-processing è agganciato al profilo globale con `Vignette` attiva.
-  - `SCN_Gameplay` (2026-11-11, override di scena sull'istanza del Player, non nel prefab): `MainCamera/InteractionCrosshair` a z locale 0.3 con `InteractionCrosshair` (`interaction` e `grab` = `PlayerCapsule`), figli `Dot` (quad 0.0009 m, circa 5 px) e `Ring` (quad 0.0045 m, circa 28 px con FOV verticale 32.9 a 1080p), senza collider né ombre.
+  - `SCN_Gameplay` (2026-11-11, override di scena sull'istanza del Player, non nel prefab): `MainCamera/InteractionCrosshair` a z locale 0.3 con `InteractionCrosshair` (`interaction` e `grab` = `PlayerCapsule`), figli `Dot` (quad 0.0013 m, circa 7 px; `idleDotAlpha` 0.6 in scena, dopo una cattura in Game view in cui il punto a 0.35 e 0.0009 m non si vedeva) e `Ring` (quad 0.0045 m, circa 28 px con FOV verticale 32.9 a 1080p), senza collider né ombre.
   - `HelmetDamage` su `MainCamera/HelmetVisualPivot/Helmet`, con `biteReceiver` = `PlayerCapsule`, `viewCamera` = `MainCamera`, `crackMaterial` = `M_HelmetCrack`, `crackSize` 0.09 (2026-11-08).
 
 ## Estensione del sistema
