@@ -9,6 +9,9 @@ namespace Deeploration.Environment
         [SerializeField] private Light doorStatusLight;
         [SerializeField] private Transform doorPanel;
         [SerializeField] private Vector3 openOffset = new Vector3(0f, 3.5f, 0f);
+        [Tooltip("Seconda anta (porte a due battenti), opzionale. Si sposta di secondOpenOffset insieme alla prima.")]
+        [SerializeField] private Transform secondPanel;
+        [SerializeField] private Vector3 secondOpenOffset = new Vector3(0f, 3.5f, 0f);
         [SerializeField] private float openSpeed = 2f;
         [SerializeField] private Color lockedColor = Color.red;
         [SerializeField] private Color unlockedColor = Color.green;
@@ -18,6 +21,8 @@ namespace Deeploration.Environment
 
         private Vector3 closedPosition;
         private Vector3 targetPosition;
+        private Vector3 secondClosedPosition;
+        private Vector3 secondTargetPosition;
 
         private void Awake()
         {
@@ -25,6 +30,12 @@ namespace Deeploration.Environment
             {
                 closedPosition = doorPanel.localPosition;
                 targetPosition = closedPosition;
+            }
+
+            if (secondPanel != null)
+            {
+                secondClosedPosition = secondPanel.localPosition;
+                secondTargetPosition = secondClosedPosition;
             }
 
             if (doorStatusLight != null)
@@ -59,6 +70,11 @@ namespace Deeploration.Environment
             {
                 doorPanel.localPosition = Vector3.MoveTowards(doorPanel.localPosition, targetPosition, openSpeed * Time.deltaTime);
             }
+
+            if (isOpen && secondPanel != null)
+            {
+                secondPanel.localPosition = Vector3.MoveTowards(secondPanel.localPosition, secondTargetPosition, openSpeed * Time.deltaTime);
+            }
         }
 
         public void HandleQuestCompleted()
@@ -67,6 +83,11 @@ namespace Deeploration.Environment
             if (doorPanel != null)
             {
                 targetPosition = closedPosition + openOffset;
+            }
+
+            if (secondPanel != null)
+            {
+                secondTargetPosition = secondClosedPosition + secondOpenOffset;
             }
 
             if (doorStatusLight != null)

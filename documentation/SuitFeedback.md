@@ -1,5 +1,5 @@
 # Suit Feedback & Debug Overlay
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-11
 
 ## Scopo e confini
 Rappresenta l'anello di congiunzione tra le letture dei sistemi interni della tuta (`OxygenSystem`, `StressSystem`, `DiverFlashlight`), le interazioni fisiche (`PlayerHands`, `PlayerInteraction`), la progressione narrativa (`QuestManager`) e i canali percettivi del giocatore.
@@ -10,6 +10,8 @@ Attualmente gestisce:
 ## File e componenti
 - `Assets/_Project/Code/Player/Feedback/SuitDebugOverlay.cs`: Controller unificato di feedback diegetico/debug e post-processing URP.
 - `Assets/_Project/Code/Player/Feedback/HelmetInstruments.cs`: strumenti 3D del casco (gauge O₂ con quadrante pressione, CRT, spie), pilotati da codice.
+- `Assets/_Project/Code/Player/Feedback/InteractionCrosshair.cs`: mirino del casco (punto e anello 3D davanti alla camera) che si apre su interattivi e oggetti trascinabili.
+- `Assets/_Project/Assets/Models/Helmet/Crosshair/`: `T_Crosshair_Dot.png`, `T_Crosshair_Ring.png` (64 px, bianco su alfa, generate in Python), `M_Crosshair.mat` e `M_Crosshair_Ring.mat` (URP Unlit trasparente, coda 3500).
 - `Assets/_Project/Code/Player/Feedback/HelmetDamage.cs`: crepe sul vetro del casco a ogni morso, con allarme e scricchiolii (bozza).
 - `Assets/_Project/Materials/Player/T_HelmetCracks.png` e `M_HelmetCrack.mat`: atlante 2x2 di crepe generato proceduralmente (linee bianche su alfa) e materiale `Universal Render Pipeline/Unlit` trasparente, senza culling, colore (0.78, 0.84, 0.9, 0.5).
 
@@ -73,6 +75,12 @@ Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `Helme
 - **Setup**: dopo una nuova esportazione dell'FBX, perni, spie e testi restano collegati solo se i nomi non cambiano; i testi `CTR_Texts` sono nel prefab e vanno riposizionati a mano se lo schermo si sposta.
 - **Limiti**: i testi usano le risorse essenziali di TextMeshPro, importate il 2026-10-26 in `Assets/TextMesh Pro/`; l'azione "pressione arancione aumenta il consumo di O₂" del GDD non è implementata; il vetro riflette la torcia sullo schermo del CRT (placeholder); il nastro della bussola è in cima al campo visivo e con il casco a riposo si vede solo la fascia bassa delle lettere; se il nastro cambia forma nel .blend, `compassCenter` e `compassRadius` vanno rimisurati dai vertici della mesh.
 
+### InteractionCrosshair *(2026-11-11)*
+- **Responsabilità e ciclo di vita**: mirino 3D (regola di Manu: niente HUD su Canvas 2D). In `Awake` risolve `PlayerInteraction` e `PlayerGrab` sui genitori se mancano e salva la scala piena dell'anello. In `LateUpdate`: `HasTarget` = `PlayerInteraction.HasTarget`, o `PlayerGrab.Held` non nullo, o `PlayerGrab.FindTarget` trova un `Grabbable` libero; `amount` va verso 1 o 0 a `response` al secondo. Punto con alfa da `idleDotAlpha` a 1, anello da `ringIdleScale` a scala piena con alfa `amount`, renderer spento a 0. Colori via `MaterialPropertyBlock` (`_BaseColor`).
+- **Campi Inspector**: `PlayerInteraction interaction`, `PlayerGrab grab` (vuoti: cercati sui genitori), `Renderer dot`, `Renderer ring`, `Color color` (ambra `(1, 0.6, 0.15, 1)`), `float idleDotAlpha` (`0.35`), `float ringIdleScale` (`0.4`), `float response` (`10`).
+- **API pubbliche**: `bool HasTarget { get; }`.
+- **Limiti**: una `RaycastAll` in più a frame (quella di `FindTarget`). Il mirino è a 0.3 m dall'occhio, tra la camera (near 0.14) e la visiera: geometria più vicina di 0.3 m lo coprirebbe.
+
 ### HelmetDamage
 Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, vedi *Verifica*.
 - **Responsabilità e ciclo di vita**: sul GameObject `Helmet` (figlio di `MainCamera/HelmetVisualPivot`), accanto a `HelmetInstruments`. In `Awake` risolve camera (genitori) e `DiverBiteReceiver` (se vuoto, `FindFirstObjectByType`), aggiunge un `AudioSource` 2D e genera i suoni sintetici; in `OnEnable`/`OnDisable` si iscrive e si toglie da `DiverBiteReceiver.OnBitten`. A ogni morso (`AddCrack`):
@@ -126,6 +134,7 @@ Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, v
 - In [Player.prefab](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Prefabs/Player.prefab):
   - Il testo dell'HUD è allineato nell'angolo superiore destro con margine di 24 px.
   - Il `Volume` post-processing è agganciato al profilo globale con `Vignette` attiva.
+  - `SCN_Gameplay` (2026-11-11, override di scena sull'istanza del Player, non nel prefab): `MainCamera/InteractionCrosshair` a z locale 0.3 con `InteractionCrosshair` (`interaction` e `grab` = `PlayerCapsule`), figli `Dot` (quad 0.0009 m, circa 5 px) e `Ring` (quad 0.0045 m, circa 28 px con FOV verticale 32.9 a 1080p), senza collider né ombre.
   - `HelmetDamage` su `MainCamera/HelmetVisualPivot/Helmet`, con `biteReceiver` = `PlayerCapsule`, `viewCamera` = `MainCamera`, `crackMaterial` = `M_HelmetCrack`, `crackSize` 0.09 (2026-11-08).
 
 ## Estensione del sistema
@@ -136,6 +145,8 @@ Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, v
 
 ## Verifica
 - **HelmetDamage (2026-11-08)**, Play in `SCN_Gameplay`, creature disattivate, tre `DiverBiteReceiver.ReceiveBite` a 2 s di distanza: `Bites` 1, 2, 3, `Critical` vero al terzo, tre quad `Crack_*` sotto `Helmet`, a 0.39 m dall'occhio, con lato 0.140 e 0.134 m (le prime due, allargate) e 0.088 m (l'ultima). Screenshot `Assets/Screenshots/HelmetCracks_Test_20261108.png`: crepe visibili sul vetro, le vecchie si allargano, la cornice ne copre una parte. Un primo tentativo le metteva a 0.53 m (dietro la visiera), perché `ViewportPointToRay` parte dal piano near: corretto partendo dall'occhio. Non verificato dal vivo: suoni (schiocco, allarme, scricchiolii) e resa durante un vero attacco della lucertola.
+
+- **InteractionCrosshair (2026-11-11)**, Play in `SCN_Gameplay` da codice (sessione headless): sguardo sulla `PowerCell` a 2.6 m → `FindTarget` = `PowerCell`, `HasTarget` vero, anello acceso a scala 0.0045; sguardo opposto → `HasTarget` falso, anello spento. Non verificato a vista in Game view.
 
 ## Sistemi collegati
 - [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) (`DiverBiteReceiver.OnBitten`)

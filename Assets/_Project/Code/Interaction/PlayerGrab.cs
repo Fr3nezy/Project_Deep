@@ -74,22 +74,32 @@ namespace Deeploration.Interaction
         /// <summary>Afferra il Grabbable sotto il crosshair, se c'è entro grabDistance. Ritorna true se l'ha preso.</summary>
         public bool TryGrab()
         {
-            if (playerCamera == null) return false;
+            Grabbable target = FindTarget(out RaycastHit hit);
+            if (target == null) return false;
+
+            held = target;
+            held.IsHeld = true;
+            localAnchor = held.transform.InverseTransformPoint(hit.point);
+            holdDistance = Mathf.Max(hit.distance, minHoldDistance);
+            if (diver != null) diver.SpeedMultiplier = 1f / (1f + held.Body.mass / massForHalfSpeed);
+            return true;
+        }
+
+        /// <summary>Grabbable libero sotto il crosshair entro grabDistance, o null. Non lo afferra.</summary>
+        public Grabbable FindTarget(out RaycastHit targetHit)
+        {
+            targetHit = default;
+            if (playerCamera == null) return null;
             Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
             foreach (RaycastHit hit in Physics.RaycastAll(ray, grabDistance, ~0, QueryTriggerInteraction.Ignore))
             {
                 if (hit.collider.transform.IsChildOf(transform)) continue;
                 Grabbable target = hit.rigidbody != null ? hit.rigidbody.GetComponent<Grabbable>() : null;
                 if (target == null || target.IsSocketed) continue;
-
-                held = target;
-                held.IsHeld = true;
-                localAnchor = held.transform.InverseTransformPoint(hit.point);
-                holdDistance = Mathf.Max(hit.distance, minHoldDistance);
-                if (diver != null) diver.SpeedMultiplier = 1f / (1f + held.Body.mass / massForHalfSpeed);
-                return true;
+                targetHit = hit;
+                return target;
             }
-            return false;
+            return null;
         }
 
         public void Release()
