@@ -17,6 +17,8 @@ namespace Deeploration.Player
         [SerializeField] private Renderer ring;
 
         [SerializeField] private Color color = new Color(1f, 0.6f, 0.15f, 1f);
+        [Tooltip("Colore quando l'oggetto trascinato è allineato in uno slot (GrabSocket.IsAligned).")]
+        [SerializeField] private Color alignedColor = new Color(0.3f, 1f, 0.45f, 1f);
         [SerializeField, Range(0f, 1f)] private float idleDotAlpha = 0.35f;
         [Tooltip("Scala dell'anello senza bersaglio, frazione di quella piena.")]
         [SerializeField, Range(0f, 1f)] private float ringIdleScale = 0.4f;
@@ -28,6 +30,8 @@ namespace Deeploration.Player
         private MaterialPropertyBlock block;
         private Vector3 ringFullScale;
         private float amount;
+        private GrabSocket[] sockets;
+        private Color current;
 
         public bool HasTarget { get; private set; }
 
@@ -37,6 +41,8 @@ namespace Deeploration.Player
             if (grab == null) grab = GetComponentInParent<PlayerGrab>();
             block = new MaterialPropertyBlock();
             if (ring != null) ringFullScale = ring.transform.localScale;
+            sockets = FindObjectsByType<GrabSocket>(FindObjectsSortMode.None);
+            current = color;
         }
 
         private void LateUpdate()
@@ -44,6 +50,12 @@ namespace Deeploration.Player
             HasTarget = (interaction != null && interaction.HasTarget) ||
                         (grab != null && (grab.Held != null || grab.FindTarget(out _) != null));
             amount = Mathf.MoveTowards(amount, HasTarget ? 1f : 0f, response * Time.deltaTime);
+
+            bool aligned = false;
+            if (grab != null && grab.Held != null)
+                foreach (GrabSocket socket in sockets)
+                    if (socket != null && socket.IsAligned) { aligned = true; break; }
+            current = aligned ? alignedColor : color;
 
             SetColor(dot, Mathf.Lerp(idleDotAlpha, 1f, amount));
             if (ring != null)
@@ -58,7 +70,7 @@ namespace Deeploration.Player
         {
             if (target == null) return;
             target.GetPropertyBlock(block);
-            block.SetColor(BaseColorId, new Color(color.r, color.g, color.b, color.a * alpha));
+            block.SetColor(BaseColorId, new Color(current.r, current.g, current.b, current.a * alpha));
             target.SetPropertyBlock(block);
         }
     }

@@ -265392,6 +265392,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Interaction.GrabSocket
   acceptedItemId: power_cell
   snapPoint: {fileID: 0}
+  requireSeating: 1
+  seatRadius: 0.05
+  seatHeight: 0.06
+  maxTilt: 12
+  maxSpeed: 0.35
+  seatTime: 0.15
   statusLight: {fileID: 579250326}
   emptyColor: {r: 1, g: 0, b: 0, a: 1}
   filledColor: {r: 0, g: 1, b: 0, a: 1}
@@ -274360,6 +274366,7 @@ MonoBehaviour:
   dot: {fileID: 443061889}
   ring: {fileID: 1863080293}
   color: {r: 1, g: 0.6, b: 0.15, a: 1}
+  alignedColor: {r: 0.3, g: 1, b: 0.45, a: 1}
   idleDotAlpha: 0.6
   ringIdleScale: 0.4
   response: 10

@@ -1,5 +1,5 @@
 # Interaction System
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-11
 
 ## Scopo e confini
 Gestisce l'interazione del diver con l'ambiente sottomarino: rilevamento tramite raycast visuale, visualizzazione dei prompt contestuali, attivazione di interruttori/oggetti generici (`SimpleInteractable`), raccolta e trasporto a mano di oggetti fisici (`ItemPickup`, `PlayerHands`) e loro alloggiamento in alloggiamenti specifici (`ItemSocket`).
@@ -147,8 +147,10 @@ Oggetto trascinabile. Implementa `IInteractable` solo per il prompt (E non fa nu
 ### GrabSocket *(2026-11-10)*
 Slot per oggetti trascinati, al posto di `ItemSocket` dove si usa il grab.
 - **Responsabilità**: `OnTriggerStay` sul proprio collider (deve essere trigger): il primo `Grabbable` con `ItemId == acceptedItemId` non ancora inserito viene bloccato su `snapPoint` (`Grabbable.Socket`), la luce passa a `filledColor` e parte `onSocketed`. Una volta sola. La presa si stacca da sola (`PlayerGrab` vede `IsSocketed`).
-- **Campi Inspector**: `string acceptedItemId` (`"power_cell"`), `Transform snapPoint` (vuoto = se stesso), `Light statusLight`, `Color emptyColor` (rosso), `Color filledColor` (verde), `UnityEvent onSocketed`, `Grabbable current` (debug).
-- **API pubbliche**: `bool IsOccupied`, `Grabbable Current`, `void Insert(Grabbable item)`.
+- **Poggiamento fisico (dal 2026-11-11)**: con `requireSeating` acceso l'oggetto non si aggancia appena entra nel trigger. `OnTriggerStay` controlla che il centro dell'oggetto sia entro `seatRadius` in orizzontale ed entro `seatHeight` in verticale da `snapPoint` (lungo il suo alto), che l'inclinazione dal suo alto sia al massimo `maxTilt` e la velocità al massimo `maxSpeed`; finché è vero `IsAligned` è vero, e dopo `seatTime` secondi di fila parte `Insert` (lo snap finale corregge pochi centimetri). Se l'oggetto esce dal trigger, `FixedUpdate` azzera `IsAligned` dopo un passo fisico senza conferma. Spento, resta lo snap all'ingresso.
+- **Campi Inspector**: `string acceptedItemId` (`"power_cell"`), `Transform snapPoint` (vuoto = se stesso), `bool requireSeating` (falso), `float seatRadius` (`0.05` m), `float seatHeight` (`0.06` m), `float maxTilt` (`12`°), `float maxSpeed` (`0.35` m/s), `float seatTime` (`0.15` s), `Light statusLight`, `Color emptyColor` (rosso), `Color filledColor` (verde), `UnityEvent onSocketed`, `Grabbable current` (debug).
+- **API pubbliche**: `bool IsOccupied`, `Grabbable Current`, `bool IsAligned` (solo con `requireSeating`; lo legge `InteractionCrosshair` per il verde), `void Insert(Grabbable item)`.
+- **Verifica (2026-11-11, Play da codice, `PowerSocket` della chiusa 1 con `requireSeating` acceso e i default)**: cella lasciata 25 cm sopra il connettore, 18 cm fuori centro → si ribalta, mai allineata, niente aggancio; dritta ma inclinata di 30° → si ribalta, niente aggancio; quasi dritta (4° e 2°) e a 2 cm dal centro → si aggancia sul connettore e la stazione si accende. La cella libera su un fondo arrotondato non sta in piedi da sola: va posata tenendola.
 
 ## Setup in Unity
 1. Assicurarsi che `PlayerCapsule` abbia `PlayerInteraction` e `PlayerHands`.
