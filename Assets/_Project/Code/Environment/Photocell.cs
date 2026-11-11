@@ -36,6 +36,12 @@ namespace Deeploration.Environment
 
         public bool Triggered => triggered;
 
+        /// <summary>Luce più forte che arriva alla cella in questo frame, anche sotto soglia (null se nessuna).</summary>
+        public Light BrightestLight { get; private set; }
+
+        /// <summary>Punteggio di <see cref="BrightestLight"/> (vedi <see cref="ReceivedLight"/>), 0 se nessuna.</summary>
+        public float BrightestScore { get; private set; }
+
         private void Awake()
         {
             flashlight = FindAnyObjectByType<DiverFlashlight>();
@@ -44,6 +50,7 @@ namespace Deeploration.Environment
 
         private void Update()
         {
+            UpdateBrightest();
             if (triggered) return;
 
             if (flashlight != null && IsLitBy(flashlight.SpotLight)) Trigger();
@@ -77,14 +84,61 @@ namespace Deeploration.Environment
             if (distance > light.range) return false;
             if (light.type == LightType.Spot && Vector3.Angle(light.transform.forward, toCell) > light.spotAngle * 0.5f)
                 return false;
+            return HasLineOfSight(light, toCell, distance);
+        }
 
-            // Linea di vista dalla cella verso la luce. Si ignorano i collider che contengono la luce
-            // (la capsula del diver per la torcia) e i trigger.
+        /// <summary>
+        /// Luce che arriva alla cella da questa sorgente, senza soglia: intensità × caduta con la distanza
+        /// ((1 − d/range)²) × posizione nel cono per gli spot (1 al centro, 0 al bordo). 0 se spenta, fuori
+        /// portata, fuori cono o coperta. La torcia in Full vicina dà qualche decina, il lampo centinaia.
+        /// </summary>
+        public float ReceivedLight(Light light)
+        {
+            if (light == null || !light.isActiveAndEnabled || light.intensity <= 0f) return 0f;
+
+            Vector3 toCell = transform.position - light.transform.position;
+            float distance = toCell.magnitude;
+            if (distance > light.range || distance < 0.0001f) return 0f;
+
+            float cone = 1f;
+            if (light.type == LightType.Spot)
+            {
+                float halfAngle = light.spotAngle * 0.5f;
+                cone = 1f - Vector3.Angle(light.transform.forward, toCell) / halfAngle;
+                if (cone <= 0f) return 0f;
+            }
+
+            float falloff = 1f - distance / light.range;
+            if (!HasLineOfSight(light, toCell, distance)) return 0f;
+            return light.intensity * falloff * falloff * cone;
+        }
+
+        private void UpdateBrightest()
+        {
+            BrightestLight = null;
+            BrightestScore = 0f;
+            if (flashlight != null) Consider(flashlight.SpotLight);
+            foreach (Light light in extraLights) Consider(light);
+        }
+
+        private void Consider(Light light)
+        {
+            float score = ReceivedLight(light);
+            if (score <= BrightestScore) return;
+            BrightestScore = score;
+            BrightestLight = light;
+        }
+
+        // Linea di vista dalla cella verso la luce. Si ignorano la cella con i suoi figli (guscio, occhio),
+        // i collider che contengono la luce (la capsula del diver per la torcia) e i trigger.
+        private bool HasLineOfSight(Light light, Vector3 toCell, float distance)
+        {
             RaycastHit[] hits = Physics.RaycastAll(transform.position, -toCell / distance, distance, occluders,
                 QueryTriggerInteraction.Ignore);
             foreach (RaycastHit hit in hits)
             {
-                if (hit.collider.transform == transform || light.transform.IsChildOf(hit.collider.transform)) continue;
+                if (hit.collider.transform.IsChildOf(transform) || light.transform.IsChildOf(hit.collider.transform))
+                    continue;
                 return false;
             }
             return true;
