@@ -13,33 +13,17 @@ MonoBehaviour:
   m_Name: PrefabPalette-Default
   m_EditorClassIdentifier: Unity.Polybrush.Editor::UnityEditor.Polybrush.PrefabPalette
   prefabs:
-  - gameObject: {fileID: 5736131597089102692, guid: de4a48d4e14949046967f0bebaebbe93, type: 3}
-    settings:
-      m_Strength: 54.159664
-      m_RotationRangeMin: {x: 0, y: 0, z: 0}
-      m_RotationRangeMax: {x: 93.802826, y: 360, z: 10}
-      m_ScaleRangeMin: {x: 0, y: 0, z: 0}
-      m_ScaleRangeMax: {x: 1.6197183, y: 0.9859155, z: 0.9859156}
-      m_UniformScale: {x: 0, y: 7.1538463}
-      m_UniformBool: 1
-      m_XRotationBool: 1
-      m_YRotationBool: 1
-      m_ZRotationBool: 1
-      m_XScaleBool: 1
-      m_YScaleBool: 1
-      m_ZScaleBool: 1
-    name: SM_SmallRock_low
   - gameObject: {fileID: 2987187326813665877, guid: d32379fabe66a15419639ead208d090a, type: 3}
     settings:
-      m_Strength: 51
-      m_RotationRangeMin: {x: -5, y: -15, z: -3}
-      m_RotationRangeMax: {x: 5, y: 15, z: 3}
+      m_Strength: 61.65493
+      m_RotationRangeMin: {x: 0, y: -15, z: -3}
+      m_RotationRangeMax: {x: 163.6189, y: 360, z: 3}
       m_ScaleRangeMin: {x: 1, y: 1, z: 1}
       m_ScaleRangeMax: {x: 1, y: 1, z: 1}
       m_UniformScale: {x: 0.8, y: 1.5}
       m_UniformBool: 1
       m_XRotationBool: 1
-      m_YRotationBool: 1
+      m_YRotationBool: 0
       m_ZRotationBool: 1
       m_XScaleBool: 1
       m_YScaleBool: 1
@@ -47,7 +31,7 @@ MonoBehaviour:
     name: SM_BambooFan_A
   - gameObject: {fileID: 3093263988894022266, guid: fbc503b0a81cb934e909858501f518ef, type: 3}
     settings:
-      m_Strength: 47.676804
+      m_Strength: 8.634551
       m_RotationRangeMin: {x: -5, y: -15, z: -3}
       m_RotationRangeMax: {x: 5, y: 15, z: 3}
       m_ScaleRangeMin: {x: 1, y: 1, z: 1}
@@ -63,7 +47,7 @@ MonoBehaviour:
     name: SM_BambooFan_B
   - gameObject: {fileID: 7351961496172904731, guid: eaff121ef7c024c4abf3ba66c2dc6c1b, type: 3}
     settings:
-      m_Strength: 47.676815
+      m_Strength: 12.852113
       m_RotationRangeMin: {x: -5, y: -15, z: -3}
       m_RotationRangeMax: {x: 5, y: 15, z: 3}
       m_ScaleRangeMin: {x: 1, y: 1, z: 1}
@@ -125,3 +109,35 @@ MonoBehaviour:
       m_YScaleBool: 1
       m_ZScaleBool: 1
     name: SM_SeaPen_C
+  - gameObject: {fileID: 6482926328736556088, guid: 41f80e8bad580cd4face326a3e528daa, type: 3}
+    settings:
+      m_Strength: 16.121672
+      m_RotationRangeMin: {x: 0, y: 0, z: 0}
+      m_RotationRangeMax: {x: 360, y: 249.23077, z: 0}
+      m_ScaleRangeMin: {x: 1, y: 1, z: 1}
+      m_ScaleRangeMax: {x: 1, y: 1, z: 1}
+      m_UniformScale: {x: 0.3, y: 0.6}
+      m_UniformBool: 1
+      m_XRotationBool: 1
+      m_YRotationBool: 1
+      m_ZRotationBool: 1
+      m_XScaleBool: 1
+      m_YScaleBool: 1
+      m_ZScaleBool: 1
+    name: SM_MediumRock_low
+  - gameObject: {fileID: 5736131597089102692, guid: de4a48d4e14949046967f0bebaebbe93, type: 3}
+    settings:
+      m_Strength: 50
+      m_RotationRangeMin: {x: 0, y: 0, z: 0}
+      m_RotationRangeMax: {x: 203.91609, y: 138.46153, z: 0}
+      m_ScaleRangeMin: {x: 1, y: 1, z: 1}
+      m_ScaleRangeMax: {x: 1, y: 1, z: 1}
+      m_UniformScale: {x: 0.2, y: 0.8}
+      m_UniformBool: 1
+      m_XRotationBool: 1
+      m_YRotationBool: 1
+      m_ZRotationBool: 1
+      m_XScaleBool: 1
+      m_YScaleBool: 1
+      m_ZScaleBool: 1
+    name: SM_SmallRock_low
