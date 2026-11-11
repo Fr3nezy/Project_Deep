@@ -26,6 +26,9 @@ namespace Deeploration.Interaction
         [Tooltip("Metri sotto la posizione iniziale oltre i quali l'oggetto torna al punto di partenza (caduto in un crepaccio o attraverso il terreno).")]
         [SerializeField, Min(1f)] private float fallResetDepth = 40f;
 
+        [Tooltip("Secondi per scivolare sullo snap dello slot all'aggancio. 0 = di scatto.")]
+        [SerializeField, Min(0f)] private float socketBlendTime = 0.35f;
+
         [Header("Bagliore (opzionale)")]
         [SerializeField] private Light glowLight;
         [Tooltip("Intensità aggiunta alla luce per ogni m/s di velocità.")]
@@ -52,6 +55,12 @@ namespace Deeploration.Interaction
         private MaterialPropertyBlock glowBlock;
         private CharacterController playerCollider;
         private bool ignoringPlayer;
+
+        private Transform socketTarget;
+        private Vector3 socketFromPosition;
+        private Quaternion socketFromRotation;
+        private Quaternion socketToRotation;
+        private float socketStartTime;
 
         public string ItemId => itemId;
         public Rigidbody Body => body;
@@ -108,6 +117,7 @@ namespace Deeploration.Interaction
         private void FixedUpdate()
         {
             RefreshPlayerIgnore();
+            if (socketTarget != null) BlendIntoSocket();
             if (body.isKinematic) return;
             body.AddForce(Physics.gravity * gravityScale, ForceMode.Acceleration);
 
@@ -133,12 +143,36 @@ namespace Deeploration.Interaction
 
         private float Speed => body.isKinematic ? 0f : body.linearVelocity.magnitude;
 
-        /// <summary>Blocca l'oggetto nello slot: diventa cinematico e non si trascina più.</summary>
+        /// <summary>
+        /// Blocca l'oggetto nello slot: diventa cinematico, non si trascina più e scivola sullo snap in socketBlendTime.
+        /// Allinea solo l'asse su a quello dello snap e tiene la rotazione attorno all'asse, così non gira su se stesso.
+        /// </summary>
         public void Socket(Transform snapPoint)
         {
             IsSocketed = true;
             body.isKinematic = true;
-            transform.SetPositionAndRotation(snapPoint.position, snapPoint.rotation);
+            socketTarget = snapPoint;
+            socketFromPosition = body.position;
+            socketFromRotation = body.rotation;
+            socketToRotation = Quaternion.FromToRotation(socketFromRotation * Vector3.up, snapPoint.up) * socketFromRotation;
+            socketStartTime = Time.time;
+            if (socketBlendTime <= 0f) BlendIntoSocket();
+        }
+
+        private void BlendIntoSocket()
+        {
+            float t = socketBlendTime <= 0f ? 1f : Mathf.Clamp01((Time.time - socketStartTime) / socketBlendTime);
+            float k = Mathf.SmoothStep(0f, 1f, t);
+            Vector3 position = Vector3.Lerp(socketFromPosition, socketTarget.position, k);
+            Quaternion rotation = Quaternion.Slerp(socketFromRotation, socketToRotation, k);
+            if (t >= 1f)
+            {
+                // A fine corsa scrive anche il transform: un rigidbody cinematico interpolato altrimenti resta indietro di un frame.
+                transform.SetPositionAndRotation(position, rotation);
+                socketTarget = null;
+            }
+            body.MovePosition(position);
+            body.MoveRotation(rotation);
         }
 
         public bool CanInteract(GameObject user) => !IsSocketed;
