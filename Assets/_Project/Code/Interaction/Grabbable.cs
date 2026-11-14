@@ -13,9 +13,24 @@ namespace Deeploration.Interaction
     [RequireComponent(typeof(Rigidbody))]
     public sealed class Grabbable : MonoBehaviour, IInteractable, IStimulusSource
     {
+        /// <summary>Come si muove l'oggetto mentre PlayerGrab lo trascina.</summary>
+        public enum GrabMode
+        {
+            /// <summary>Tirato dal punto afferrato: ruota appeso e può capovolgersi.</summary>
+            Free,
+            /// <summary>Tirato dal baricentro e tenuto dritto da una molla di rotazione; gira libero solo attorno all'asse verticale.</summary>
+            KeepUpright
+        }
+
         [Tooltip("Id confrontato da GrabSocket.acceptedItemId.")]
         [SerializeField] private string itemId = "power_cell";
         [SerializeField] private string promptText = "Tieni premuto il tasto sinistro per trascinare";
+
+        [Header("Presa")]
+        [Tooltip("Free: appeso al punto afferrato. KeepUpright: resta dritto mentre è trascinato.")]
+        [SerializeField] private GrabMode grabMode = GrabMode.Free;
+        [Tooltip("Rigidità della molla che lo tiene dritto (pulsazione, rad/s). Solo KeepUpright.")]
+        [SerializeField, Min(0f)] private float uprightFrequency = 8f;
 
         [Header("Fisica in acqua")]
         [Tooltip("Frazione della gravità che agisce sull'oggetto (1 = come fuori dall'acqua).")]
@@ -67,6 +82,7 @@ namespace Deeploration.Interaction
         public bool IsHeld { get; internal set; }
         public bool IsSocketed { get; private set; }
         public string PromptText => promptText;
+        public bool KeepsUpright => grabMode == GrabMode.KeepUpright;
 
         private void Awake()
         {
@@ -120,6 +136,7 @@ namespace Deeploration.Interaction
             if (socketTarget != null) BlendIntoSocket();
             if (body.isKinematic) return;
             body.AddForce(Physics.gravity * gravityScale, ForceMode.Acceleration);
+            if (IsHeld && KeepsUpright) AlignUp(Vector3.up, uprightFrequency);
 
             if (transform.position.y < startPosition.y - fallResetDepth)
             {
@@ -173,6 +190,20 @@ namespace Deeploration.Interaction
             }
             body.MovePosition(position);
             body.MoveRotation(rotation);
+        }
+
+        /// <summary>
+        /// Molla smorzata (critica) che porta l'asse su dell'oggetto verso <paramref name="up"/> per un passo fisico.
+        /// Non tocca la rotazione attorno a <paramref name="up"/>. Da chiamare in FixedUpdate; nulla se cinematico.
+        /// </summary>
+        public void AlignUp(Vector3 up, float frequency)
+        {
+            if (body.isKinematic || frequency <= 0f) return;
+            Vector3 axis = Vector3.Cross(transform.up, up);
+            float angle = Vector3.Angle(transform.up, up) * Mathf.Deg2Rad;
+            Vector3 spring = axis.sqrMagnitude > 1e-8f ? axis.normalized * (angle * frequency * frequency) : Vector3.zero;
+            Vector3 tilting = Vector3.ProjectOnPlane(body.angularVelocity, up);
+            body.AddTorque(spring - tilting * (2f * frequency), ForceMode.Acceleration);
         }
 
         public bool CanInteract(GameObject user) => !IsSocketed;

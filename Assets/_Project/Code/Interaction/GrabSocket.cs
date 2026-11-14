@@ -28,6 +28,18 @@ namespace Deeploration.Interaction
         [Tooltip("Secondi in cui le condizioni devono restare vere prima dell'aggancio.")]
         [SerializeField, Min(0f)] private float seatTime = 0.15f;
 
+        [Header("Magnete")]
+        [Tooltip("Raggio attorno a snapPoint entro cui l'oggetto trascinato viene attirato e raddrizzato, in metri. 0 = spento.")]
+        [SerializeField, Min(0f)] private float magnetRadius = 0f;
+        [Tooltip("Velocità cercata verso snapPoint per metro di distanza (1/s).")]
+        [SerializeField, Min(0f)] private float magnetFollow = 3f;
+        [Tooltip("Velocità massima con cui il magnete porta l'oggetto, in m/s. Sotto maxSpeed l'oggetto può poggiarsi.")]
+        [SerializeField, Min(0f)] private float magnetMaxSpeed = 0.3f;
+        [Tooltip("Forza massima al centro, in N; cala a 0 sul bordo del raggio. Sopra PlayerGrab.maxForce il magnete vince vicino allo slot.")]
+        [SerializeField, Min(0f)] private float magnetMaxForce = 900f;
+        [Tooltip("Rigidità della molla che raddrizza l'oggetto sull'alto di snapPoint (rad/s), al centro.")]
+        [SerializeField, Min(0f)] private float magnetUprightFrequency = 6f;
+
         [Header("Feedback")]
         [SerializeField] private Light statusLight;
         [SerializeField] private Color emptyColor = Color.red;
@@ -46,12 +58,15 @@ namespace Deeploration.Interaction
 
         private float alignedSince = -1f;
         private float lastAlignedCheck = -1f;
+        private PlayerGrab playerGrab;
 
         private void Awake()
         {
             if (snapPoint == null) snapPoint = transform;
             if (statusLight != null) statusLight.color = emptyColor;
         }
+
+        private void Start() => playerGrab = FindAnyObjectByType<PlayerGrab>();
 
         private void OnTriggerStay(Collider other)
         {
@@ -70,6 +85,26 @@ namespace Deeploration.Interaction
                 IsAligned = false;
                 alignedSince = -1f;
             }
+            Attract();
+        }
+
+        // Solo l'oggetto tenuto in mano: una cella lasciata vicino allo slot non ci scivola dentro da sola.
+        private void Attract()
+        {
+            if (magnetRadius <= 0f || current != null || playerGrab == null) return;
+            Grabbable item = playerGrab.Held;
+            if (item == null || item.IsSocketed || item.ItemId != acceptedItemId) return;
+
+            Rigidbody body = item.Body;
+            Vector3 delta = snapPoint.position - body.position;
+            float distance = delta.magnitude;
+            if (distance > magnetRadius) return;
+
+            float weight = 1f - distance / magnetRadius;
+            Vector3 desired = Vector3.ClampMagnitude(delta * magnetFollow, magnetMaxSpeed);
+            Vector3 force = (desired - body.linearVelocity) * body.mass / Time.fixedDeltaTime;
+            body.AddForce(Vector3.ClampMagnitude(force, magnetMaxForce * weight));
+            item.AlignUp(snapPoint.up, magnetUprightFrequency * weight);
         }
 
         // Centro dell'oggetto sopra snapPoint, dritto e quasi fermo per seatTime secondi.

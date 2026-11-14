@@ -121,8 +121,17 @@ namespace Deeploration.Interaction
             if (delta.magnitude > breakDistance) { Release(); return; }
 
             Vector3 desired = Vector3.ClampMagnitude(delta * followStrength, maxFollowSpeed);
-            Vector3 force = (desired - body.GetPointVelocity(anchor)) * body.mass / Time.fixedDeltaTime;
-            body.AddForceAtPosition(Vector3.ClampMagnitude(force, maxForce), anchor);
+            // KeepUpright: forza nel baricentro, così la presa non fa ruotare l'oggetto (lo tiene dritto Grabbable).
+            if (held.KeepsUpright)
+            {
+                Vector3 force = (desired - body.linearVelocity) * body.mass / Time.fixedDeltaTime;
+                body.AddForce(Vector3.ClampMagnitude(force, maxForce));
+            }
+            else
+            {
+                Vector3 force = (desired - body.GetPointVelocity(anchor)) * body.mass / Time.fixedDeltaTime;
+                body.AddForceAtPosition(Vector3.ClampMagnitude(force, maxForce), anchor);
+            }
         }
     }
 }

@@ -235,6 +235,11 @@ MonoBehaviour:
   maxTilt: 12
   maxSpeed: 0.35
   seatTime: 0.15
+  magnetRadius: 0.7
+  magnetFollow: 3
+  magnetMaxSpeed: 0.3
+  magnetMaxForce: 900
+  magnetUprightFrequency: 6
   statusLight: {fileID: 1610168665343381258}
   emptyColor: {r: 1, g: 0, b: 0, a: 1}
   filledColor: {r: 0, g: 1, b: 0, a: 1}

@@ -203,6 +203,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Interaction.Grabbable
   itemId: power_cell
   promptText: Tieni premuto il tasto sinistro per trascinare
+  grabMode: 1
+  uprightFrequency: 8
   gravityScale: 0.3
   waterDrag: 3
   waterAngularDrag: 3
