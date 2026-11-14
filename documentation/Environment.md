@@ -116,7 +116,7 @@ flowchart TD
     2. **Salto** (`jumpDuration`): i piedi seguono una Bézier quadratica da partenza ad atterraggio, con controllo calcolato perché a metà curva passino per `passPoint - up * eyeHeight`. Oltre metà si aggiunge una parabola `arcHeight * sin(π·u)`, dopo il portello per non toccarne il bordo. L'avanzamento nel tempo segue `jumpCurve` (veloce alla spinta, frenato verso la fine come dall'acqua). Lo sguardo insegue l'inclinazione della traiettoria (`pathLookWeight`, limitata a −30°…35°), lo yaw arriva alla direzione d'uscita, il roll oscilla fino a `flightRoll` a metà volo e la testa torna in quota nel primo quarto.
     3. **Atterraggio** (`landDuration`): piedi fermi sul punto di atterraggio, la testa scende di `landDepth` e risale (discesa rapida, risalita lenta), lo sguardo ha uno scatto di `landPitchKick` e si assesta a 0.
   - Raddrizzamento dal sedile: roll di partenza (`ViewRoll`) e posizione laterale della camera tornano a 0 e all'altezza occhi standard entro la raccolta più il 40% del salto, cioè quando il diver ha passato il portello.
-  - Fine: posa finale, `CharacterController` riattivato, su `DiverController` `ViewRoll = 0`, `CameraBasePosition = (0, eyeHeight, 0)`, `enabled = true`, `SetViewPitch(0)`, `ResetMotion()`, `LockMovement = false`; poi `onExited`.
+  - Fine (dal 2026-11-14): `DiverController.PlaceStanding(land, exitYaw, eyeHeight)`, che spegne e riaccende il `CharacterController` attorno al posizionamento e fa `ViewRoll = 0`, `CameraBasePosition = (0, eyeHeight, 0)`, camera dritta, `enabled = true`, `SetViewPitch(0)`, `ResetMotion()`, `LockMovement = false`; senza `DiverController` posa e camera a mano. Poi `onExited`. Stessa routine del menu cheat (vedi [DevTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DevTools.md)).
 - **Campi Inspector**:
   - `HatchDoor hatch` (default: `null`): Portello da cui dipende la disponibilità.
   - `Transform passPoint` (default: `null`): Punto attraversato dalla camera, al centro dell'apertura.
@@ -128,6 +128,7 @@ flowchart TD
   - Salto: `float jumpDuration` (`1.4`), `AnimationCurve jumpCurve` (default: da (0,0) con tangente 2.4 a (1,1) con tangente 0.2 in ingresso e 0 in uscita), `float arcHeight` (`0.35` m), `float pathLookWeight` (`0.6`, 0–1), `float flightRoll` (`3`°).
   - Atterraggio: `float landDuration` (`0.6`), `float landDepth` (`0.2` m), `float landPitchKick` (`6`°).
   - `UnityEvent onExitStarted`, `UnityEvent onExited`.
+  - `float EyeHeight { get; }` (dal 2026-11-14): altezza degli occhi in piedi, letta da `CheatMenu`.
 - **API pubbliche**: `string PromptText { get; }`, `bool CanInteract(GameObject user)`, `void Interact(GameObject user)`.
 - **Riferimenti obbligatori**: `hatch`, `passPoint`, `exitPoint`. Se uno manca, `CanInteract` restituisce `false` e l'uscita non parte. L'utente deve avere `CharacterController` e `DiverController` (se mancano, vengono ignorati; senza `DiverController` la camera non viene animata).
 

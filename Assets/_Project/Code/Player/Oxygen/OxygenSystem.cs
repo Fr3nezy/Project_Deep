@@ -43,6 +43,12 @@ namespace Deeploration.Player
         public OxygenLevel Level => currentLevel;
         public float CurrentDrainPerSecond => currentDrainPerSecond;
 
+        /// <summary>Cheat: il consumo continuo non scala il serbatoio. Morsi e mine tolgono ancora ossigeno.</summary>
+        public bool InfiniteOxygen { get; set; }
+
+        /// <summary>Cheat: niente abbassa l'ossigeno, né il consumo né i danni; ricariche e respawn funzionano.</summary>
+        public bool Invulnerable { get; set; }
+
         private void Awake()
         {
             if (profile == null)
@@ -113,6 +119,7 @@ namespace Deeploration.Player
                 currentDrainPerSecond += Mathf.Max(0f, drainSources[i].GetOxygenDrainPerSecond());
             }
 
+            if (InfiniteOxygen) return;
             SetOxygen(currentOxygen - currentDrainPerSecond * Time.deltaTime);
         }
 
@@ -128,6 +135,7 @@ namespace Deeploration.Player
         {
             float clamped = Mathf.Clamp(value, 0f, profile.maxOxygen);
             if (Mathf.Approximately(clamped, currentOxygen)) return;
+            if (Invulnerable && clamped < currentOxygen) return;
 
             currentOxygen = clamped;
             OnOxygenChanged?.Invoke(NormalizedOxygen);

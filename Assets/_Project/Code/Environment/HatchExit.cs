@@ -72,6 +72,9 @@ namespace Deeploration.Environment
 
         public string PromptText => promptText;
 
+        /// <summary>Altezza degli occhi del diver in piedi, la stessa che usa l'uscita.</summary>
+        public float EyeHeight => eyeHeight;
+
         public bool CanInteract(GameObject user) =>
             !used && hatch != null && hatch.IsOpen && !hatch.IsMoving && passPoint != null && exitPoint != null;
 
@@ -202,18 +205,15 @@ namespace Deeploration.Environment
         private void Finish()
         {
             elapsed = -1f;
-            diver.SetPositionAndRotation(land, Quaternion.Euler(0f, exitYaw, 0f));
-            ApplyCamera(0f, 0f, 0f, 1f);
-
-            if (controller != null) controller.enabled = true;
             if (diverController != null)
             {
-                diverController.ViewRoll = 0f;
-                diverController.CameraBasePosition = new Vector3(0f, eyeHeight, 0f);
-                diverController.enabled = true;
-                diverController.SetViewPitch(0f);
-                diverController.ResetMotion();
-                diverController.LockMovement = false;
+                diverController.PlaceStanding(land, exitYaw, eyeHeight);
+            }
+            else
+            {
+                diver.SetPositionAndRotation(land, Quaternion.Euler(0f, exitYaw, 0f));
+                ApplyCamera(0f, 0f, 0f, 1f);
+                if (controller != null) controller.enabled = true;
             }
             onExited?.Invoke();
         }

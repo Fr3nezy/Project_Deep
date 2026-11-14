@@ -52,6 +52,8 @@ flowchart TD
   - `bool Refill(float deltaTime)`: Ricarica la riserva di `profile.refillRate * deltaTime`; ritorna false a serbatoio pieno.
   - `void SetNormalized(float normalized)` (dal 2026-11-10): porta il serbatoio a una frazione della capacità e rivaluta il livello, uscendo anche da `Depleted`. Usato da `DiverRespawn`.
   - `void Consume(float amount)` (dal 2026-10-15): perdita istantanea di ossigeno oltre al consumo continuo; valori negativi ignorati, a serbatoio vuoto non fa niente. Usato dal morso del viperfish (`DiverBiteReceiver`, vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)).
+  - `bool InfiniteOxygen { get; set; }` (dal 2026-11-14, cheat, default falso): `Update` calcola ancora `CurrentDrainPerSecond` ma non scala il serbatoio. `Consume` e `SetNormalized` funzionano: morsi e mine tolgono ancora ossigeno.
+  - `bool Invulnerable { get; set; }` (dal 2026-11-14, cheat, default falso): `SetOxygen` scarta ogni valore più basso dell'attuale, quindi niente consumo, niente `Consume`, niente `SetNormalized(0)` della mina; ricariche e respawn salgono normalmente. Li imposta `CheatMenu` (vedi [DevTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DevTools.md)). Proprietà d'istanza, non serializzate: a ogni Play ripartono false.
   - Correzione del 2026-10-15: questa lista elencava `OnOxygenLevelChanged`, `CurrentLevel`, `IsDepleted` e `SetOxygenDirect`, che nel codice non esistono (i nomi veri sono `OnLevelChanged` e `Level`).
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - Se `profile` è nullo, stampa `Debug.LogError` e disabilita il componente.

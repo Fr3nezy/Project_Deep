@@ -197,6 +197,26 @@ namespace Deeploration.Prologue
             enabled = false;
         }
 
+        /// <summary>
+        /// Salta il risveglio (menu cheat, partenza fuori capsula): toglie il nero e il sottotitolo e si spegne.
+        /// La posa del diver la rimette chi chiama (DiverController.PlaceStanding).
+        /// </summary>
+        public void Skip()
+        {
+            if (sequenceCompleted) return;
+            sequenceCompleted = true;
+            StopAllCoroutines();
+
+            if (fadeOverlay != null)
+            {
+                fadeOverlay.alpha = 0.0f;
+                fadeOverlay.blocksRaycasts = false;
+            }
+            if (subtitleTriggered && subtitlePanel != null) subtitlePanel.Clear();
+
+            enabled = false;
+        }
+
         private IEnumerator ClearSubtitleAfter(float delay)
         {
             yield return new WaitForSeconds(delay);

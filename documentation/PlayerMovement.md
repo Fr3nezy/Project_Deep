@@ -53,6 +53,7 @@ flowchart LR
   - `float CurrentSpeed { get; }`: Restituisce `currentSpeed`.
   - `bool IsGrounded { get; }`: Restituisce `grounded`.
   - `float GetOxygenDrainPerSecond()`: Calcola il consumo di O₂ in base a andatura (walk/sprint) e velocità effettiva (`effortDrain * (currentSpeed / profile.sprintSpeed)`).
+  - `public void PlaceStanding(Vector3 position, float yaw, float eyeHeight)` (dal 2026-11-14): mette il diver in piedi nel punto con solo lo yaw; spegne il `CharacterController` attorno a `SetPositionAndRotation`, poi `ViewRoll = 0`, `CameraBasePosition = (0, eyeHeight, 0)`, `cameraTarget` a quella posizione con rotazione identità, `enabled = true`, `SetViewPitch(0)`, `ResetMotion()`, `LockMovement = false`. Usato da `HatchExit` a fine uscita e da `CheatMenu`. Non posa sul fondale: lo fa chi chiama.
   - `public void ResetMotion()`: Azzera velocità orizzontale/verticale, velocità corrente, ciclo/peso/roll del bob e passo pendente; riallinea i target di yaw/pitch allo stato corrente e riporta `cameraTarget` alla posa base (posizione `CameraBasePosition`, rotazione pitch corrente e `ViewRoll`). Non teletrasporta il player.
   - Con il `CharacterController` disattivato `Move()` non fa nulla (nessuna chiamata a `CharacterController.Move`); gravità, head-bob e rotazione della visuale continuano. È lo stato del diver seduto nella capsula.
   - `CharacterController`: Richiesto tramite `[RequireComponent]`.

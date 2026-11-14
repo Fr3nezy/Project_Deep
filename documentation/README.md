@@ -14,6 +14,7 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 Assets/_Project/Code/
 ├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub, banco GPU
 │   └── Debug/                 # Sonda di benchmark del costo per frame
+├── DevTools/                  # Menu cheat, punti di teletrasporto e partenza fuori capsula
 ├── Editor/                    # Utility e generatori di livello per Unity Editor
 ├── Environment/               # Oggetti ambientali (paratie, stazioni ricarica O2, neve marina, luci)
 ├── Interaction/               # Raycast interazione, trasporto oggetti (mani) e alloggiamenti (socket)
@@ -54,6 +55,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Creatures/DiverStimulusSource.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/FishSchool.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/SwimChain.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
+| `Assets/_Project/Code/DevTools/CheatMenu.cs` | Dev Tools | [DevTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DevTools.md) |
+| `Assets/_Project/Code/DevTools/DevWarpPoint.cs` | Dev Tools | [DevTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DevTools.md) |
 | `Assets/_Project/Code/Editor/DeeplonautsLevelBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueElevatorSceneBuilder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueSmokeCheck.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |

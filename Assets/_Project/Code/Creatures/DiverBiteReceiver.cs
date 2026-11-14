@@ -125,6 +125,8 @@ namespace Deeploration.Creatures
         /// <summary>Applica un morso al sub: stress, ossigeno, vignetta e battito. Chiamato dal CreatureManager.</summary>
         public void ReceiveBite(Creature biter)
         {
+            // Cheat: niente stress, vignetta né crepe del casco (HelmetDamage ascolta OnBitten).
+            if (oxygen != null && oxygen.Invulnerable) return;
             if (stress != null) stress.AddStress(stressSpike);
             if (oxygen != null) oxygen.Consume(oxygenLoss);
             LastBiteTime = Time.time;

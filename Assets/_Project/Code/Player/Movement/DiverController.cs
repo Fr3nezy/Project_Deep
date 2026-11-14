@@ -283,6 +283,26 @@ namespace Deeploration.Player
             targetPitch = currentPitch;
         }
 
+        /// <summary>
+        /// Mette il diver in piedi in un punto, visuale dritta e controlli attivi.
+        /// Usato alla fine di HatchExit, dai teletrasporti del menu cheat e dalla partenza fuori capsula.
+        /// </summary>
+        public void PlaceStanding(Vector3 position, float yaw, float eyeHeight)
+        {
+            // Il CharacterController sovrascrive la posizione se resta acceso durante il teletrasporto.
+            if (controller != null) controller.enabled = false;
+            transform.SetPositionAndRotation(position, Quaternion.Euler(0f, yaw, 0f));
+            if (controller != null) controller.enabled = true;
+
+            ViewRoll = 0f;
+            cameraBasePosition = new Vector3(0f, eyeHeight, 0f);
+            if (cameraTarget != null) cameraTarget.SetLocalPositionAndRotation(cameraBasePosition, Quaternion.identity);
+            enabled = true;
+            SetViewPitch(0f);
+            ResetMotion();
+            LockMovement = false;
+        }
+
         public void ResetMotion()
         {
             horizontalVelocity = Vector3.zero;
