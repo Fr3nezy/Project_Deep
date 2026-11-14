@@ -20,6 +20,17 @@ namespace Deeploration.Creatures
         Hunt
     }
 
+    /// <summary>Livello d'allerta di <see cref="CreatureStealth"/>, mostrato dai fotofori.</summary>
+    public enum StealthAlert
+    {
+        /// <summary>Pattuglia la sua zona e caccia; non ha visto niente del sub.</summary>
+        Neutral,
+        /// <summary>Ha visto una luce del sub: nuota verso l'ultimo punto visto e lo osserva.</summary>
+        Investigate,
+        /// <summary>Ha visto il sub muoversi mentre indagava: va ad attaccarlo.</summary>
+        Attack
+    }
+
     /// <summary>
     /// Categoria di uno stimolo: ogni specie sceglie nel profilo come reagire a ciascuna. Le luci richiedono la
     /// linea di vista, il rumore no.

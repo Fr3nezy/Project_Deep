@@ -19,14 +19,15 @@ MonoBehaviour:
   turnRate: 90
   heightAboveFloor: 1.8
   heightTolerance: 0.75
+  crawlsOnFloor: 0
   wanderTurn: 45
   wanderFrequency: 0.15
   lightSensitivity: 1
   hearingSensitivity: 1
-  weakLightReaction: 1
-  strongLightReaction: 1
-  flashReaction: 2
-  noiseReaction: 1
+  weakLightReaction: 0
+  strongLightReaction: 0
+  flashReaction: 0
+  noiseReaction: 0
   inspectDistance: 3
   strongLightDistanceScale: 2.2
   inspectRepositionInterval: 5
@@ -36,7 +37,7 @@ MonoBehaviour:
   cohesionWeight: 0.5
   alignmentWeight: 0.5
   diverClearance: 1.5
-  stalkRange: 30
+  stalkRange: 0
   stalkRadius: 8
   strikeRadius: 2.5
   aggressionRate: 0.15

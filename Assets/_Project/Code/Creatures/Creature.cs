@@ -207,6 +207,11 @@ namespace Deeploration.Creatures
         /// </summary>
         public bool TryGetFocus(out Vector3 point)
         {
+            if (guided)
+            {
+                point = guidedFocus;
+                return guidedHasFocus;
+            }
             switch (state)
             {
                 case CreatureState.Stalk:
@@ -305,9 +310,55 @@ namespace Deeploration.Creatures
             // Specie all'agguato (lucertola abissale): il componente guida la creatura al posto di Think e Move.
             ambush = GetComponent<CreatureAmbush>();
             if (ambush != null) ambush.Begin(this, manager, home, leashRadius);
+            // Specie stealth (viperfish): il componente decide l'allerta e, quando serve, guida il nuoto.
+            guided = false;
+            stealth = GetComponent<CreatureStealth>();
+            if (stealth != null) stealth.Begin(this, manager, home, leashRadius);
         }
 
         private CreatureAmbush ambush;
+        private CreatureStealth stealth;
+
+        // Nuoto guidato da CreatureStealth: bersaglio, velocità, punto guardato, spazio personale e soffitto.
+        private bool guided;
+        private Vector3 guidedTarget;
+        private float guidedSpeed;
+        private Vector3 guidedFocus;
+        private bool guidedHasFocus;
+        private bool guidedPersonalSpace;
+        private bool guidedIgnoreCeiling;
+
+        /// <summary>
+        /// Nuoto guidato: la creatura nuota verso <paramref name="target"/> con evitamento, quota e fondale di sempre,
+        /// mostrando <paramref name="apparentState"/> e <paramref name="apparentAggression"/> a mascella, esca e
+        /// fotofori. Finché è guidata non ragiona da sola (niente <c>Think</c>).
+        /// </summary>
+        internal void Guide(Vector3 target, float swimSpeed, CreatureState apparentState, float apparentAggression,
+            Vector3? focus, bool personalSpace = true, bool ignoreCeiling = false)
+        {
+            guided = true;
+            guidedTarget = target;
+            guidedSpeed = swimSpeed;
+            guidedHasFocus = focus.HasValue;
+            guidedFocus = focus ?? default;
+            guidedPersonalSpace = personalSpace;
+            guidedIgnoreCeiling = ignoreCeiling;
+            state = apparentState;
+            aggression = Mathf.Clamp01(apparentAggression);
+            preyTarget = null;
+        }
+
+        /// <summary>Fine del nuoto guidato: torna a vagare e ragionare da sola, calma.</summary>
+        internal void Release()
+        {
+            if (!guided) return;
+            guided = false;
+            state = CreatureState.Wander;
+            aggression = 0f;
+        }
+
+        /// <summary>True mentre <see cref="CreatureStealth"/> guida il nuoto.</summary>
+        internal bool Guided => guided;
 
         /// <summary>Stato, velocità e rotta scritti da <see cref="CreatureAmbush"/>, letti da mandibola e catena.</summary>
         internal void SetDriven(CreatureState drivenState, float drivenSpeed, Vector3 drivenHeading)
@@ -365,7 +416,10 @@ namespace Deeploration.Creatures
                 ambush.Step(deltaTime, think);
                 return;
             }
-            if (think) Think();
+            // Il driver stealth gira a ogni frame (timer); mentre guida, Think non deve cambiare stato (ThinkPredator
+            // lo manderebbe in Hunt a metà indagine).
+            if (stealth != null) stealth.Step(deltaTime, think);
+            if (think && !guided) Think();
             if (probe) Probe();
             Move(deltaTime);
         }
@@ -972,7 +1026,16 @@ namespace Deeploration.Creatures
             if (profile.stalkRange > 0f) UpdateAggression(deltaTime);
 
             bool lunging = false;
-            if (state == CreatureState.Strike)
+            if (guided)
+            {
+                // Nuoto guidato: verso il bersaglio, rallentando nell'ultimo metro e mezzo.
+                Vector3 toTarget = guidedTarget - position;
+                desired = toTarget;
+                targetY = guidedTarget.y;
+                if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, floorY + profile.bodyRadius * 2f);
+                targetSpeed = guidedSpeed * Mathf.Clamp(toTarget.magnitude / 1.5f, 0.2f, 1f);
+            }
+            else if (state == CreatureState.Strike)
             {
                 // Dritto al casco del sub, a bocca spalancata, senza spazio personale.
                 Vector3 target = manager.PlayerPosition + Vector3.up * StrikeTargetHeight;
@@ -1046,7 +1109,8 @@ namespace Deeploration.Creatures
             // Spazio personale del sub: nessuna creatura gli passa attraverso. Senza, i pesci attirati dalla torcia
             // scivolavano fino alla lampada sul casco e attraversavano la camera (pop sul piano vicino).
             // Nel morso no: deve arrivare a contatto.
-            Vector3 diverPush = state == CreatureState.Strike ? Vector3.zero : DiverPush(position);
+            bool noClearance = guided ? !guidedPersonalSpace : state == CreatureState.Strike;
+            Vector3 diverPush = noClearance ? Vector3.zero : DiverPush(position);
             desired += diverPush * 4f;
             targetY += diverPush.y * profile.diverClearance;
 
@@ -1273,9 +1337,10 @@ namespace Deeploration.Creatures
         /// </summary>
         private float HeightCorrection(float y, float targetY)
         {
-            float target = Mathf.Min(targetY, ceilingY);
+            float ceiling = guided && guidedIgnoreCeiling ? float.PositiveInfinity : ceilingY;
+            float target = Mathf.Min(targetY, ceiling);
             float error = target - y;
-            if (y <= ceilingY && Mathf.Abs(error) <= profile.heightTolerance) return 0f;
+            if (y <= ceiling && Mathf.Abs(error) <= profile.heightTolerance) return 0f;
             return error * 0.5f;
         }
 

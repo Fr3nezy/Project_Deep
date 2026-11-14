@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 7373912677206461615}
   - component: {fileID: 721600411018682210}
   - component: {fileID: 7324908563919795432}
+  - component: {fileID: 6658622122578999515}
   m_Layer: 9
   m_Name: Creature_Viperfish
   m_TagString: Untagged
@@ -129,6 +130,7 @@ MonoBehaviour:
   pulseDepth: {x: 0.3, y: 0.5}
   strikeStrobe: 9
   huntBoost: 1.4
+  huntMood: 0.8
   fleeDim: 0.4
   responsiveness: 2
 --- !u!114 &721600411018682210
@@ -179,6 +181,29 @@ MonoBehaviour:
   idleSaccade: 8
   focusSaccade: 2
   visibilityRenderer: {fileID: 2773181943371577113}
+--- !u!114 &6658622122578999515
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2489802120106906889}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dce3401d97f8bcc4ab0073e6f3fd3129, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureStealth
+  viewHalfAngle: 60
+  maxSightRange: 25
+  motionSightRange: 12
+  motionThreshold: 0.3
+  giveUpTime: 5
+  inspectDistance: 2
+  investigateSpeed: 1.8
+  leaveDistance: 10
+  approachSpeed: 3.5
+  attackGiveUpTime: 8
+  helmetHeight: 1.3
 --- !u!1001 &7100336103650734969
 PrefabInstance:
   m_ObjectHideFlags: 0

@@ -58,6 +58,11 @@ namespace Deeploration.Interaction
         [SerializeField, Min(0f)] private float stimulusReach = 6f;
         [Tooltip("Metri di portata aggiunti per ogni m/s di velocità.")]
         [SerializeField, Min(0f)] private float stimulusPerSpeed = 6f;
+        [Tooltip("Velocità (m/s) oltre la quale l'oggetto lasciato andare conta ancora come mosso dal sub.")]
+        [SerializeField, Min(0f)] private float stimulusMoveThreshold = 0.2f;
+        [Tooltip("Secondi dopo il rilascio in cui il movimento dell'oggetto conta come opera del sub.")]
+        [SerializeField, Min(0f)] private float movedByPlayerWindow = 10f;
+        private float lastHeldTime = float.NegativeInfinity;
 
         private Rigidbody body;
         private CreatureManager creatureManager;
@@ -214,8 +219,14 @@ namespace Deeploration.Interaction
         public void EmitStimuli(List<CreatureStimulus> output)
         {
             if (!isActiveAndEnabled || stimulusReach <= 0f) return;
+            // Il manager chiama EmitStimuli a ogni frame: l'ultimo frame tenuto è l'istante del rilascio.
+            if (IsHeld) lastHeldTime = Time.time;
+            // Del sub: in mano, o ancora in movimento poco dopo il rilascio (non quando si assesta da solo né una
+            // volta nell'alloggiamento).
+            bool fromPlayer = IsHeld || (!IsSocketed && Speed > stimulusMoveThreshold &&
+                                         Time.time - lastHeldTime < movedByPlayerWindow);
             output.Add(CreatureStimulus.PointLight(transform.position, stimulusReach + Speed * stimulusPerSpeed,
-                StimulusCategory.WeakLight, IsHeld));
+                StimulusCategory.WeakLight, fromPlayer));
         }
     }
 }
