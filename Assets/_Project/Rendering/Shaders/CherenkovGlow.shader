@@ -1,7 +1,7 @@
 // Bagliore Cherenkov della cella nucleare: guscio unlit additivo attorno alle barre di combustibile.
 // Pieno dove la superficie guarda la camera, svanisce sulla silhouette (Fresnel invertito), così si legge come
 // acqua illuminata e non come un tubo. Additivo: niente ordinamento con le altre trasparenze, non scurisce.
-// Nella nebbia sfuma verso il nero (non verso il colore della nebbia). _Intensity la scrive Grabbable con la velocità.
+// Nella nebbia sfuma verso il nero (non verso il colore della nebbia). _Color lo scrive Grabbable (celeste spento a riposo, azzurro acceso quando allerta le creature).
 Shader "Deeplonauts/CherenkovGlow"
 {
     Properties

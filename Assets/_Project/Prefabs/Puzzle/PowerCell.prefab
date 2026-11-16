@@ -210,9 +210,7 @@ MonoBehaviour:
   waterAngularDrag: 3
   fallResetDepth: 40
   glowLight: {fileID: 8013040928662123975}
-  glowPerSpeed: 1.5
   glowRenderer: {fileID: 94968819238822864}
-  glowRendererPerSpeed: 0.5
   stimulusReach: 10
   stimulusPerSpeed: 6
 --- !u!1 &9125376917984753579

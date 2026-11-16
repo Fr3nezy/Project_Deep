@@ -6,8 +6,9 @@ namespace Deeploration.Interaction
 {
     /// <summary>
     /// Oggetto fisico che il diver trascina col crosshair (vedi <see cref="PlayerGrab"/>). Sott'acqua: gravità ridotta
-    /// e molto attrito, collisione continua, nessuna collisione con la capsula del diver. Se ha una luce di bagliore
-    /// (la cella nucleare, Cherenkov) la luce e lo stimolo per le creature crescono con la velocità.
+    /// e molto attrito, collisione continua, nessuna collisione con la capsula del diver. Se ha un bagliore
+    /// (la cella nucleare, Cherenkov) passa da celeste spento ad azzurro acceso quando allerta le creature
+    /// (<see cref="AlertsCreatures"/>); lo stimolo per le creature cresce con la velocità.
     /// Va sulla radice dell'oggetto, accanto al Rigidbody; la mesh in un figlio Visual.
     /// </summary>
     [RequireComponent(typeof(Rigidbody))]
@@ -44,15 +45,25 @@ namespace Deeploration.Interaction
         [Tooltip("Secondi per scivolare sullo snap dello slot all'aggancio. 0 = di scatto.")]
         [SerializeField, Min(0f)] private float socketBlendTime = 0.35f;
 
+        // Il bagliore segue AlertsCreatures, non la velocità: acceso solo quando le creature lo vedono come opera
+        // del sub, così il giocatore legge la regola dello stealth dal colore.
         [Header("Bagliore (opzionale)")]
         [SerializeField] private Light glowLight;
-        [Tooltip("Intensità aggiunta alla luce per ogni m/s di velocità.")]
-        [SerializeField, Min(0f)] private float glowPerSpeed = 1.5f;
+        [Tooltip("Colore e intensità della luce quando l'oggetto non allerta le creature (ferma, assestata, nell'alloggiamento).")]
+        [SerializeField] private Color calmLightColor = new Color(0.55f, 0.8f, 1f);
+        [SerializeField, Min(0f)] private float calmLightIntensity = 0.6f;
+        [Tooltip("Colore e intensità della luce quando allerta le creature (in mano o mossa dal sub).")]
+        [SerializeField] private Color alertLightColor = new Color(0.1f, 0.45f, 1f);
+        [SerializeField, Min(0f)] private float alertLightIntensity = 4f;
 
-        [Tooltip("Renderer col materiale CherenkovGlow: _Intensity cresce con la velocità come la luce. Opzionale.")]
+        [Tooltip("Renderer col materiale CherenkovGlow: _Color passa dal colore calmo a quello d'allerta. Opzionale.")]
         [SerializeField] private Renderer glowRenderer;
-        [Tooltip("Frazione dell'intensità del materiale aggiunta per ogni m/s di velocità.")]
-        [SerializeField, Min(0f)] private float glowRendererPerSpeed = 0.5f;
+        [Tooltip("_Color HDR del materiale a riposo: moltiplica la mappa d'emissione (ciano). Bianco tenue = celeste spento.")]
+        [SerializeField, ColorUsage(false, true)] private Color calmGlowColor = new Color(1f, 1.3f, 1.3f);
+        [Tooltip("_Color HDR in allerta: blu dominante = azzurro saturo e acceso.")]
+        [SerializeField, ColorUsage(false, true)] private Color alertGlowColor = new Color(0.5f, 4f, 8f);
+        [Tooltip("Secondi per passare da un bagliore all'altro (costante di tempo).")]
+        [SerializeField, Min(0.01f)] private float glowBlendTime = 0.2f;
 
         [Tooltip("Portata dello stimolo di luce da fermo (m), per una creatura con sensibilità 1. 0 = nessuno stimolo.")]
         [SerializeField, Min(0f)] private float stimulusReach = 6f;
@@ -68,10 +79,9 @@ namespace Deeploration.Interaction
         private CreatureManager creatureManager;
         private Vector3 startPosition;
         private Quaternion startRotation;
-        private static readonly int IntensityId = Shader.PropertyToID("_Intensity");
+        private static readonly int ColorId = Shader.PropertyToID("_Color");
 
-        private float baseGlow;
-        private float baseRendererGlow;
+        private float glowBlend;
         private MaterialPropertyBlock glowBlock;
         private CharacterController playerCollider;
         private bool ignoringPlayer;
@@ -89,6 +99,13 @@ namespace Deeploration.Interaction
         public string PromptText => promptText;
         public bool KeepsUpright => grabMode == GrabMode.KeepUpright;
 
+        /// <summary>
+        /// Vero quando le creature contano l'oggetto come opera del sub: in mano, o ancora in movimento entro
+        /// movedByPlayerWindow dal rilascio (non quando si assesta da solo né nell'alloggiamento).
+        /// </summary>
+        public bool AlertsCreatures => IsHeld || (!IsSocketed && Speed > stimulusMoveThreshold &&
+                                                   Time.time - lastHeldTime < movedByPlayerWindow);
+
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
@@ -99,12 +116,7 @@ namespace Deeploration.Interaction
             body.interpolation = RigidbodyInterpolation.Interpolate;
             startPosition = transform.position;
             startRotation = transform.rotation;
-            if (glowLight != null) baseGlow = glowLight.intensity;
-            if (glowRenderer != null)
-            {
-                glowBlock = new MaterialPropertyBlock();
-                baseRendererGlow = glowRenderer.sharedMaterial.GetFloat(IntensityId);
-            }
+            if (glowRenderer != null) glowBlock = new MaterialPropertyBlock();
         }
 
         private void Start()
@@ -154,11 +166,18 @@ namespace Deeploration.Interaction
 
         private void Update()
         {
-            if (glowLight != null) glowLight.intensity = baseGlow + Speed * glowPerSpeed;
+            if (IsHeld) lastHeldTime = Time.time;
+            glowBlend = Mathf.Lerp(glowBlend, AlertsCreatures ? 1f : 0f, 1f - Mathf.Exp(-Time.deltaTime / glowBlendTime));
+            if (glowLight != null)
+            {
+                glowLight.color = Color.Lerp(calmLightColor, alertLightColor, glowBlend);
+                glowLight.intensity = Mathf.Lerp(calmLightIntensity, alertLightIntensity, glowBlend);
+            }
             if (glowRenderer != null)
             {
                 glowRenderer.GetPropertyBlock(glowBlock);
-                glowBlock.SetFloat(IntensityId, baseRendererGlow * (1f + Speed * glowRendererPerSpeed));
+                // SetVector e non SetColor: in Linear SetColor eleva a 2.2 e i valori HDR esplodono (come CreatureGlow).
+                glowBlock.SetVector(ColorId, Color.Lerp(calmGlowColor, alertGlowColor, glowBlend));
                 glowRenderer.SetPropertyBlock(glowBlock);
             }
         }
@@ -221,12 +240,8 @@ namespace Deeploration.Interaction
             if (!isActiveAndEnabled || stimulusReach <= 0f) return;
             // Il manager chiama EmitStimuli a ogni frame: l'ultimo frame tenuto è l'istante del rilascio.
             if (IsHeld) lastHeldTime = Time.time;
-            // Del sub: in mano, o ancora in movimento poco dopo il rilascio (non quando si assesta da solo né una
-            // volta nell'alloggiamento).
-            bool fromPlayer = IsHeld || (!IsSocketed && Speed > stimulusMoveThreshold &&
-                                         Time.time - lastHeldTime < movedByPlayerWindow);
             output.Add(CreatureStimulus.PointLight(transform.position, stimulusReach + Speed * stimulusPerSpeed,
-                StimulusCategory.WeakLight, fromPlayer));
+                StimulusCategory.WeakLight, AlertsCreatures));
         }
     }
 }
