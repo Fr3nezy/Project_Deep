@@ -137,3 +137,4 @@ Decise da Manu il 2026-11-14 (proposte approvate):
 ## Registro
 - 1.0 2026-11-14: prima versione, rivista con la critica di Antigravity (Argon, conversazione `cd5399f9`); approvata da Manu lo stesso giorno.
 - 1.1 2026-11-16: passi 3-5 implementati; inspectDistance 5.5 e investigateSpeed 1.2 su richiesta di Manu.
+- 1.2 2026-11-16: passi 6-7 implementati (scala 1.35, profilo ricalibrato, sangue in CreatureManager.Eat); passo 8 rimandato (nido di prova nel Crinale).

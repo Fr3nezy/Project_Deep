@@ -49,6 +49,14 @@ namespace Deeploration.Creatures
                  "delle specie; il raggio del banco arriva al massimo a 3 celle")]
         [SerializeField, Min(0.25f)] private float neighbourCellSize = 1f;
 
+        // Sistema particellare condiviso in spazio mondo per la nuvola di sangue quando un predatore mangia.
+        [Tooltip("ParticleSystem condiviso in spazio mondo per la nuvola di sangue quando un predatore mangia. " +
+                 "Opzionale: se manca non compare sangue.")]
+        [SerializeField] private ParticleSystem bloodBurst;
+
+        [Tooltip("Numero di particelle di sangue emesse a ogni preda mangiata.")]
+        [SerializeField, Min(0)] private int bloodParticles = 24;
+
         private readonly Dictionary<CreatureProfile, ObjectPool<Creature>> pools =
             new Dictionary<CreatureProfile, ObjectPool<Creature>>();
         private readonly List<Creature> active = new List<Creature>();
@@ -130,6 +138,11 @@ namespace Deeploration.Creatures
         internal void Eat(Creature prey, Creature predator)
         {
             if (prey == null || prey.ActiveIndex < 0 || eaten.Contains(prey)) return;
+            if (bloodBurst != null && bloodParticles > 0)
+            {
+                var p = new ParticleSystem.EmitParams { position = prey.transform.position, applyShapeToPosition = true };
+                bloodBurst.Emit(p, bloodParticles);
+            }
             if (prey.CanFadeIn && predator != null) prey.Swallow(predator);
             CreatureProfile species = prey.Profile;
             if (species.alarmRadius > 0f)

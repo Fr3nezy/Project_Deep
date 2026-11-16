@@ -14,6 +14,8 @@ namespace Deeploration.Creatures
     {
         // Inclinazione massima della rotta: i pesci nuotano quasi in piano anche quando cambiano quota.
         private const float MaxClimb = 0.5f;
+        // Normale minima di un pendio che chi nuota sa risalire: cos(atan(MaxClimb)), circa 26.6°.
+        private const float SwimClimbableNormalY = 0.894f;
         private const float FloorProbeDistance = 100f;
         // Chi striscia: velocità massima con cui segue la quota del fondale (m/s) e prontezza dell'inclinazione (1/s).
         private const float CrawlFollowSpeed = 2f;
@@ -23,6 +25,9 @@ namespace Deeploration.Creatures
         // Chi striscia, dopo aver toccato una parete, continua a girarle attorno per questo tempo (s) anche se lo
         // SphereCast in avanti la vede libera: senza, tornava subito contro la roccia e restava bloccato.
         private const float CrawlAvoidHold = 0.8f;
+        // Chi nuota smussa lo scarto dagli ostacoli in questo tempo (s): ricalcolato da zero a ogni raggio
+        // oscillava a ogni frame (destra-sinistra vicino alle rocce), perché la virata cambia il raggio successivo.
+        private const float SwimAvoidSmoothing = 0.25f;
         private const int SpotAttempts = 4;
         private const float SwimStuckTime = 1.5f;
         private const float SwimDetourHold = 2.5f;
@@ -161,12 +166,17 @@ namespace Deeploration.Creatures
 
         // Risultati degli ultimi raggi, riusati finché il livello di dettaglio non ne lancia altri.
         private float floorY = float.NaN;
+        // Fondale sotto il punto che il muso raggiungerà fra lookAhead secondi (solo chi nuota): la quota ci sale prima.
+        private float leadFloorY = float.NaN;
         // Normale del fondale e asse "su" del corpo (liscio), per le creature che strisciano.
         private Vector3 floorNormal = Vector3.up;
         private Vector3 bodyUp = Vector3.up;
         private Vector3 avoidDirection;
         private float avoidWeight;
         private float avoidHoldUntil;
+        private float lastAvoidProbeTime;
+        // Lato della virata quando la rotta desiderata è quasi opposta (±1, 0 = nessuna inversione in corso).
+        private float reverseTurnSide;
         // Ultima posizione in cui il corpo non toccava ostacoli, per uscirne dalla parte da cui è entrato.
         private Vector3 lastFreePosition;
         private bool hasFreePosition;
@@ -281,6 +291,7 @@ namespace Deeploration.Creatures
             lastInterestTime = float.NegativeInfinity;
             perceived = StimulusCategory.None;
             floorY = float.NaN;
+            leadFloorY = float.NaN;
             floorNormal = bodyUp = Vector3.up;
             if (profile.crawlsOnFloor)
             {
@@ -817,6 +828,18 @@ namespace Deeploration.Creatures
             hasFreePosition = true;
 
             float lookDistance = profile.bodyRadius + Mathf.Max(1f, speed * profile.lookAhead);
+            // Risalita anticipata: un pendio oltre MaxClimb sale più in fretta di quanto il pesce possa salire, e
+            // misurato solo sotto il corpo lo lasciava indietro fino a radere la roccia (2026-11-16). Il raggio parte
+            // un lookDistance sopra il muso, quindi vede pendii fino a 45°.
+            leadFloorY = floorY;
+            Vector3 leadDirection = new Vector3(heading.x, 0f, heading.z);
+            if (!profile.crawlsOnFloor && !float.IsNaN(floorY) && leadDirection.sqrMagnitude > 1e-4f)
+            {
+                Vector3 ahead = position + leadDirection.normalized * lookDistance + Vector3.up * lookDistance;
+                if (Physics.Raycast(ahead, Vector3.down, out RaycastHit leadHit, lookDistance * 2f + profile.heightAboveFloor,
+                        mask, QueryTriggerInteraction.Ignore))
+                    leadFloorY = Mathf.Max(floorY, leadHit.point.y);
+            }
             // Chi striscia guarda avanti lungo il pendio e non conta come ostacolo il terreno che può percorrere.
             Vector3 lookDirection = heading;
             if (profile.crawlsOnFloor)
@@ -827,6 +850,11 @@ namespace Deeploration.Creatures
             bool blocked = Physics.SphereCast(position, profile.bodyRadius, lookDirection, out RaycastHit hit, lookDistance,
                 mask, QueryTriggerInteraction.Ignore);
             if (blocked && profile.crawlsOnFloor && hit.normal.y > CrawlWalkableNormalY) blocked = false;
+            // Chi nuota risale un pendio entro MaxClimb (normale ≥ 0.894) sotto il soffitto: è fondale, ci pensa
+            // HeightCorrection. Trattato da parete lo faceva svoltare, staccarsi e tornarci (destra-sinistra a terra).
+            if (blocked && !profile.crawlsOnFloor && hit.normal.y >= SwimClimbableNormalY &&
+                hit.point.y + profile.heightAboveFloor <= ceilingY)
+                blocked = false;
             if (!blocked && profile.crawlsOnFloor && CrawlEdgeAhead(position, lookDirection, mask, out Vector3 edgeNormal))
             {
                 // Bordo davanti (pendio troppo ripido o salto): lo costeggia girando dal lato verso cui già piega,
@@ -846,10 +874,22 @@ namespace Deeploration.Creatures
                 Vector3 normal = new Vector3(hit.normal.x, 0f, hit.normal.z);
                 Vector3 slide = Vector3.ProjectOnPlane(new Vector3(heading.x, 0f, heading.z), normal);
                 if (slide.sqrMagnitude < 0.01f) slide = Vector3.Cross(Vector3.up, normal);
-                avoidDirection = slide.normalized + normal.normalized * 0.5f;
-                if (avoidDirection.sqrMagnitude < 0.0001f) avoidDirection = new Vector3(heading.x, 0f, heading.z);
-                avoidDirection.Normalize();
-                avoidWeight = 1f - hit.distance / lookDistance;
+                Vector3 newDirection = slide.normalized + normal.normalized * 0.5f;
+                if (newDirection.sqrMagnitude < 0.0001f) newDirection = new Vector3(heading.x, 0f, heading.z);
+                newDirection.Normalize();
+                float newWeight = 1f - hit.distance / lookDistance;
+                if (profile.crawlsOnFloor || avoidWeight <= 0f)
+                {
+                    avoidDirection = newDirection;
+                    avoidWeight = newWeight;
+                }
+                else
+                {
+                    float k = SwimAvoidBlend();
+                    avoidDirection = Vector3.Slerp(avoidDirection, newDirection, k).normalized;
+                    avoidWeight = Mathf.Lerp(avoidWeight, newWeight, k);
+                }
+                lastAvoidProbeTime = Time.time;
 
                 // Predatore: se l'orbita lo porta contro la roccia inverte il verso, invece di scivolare lungo la
                 // parete verso il sub. In un corridoio fa avanti e indietro sul lato libero, alla sua distanza.
@@ -860,10 +900,17 @@ namespace Deeploration.Creatures
             }
             else if (Time.time >= avoidHoldUntil)
             {
-                avoidWeight = 0f;
+                // Chi nuota lascia andare lo scarto in modo graduale, chi striscia subito come prima.
+                avoidWeight = profile.crawlsOnFloor ? 0f : Mathf.Lerp(avoidWeight, 0f, SwimAvoidBlend());
+                if (avoidWeight < 0.02f) avoidWeight = 0f;
+                lastAvoidProbeTime = Time.time;
                 swimBlockedSince = -1f;
             }
         }
+
+        /// <summary>Quota di avvicinamento al nuovo scarto, dal tempo passato dall'ultimo raggio (LOD incluso).</summary>
+        private float SwimAvoidBlend() =>
+            1f - Mathf.Exp(-Mathf.Max(0f, Time.time - lastAvoidProbeTime) / SwimAvoidSmoothing);
 
         /// <summary>
         /// Chi nuota contro una parete da più di <see cref="SwimStuckTime"/> secondi (la coesione del banco o il
@@ -882,8 +929,9 @@ namespace Deeploration.Creatures
             if (now - swimBlockedSince <= SwimStuckTime) return;
 
             if (away.sqrMagnitude < 1e-6f) away = new Vector3(-heading.x, 0f, -heading.z);
-            heading = Quaternion.AngleAxis(Random.Range(-60f, 60f), Vector3.up) * away.normalized;
-            avoidDirection = heading;
+            // Solo la rotta desiderata: la virata la fa Move a turnRate. Assegnare heading girava il pesce fino a
+            // 170° in un frame.
+            avoidDirection = Quaternion.AngleAxis(Random.Range(-60f, 60f), Vector3.up) * away.normalized;
             avoidWeight = 1f;
             avoidHoldUntil = now + SwimDetourHold;
             swimBlockedSince = -1f;
@@ -1032,7 +1080,7 @@ namespace Deeploration.Creatures
             float targetSpeed;
             Vector3 desired;
 
-            float targetY = float.IsNaN(floorY) ? position.y : floorY + profile.heightAboveFloor;
+            float targetY = float.IsNaN(floorY) ? position.y : LeadFloorY() + profile.heightAboveFloor;
             if (profile.stalkRange > 0f) UpdateAggression(deltaTime);
 
             bool lunging = false;
@@ -1042,8 +1090,12 @@ namespace Deeploration.Creatures
                 Vector3 toTarget = guidedTarget - position;
                 desired = toTarget;
                 targetY = guidedTarget.y;
-                if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, floorY + profile.bodyRadius * 2f);
                 lunging = state == CreatureState.Strike;
+                // Avvicinamento al casco (aggressività piena) e Scatto devono arrivare al sub anche a terra; Indaga,
+                // fuga e uscita restano alla quota di nuoto invece di radere il fondale.
+                bool closing = lunging || aggression >= 1f;
+                if (!float.IsNaN(floorY))
+                    targetY = Mathf.Max(targetY, closing ? floorY + profile.bodyRadius * 2f : SwimFloorY());
                 targetSpeed = lunging ? guidedSpeed : guidedSpeed * Mathf.Clamp(toTarget.magnitude / 1.5f, 0.2f, 1f);
             }
             else if (state == CreatureState.Strike)
@@ -1157,6 +1209,25 @@ namespace Deeploration.Creatures
             {
                 turnRate *= StartleBoost;
                 acceleration *= StartleBoost;
+            }
+
+            if (!profile.crawlsOnFloor)
+            {
+                // Rotta quasi opposta: RotateTowards girerebbe in verticale e il limite di MaxClimb lo terrebbe
+                // fermo a testa alzata contro la roccia. Gira di lato, dalla parte verso cui già piega.
+                Vector3 flatHeading = new Vector3(heading.x, 0f, heading.z);
+                Vector3 flatDesired = new Vector3(desired.x, 0f, desired.z);
+                if (flatHeading.sqrMagnitude > 1e-4f && flatDesired.sqrMagnitude > 1e-4f &&
+                    Vector3.Dot(flatHeading.normalized, flatDesired.normalized) < -0.8f)
+                {
+                    // Il lato resta quello scelto all'inizio: incastrato contro la roccia la rotta desiderata è
+                    // l'opposto esatto di heading e il segno del prodotto vettoriale cambiava a ogni frame.
+                    if (reverseTurnSide == 0f)
+                        reverseTurnSide = Vector3.Cross(flatHeading, flatDesired).y >= 0f ? 1f : -1f;
+                    Vector3 lateral = Vector3.Cross(Vector3.up, flatHeading.normalized) * reverseTurnSide;
+                    desired = new Vector3(lateral.x, desired.y, lateral.z);
+                }
+                else reverseTurnSide = 0f;
             }
 
             Vector3 previousHeading = heading;
@@ -1297,7 +1368,7 @@ namespace Deeploration.Creatures
         /// Rotta dell'orbita attorno al sub: tangente al cerchio attorno al busto più una correzione verso il raggio,
         /// che va da <c>stalkRadius</c> al buio a <c>strikeRadius</c> ad aggressività piena e respira del ±20% con
         /// un rumore lento. Il verso si inverte ogni 8-20 s. La quota oscilla di ±1 m attorno al busto, mai sotto
-        /// due raggi del corpo dal fondale.
+        /// l'altezza preferita sul fondale (<see cref="SwimFloorY"/>).
         /// </summary>
         private Vector3 StalkHeading(Vector3 position, out float targetY)
         {
@@ -1316,7 +1387,7 @@ namespace Deeploration.Creatures
 
             float bob = Mathf.PerlinNoise(noiseSeed + 50f, now * 0.07f) * 2f - 1f;
             targetY = centre.y + bob * StalkHeightSwing;
-            if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, floorY + profile.bodyRadius * 2f);
+            if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, SwimFloorY());
 
             return tangent + outward * Mathf.Clamp((radius - distance) * 0.5f, -1.5f, 1.5f);
         }
@@ -1342,17 +1413,38 @@ namespace Deeploration.Creatures
         }
 
         /// <summary>
+        /// Quota minima del bersaglio mentre segue il sub o nuota guidato: l'altezza preferita sul fondale, mai sotto
+        /// due raggi del corpo. Con il sub a terra il pesce gli gira attorno a quota di nuoto invece che rasoterra.
+        /// </summary>
+        private float SwimFloorY() =>
+            LeadFloorY() + Mathf.Max(profile.heightAboveFloor, profile.bodyRadius * 2f);
+
+        /// <summary>Il più alto fra il fondale sotto il corpo e quello davanti al muso (<see cref="leadFloorY"/>).</summary>
+        private float LeadFloorY() => float.IsNaN(leadFloorY) ? floorY : Mathf.Max(floorY, leadFloorY);
+
+        /// <summary>
         /// Componente verticale della rotta verso <paramref name="targetY"/> (di solito l'altezza preferita sopra il
         /// fondale, in Inspect la quota della sorgente), ma mai sopra il soffitto del nido. Sopra il soffitto scende
-        /// sempre, anche dentro la tolleranza.
+        /// sempre, anche dentro la tolleranza. Mai sotto due raggi del corpo dal fondale: lì la tolleranza non vale e il
+        /// soffitto cede.
         /// </summary>
         private float HeightCorrection(float y, float targetY)
         {
             float ceiling = guided && guidedIgnoreCeiling ? float.PositiveInfinity : ceilingY;
+            // Il fondale vince sul soffitto: dove il terreno sale fin sotto il soffitto il pesce restava schiacciato a
+            // pitch 0 e strisciava sulla roccia (nido sul crinale, 2026-11-16). Anche la fascia di tolleranza attorno a
+            // un bersaglio basso (Indaga, caccia) scendeva sotto il fondale e non lo rialzava mai.
+            float floorGuard = float.IsNaN(floorY) ? float.NegativeInfinity : floorY + profile.bodyRadius * 2f;
+            ceiling = Mathf.Max(ceiling, floorGuard);
             float target = Mathf.Min(targetY, ceiling);
-            float error = target - y;
-            if (y <= ceiling && Mathf.Abs(error) <= profile.heightTolerance) return 0f;
-            return error * 0.5f;
+            if (y > ceiling) return (target - y) * 0.5f;
+            // Fuori dalla tolleranza conta solo l'eccesso: col salto da 0 a error × 0.5 sul bordo della fascia la
+            // rotta passava a scatti da piana a inclinata (testa su e giù scendendo in diagonale).
+            float low = Mathf.Max(target - profile.heightTolerance, floorGuard);
+            float high = target + profile.heightTolerance;
+            if (y > high) return (high - y) * 0.5f;
+            // Sotto la guardia risale più deciso (sempre continuo): con il solo × 0.5 un pendio lo raggiungeva.
+            return Mathf.Max(0f, low - y) * 0.5f + Mathf.Max(0f, floorGuard - y) * 2f;
         }
 
         private void OnDrawGizmosSelected()

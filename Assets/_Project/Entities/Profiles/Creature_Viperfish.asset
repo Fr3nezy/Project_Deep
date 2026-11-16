@@ -33,27 +33,27 @@ MonoBehaviour:
   inspectRepositionInterval: 5
   calmDelay: 3
   schoolRadius: 0
-  separationDistance: 0.6
+  separationDistance: 0.8
   cohesionWeight: 0.5
   alignmentWeight: 0.5
-  diverClearance: 1.5
+  diverClearance: 2
   stalkRange: 0
   stalkRadius: 8
   strikeRadius: 2.5
   aggressionRate: 0.15
   aggressionDecay: 0.1
   strikeSpeed: 5
-  biteReach: 0.5
+  biteReach: 0.68
   strikeCooldown: 20
   prey: {fileID: 11400000, guid: 399f21f86317ea04d81ce4b19a0eb031, type: 2}
   huntRange: 5
   huntMaxAggression: 0.6
-  lungeDistance: 1.5
+  lungeDistance: 2.03
   preyAlertRadius: 1.2
   satiation: 30
   startleDuration: 0.35
   startleGlow: 0
   startleGlowDuration: 1.2
   alarmRadius: 0
-  bodyRadius: 0.2
+  bodyRadius: 0.27
   lookAhead: 1.5
