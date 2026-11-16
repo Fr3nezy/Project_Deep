@@ -1,5 +1,5 @@
 # Creatures
-Ultima verifica: 2026-11-14
+Ultima verifica: 2026-11-16
 
 ## Scopo e confini
 Fa vivere la fauna della slice: le creature escono dai nidi, vagano attorno a casa evitando rocce e fondale e reagiscono agli stimoli del sub: la luce della torcia, il rumore dei passi e la scia luminosa del prato di penne. Il sistema è progettato per molte creature a basso costo: un solo componente per creatura, un solo ciclo di aggiornamento per tutta la scena, livelli di dettaglio dell'intelligenza (LOD) e pool senza allocazioni a regime.
@@ -484,12 +484,16 @@ Implementato il 2026-11-08 (terza iterazione con jumpscare coreografato esattame
 - Suoni: clip sintetiche di debug (`Synth`, `SynthRustle` e `SynthJumpscare`): tocchi sordi a bassa frequenza, fruscio continuo filtrato, jumpscare 2D (transiente secco + stridio FM che sale + sub-bass boom, volume 1.0), avviso basso e reinsabbiamento quasi inudibile.
 
 ### CreatureStealth
-Spec: `docs/specs/ViperfishStealth.md` (passi 1-2 implementati il 2026-11-14).
-- **Responsabilità e ciclo di vita**: predatore stealth (viperfish della chiusa 2). Vede le luci del sub (`StimulusCategory.WeakLight`, `StrongLight`, `Flash` con `FromPlayer` vero) solo nel proprio cono visivo (`viewHalfAngle`, entro `min(maxSightRange, portata stimolo)`) e con linea di vista libera (`ObstacleMask`, con margine `SightRayMargin = 0.5` m prima della sorgente). Decide un livello d'allerta (`StealthAlert`). `Creature.OnSpawn` chiama `Begin(Creature, CreatureManager, Vector3 homePosition, float leash)`; `Creature.Tick` chiama `Step(float deltaTime, bool think)` a ogni frame.
+Spec: `docs/specs/ViperfishStealth.md` (passi 1-5 implementati e verificati in Play il 2026-11-16).
+- **Responsabilità e ciclo di vita**: predatore stealth (viperfish della chiusa 2). Vede le luci del sub (`StimulusCategory.WeakLight`, `StrongLight`, `Flash` con `FromPlayer` vero; `CreatureStimulus.FullFlash` vero solo per il lampo pieno del modulo) solo nel proprio cono visivo (`viewHalfAngle`, entro `min(maxSightRange, portata stimolo)`; asse = muso, ma in `Investigate` asse = direzione verso `lastSeen`, perché il corpo gira attorno al punto di traverso mentre gli occhi lo seguono: col muso la lampada usciva dal cono a ogni giro e perdeva interesse con la torcia accesa) e con linea di vista libera (`ObstacleMask`, con margine `SightRayMargin = 0.5` m prima della sorgente). Decide un livello d'allerta (`StealthAlert`). `Creature.OnSpawn` chiama `Begin(Creature, CreatureManager, Vector3 homePosition, float leash)`; `Creature.Tick` chiama `Step(float deltaTime, bool think)` a ogni frame.
 - **Macchina a stati**:
-  - `Neutral`: lascia ragionare la `Creature` da sola (vaga attorno al nido, caccia). Se era in allontanamento (`leaving`), continua a guidarla verso `leavePoint` (a almeno `leaveDistance` dal punto indagato) finché non arriva entro 1.5 m o scadono 15 s, poi chiama `Release()`.
-  - `Investigate`: se vede una luce del sub aggiorna `lastSeen` e `lastStimulusTime`. Guida la `Creature` (`CreatureState.Stalk`, aggressività 0, focus `lastSeen`) attorno a `lastSeen` a distanza `inspectDistance` e velocità `investigateSpeed`. Se vede il corpo del sub muoversi entro `motionSightRange` con velocità > `motionThreshold` (campionata sul tempo reale fra due ragionamenti), passa ad `Attack`. Se passano `giveUpTime` secondi senza stimoli validi, torna `Neutral` e avvia l'allontanamento (`leaving`).
-  - `Attack`: guida la `Creature` verso il casco del sub (`PlayerPosition + Vector3.up * helmetHeight`) a velocità `approachSpeed` (`CreatureState.Stalk`, aggressività 1). **Shortcut attuale**: insegue il casco senza carica né morso (passo 4 della spec). Se passano `attackGiveUpTime` secondi senza riuscire a caricare, torna a `Investigate`.
+  - `Neutral`: lascia ragionare la `Creature` da sola (vaga attorno al nido, caccia). Se `fleeing` è attivo (dopo morso o respinta), nuota a `profile.fleeSpeed` (`CreatureState.Flee`) verso un punto a 8 m dal casco in direzione opposta (se la linea dal pesce al punto colpisce `ObstacleMask`, la prima libera fra ±45°, ±90°, ±135°) per `fleeDuration` s ignorando luci e movimento, poi avvia `StartLeaving` con `lastSeen` = casco. Se era in allontanamento (`leaving`), continua a guidarla verso `leavePoint` (a almeno `leaveDistance` dal punto indagato) finché non arriva entro 1.5 m o scadono 15 s, poi chiama `Release()`.
+  - `Investigate`: se vede una luce del sub aggiorna `lastSeen` e `lastStimulusTime`. Guida la `Creature` (`CreatureState.Stalk`, aggressività 0, focus `lastSeen`) attorno a `lastSeen` a distanza `inspectDistance` (5.5 m) e velocità `investigateSpeed` (1.2 m/s). Se `now >= noAttackUntil` e vede il corpo del sub muoversi entro `motionSightRange` con velocità > `motionThreshold`, passa ad `Attack`. Se passano `giveUpTime` secondi senza stimoli validi, torna `Neutral` e avvia `leaving`.
+  - `Attack` (fasi interne `Approach` → `Windup` → `Strike`):
+    - `Approach`: orbita attorno al casco (passi ≤ 60°, `orbitSign` fisso se |delta| > 150°, fallback ±20°/±40° a ×1/×0.75/×0.5 su ostacolo) verso `frontDistance` davanti a `ViewCamera.forward` (senza camera: warning una volta e direzione sub→pesce). Entra in `Windup` quando angolo ≤ `frontAngle`, distanza orizzontale ≤ `frontDistance + 1` e `LineClear` libera. Se scade `attackGiveUpTime` in `Approach`, torna `Investigate`.
+    - `Windup`: resta quasi fermo (`0.3` m/s verso il casco) per `windupTime` s, poi `Strike`.
+    - `Strike`: scatta verso il casco a `strikeSpeed` (`CreatureState.Strike`, `personalSpace: false`, `ignoreCeiling: true`; `Creature.Move` imposta `lunging` e salta il rallentamento finale). Se la distanza fra il centro del pesce e il casco < `profile.biteReach + profile.bodyRadius` (0.7 m: la bocca è avanti di `bodyRadius`; col solo `biteReach` uno scatto di sbieco passava a 0.63 m senza mordere), chiama `Creature.BiteDiverGuided()` e fugge con `biteCooldown`; se scade `strikeMaxDuration`, torna `Approach`.
+    - **Respinta**: in `Windup` e `Strike`, uno stimolo `Flash` con `FromPlayer` e `FullFlash` entro `Radius` avvia la fuga con `repelCooldown`.
 - **Campi Inspector**:
 
 | Campo | Tipo | Default | Significato |
@@ -499,22 +503,32 @@ Spec: `docs/specs/ViperfishStealth.md` (passi 1-2 implementati il 2026-11-14).
 | `motionSightRange` | float ≥ 0 | 12 | Portata a cui vede il corpo del sub muoversi (m) |
 | `motionThreshold` | float ≥ 0 | 0.3 | Velocità del sub (m/s) oltre la quale conta come movimento |
 | `giveUpTime` | float ≥ 0 | 5 | Secondi senza stimoli validi dopo cui perde interesse e torna `Neutral` |
-| `inspectDistance` | float ≥ 0.5 | 2 | Distanza (m) a cui gira attorno al punto indagato |
-| `investigateSpeed` | float ≥ 0.1 | 1.8 | Velocità (m/s) verso il punto indagato |
+| `inspectDistance` | float ≥ 0.5 | 5.5 | Distanza (m) a cui gira attorno al punto indagato |
+| `investigateSpeed` | float ≥ 0.1 | 1.2 | Velocità (m/s) verso il punto indagato |
 | `leaveDistance` | float ≥ 0 | 10 | Distanza minima (m) dal punto indagato a cui si allontana dopo aver perso interesse |
 | `approachSpeed` | float ≥ 0.1 | 3.5 | Velocità (m/s) verso il sub in `Attack` |
-| `attackGiveUpTime` | float ≥ 0 | 8 | Secondi di `Attack` senza riuscire a caricare dopo cui torna a indagare |
+| `attackGiveUpTime` | float ≥ 0 | 8 | Secondi di `Approach` senza riuscire a caricare dopo cui torna a indagare |
 | `helmetHeight` | float ≥ 0 | 1.3 | Altezza del casco sopra i piedi del sub (m) |
+| `frontAngle` | float [5, 120] | 45 | Semi-angolo (°) del cono frontale del sub da cui può partire la carica |
+| `frontDistance` | float ≥ 1 | 3.5 | Distanza (m) davanti al casco a cui si posiziona prima di caricare |
+| `windupTime` | float ≥ 0.1 | 0.8 | Durata della carica (s) prima dello scatto |
+| `strikeSpeed` | float ≥ 0.5 | 6 | Velocità dello scatto verso il casco (m/s) |
+| `strikeMaxDuration` | float ≥ 0.1 | 1.5 | Durata massima dello scatto (s) prima di tornare in `Approach` |
+| `repelCooldown` | float ≥ 0 | 15 | Secondi senza poter riattaccare dopo una respinta con il flash pieno |
+| `biteCooldown` | float ≥ 0 | 20 | Secondi senza poter riattaccare dopo un morso |
+| `fleeDuration` | float ≥ 0.5 | 3 | Durata della fuga (s) dopo morso o respinta |
 
 - **API pubbliche e interne**:
   - Pubbliche: `StealthAlert Alert { get; }`, `Vector3 LastSeenPoint { get; }`, `event Action<StealthAlert> OnAlertChanged`.
   - Interne: `void Begin(Creature owner, CreatureManager creatureManager, Vector3 homePosition, float leash)`, `void Step(float deltaTime, bool think)`.
-- **Gizmo** (`OnDrawGizmosSelected`): disegna i 4 bordi del cono visivo (`viewHalfAngle`, lunghezza `motionSightRange`) colorati per stato (blu `Neutral`, arancione `Investigate`, rosso `Attack`). In Play: in `Investigate`/`Attack` disegna sfera e linea verso `lastSeen`; in `Neutral` durante `leaving` disegna sfera e linea ciano verso `leavePoint`.
+- **Gizmo** (`OnDrawGizmosSelected`): disegna i 4 bordi del cono visivo (`viewHalfAngle`, lunghezza `motionSightRange`) colorati per stato (blu `Neutral`, arancione `Investigate`, rosso `Approach`, giallo `Windup`, magenta `Strike`). In Play: in `Approach` disegna sfera e linea verso `approachTarget`; in `Investigate` verso `lastSeen`; in `Neutral` durante `leaving` ciano verso `leavePoint`.
 - **Riferimenti obbligatori**: `Creature` sullo stesso GameObject (`RequireComponent`); creatura presa dal pool di `CreatureManager`.
 - **Stato**:
-  - *Implementato* (2026-11-14): passi 1-2 della spec (cono visivo, linea di vista, `Neutral`/`Investigate`/`Attack` provvisorio, allontanamento).
-  - *Verificato* (in Play il 2026-11-14 con stimoli finti): T2 luce forte alle spalle a 10 m → `Neutral`; T3 luce dietro una roccia → `Neutral`; T4 luce forte nel cono a 10 m → `Investigate` e interrompe la caccia; T5 luce non del sub → `Neutral`; T9 scia del prato 6 m a 4 m → `Investigate`, a 10 m → `Neutral`; T10 rumore → `Neutral`; T11 dopo 5 s → `Neutral` e punto d'uscita a 10 m; caccia in `Neutral` funzionante; diver fermo in `Investigate` con LOD `Mid` → nessun falso `Attack`. Con il sub vero (Antigravity, stesso giorno): T14 capsula ruotata di 870° sul posto → resta `Investigate`; T15 211 frame in LOD `Mid` col sub fermo → resta `Investigate`; T12 sub a 0.34 m/s nel cono a 3.3 e 5.9 m → `Attack`; T13 sub che cammina a 2.6 m/s in `Red` in `Neutral` → resta `Neutral`; T6 cella in mano, sub fermo a 7.7 m → `Investigate`; T7 cella rilasciata a 0.52 m/s nel cono a 6.5 m → `Investigate`; T8 cella mai presa che cade a 0.27 m/s → `Neutral`; T31 lanternfish in 30 s: 565 cambi di stato normali, 0 errori in console. Non verificati: avvicinamento e allontanamento a occhio, prova di Manu con mouse e tastiera.
-  - *Pianificato*: passi 3-9 della spec (`Flash` pieno, `Attack` frontale con Carica/Scatto/morso, fotofori a tre colori, scala +35%, sangue, due viperfish in Z2).
+  - *Implementato* (2026-11-16): passi 1-5 della spec (cono visivo, linea di vista, `Neutral`/`Investigate`/`Attack` completo con `Approach`/`Windup`/`Strike`/Fuga/cooldown, `FullFlash`, fotofori a tre livelli in `CreatureGlow`).
+  - *Verificato* (in Play il 2026-11-14, passi 1-2): T2-T15, T31.
+  - *Verificato* (in Play il 2026-11-16, passi 3-5, Claude Code via MCP: sub alla `Warp_Stazione_O2_1`, viperfish fatto uscire dal pool a 9 m, torcia e camminata simulate da codice, campionatore su `EditorApplication.update`): torcia Full nel cono → `Investigate` ambra, orbita a 4.4-5.9 m dalla lampada in campo aperto, resta in `Investigate` finché la torcia è accesa, con la torcia `Red` torna `Neutral` dopo 5 s; sub che cammina a 0.8 m/s → `Attack` (anche da 12 m) → `Windup` → `Strike` a 6 m/s → morso (`DiverBiteReceiver.OnBitten` dal pesce giusto) → fuga fino a 5-8.6 m (T22); `FireFlash(true)` in `Windup` → fuga e `Neutral` (T19), camminata 5 s dopo → nessun attacco (cooldown), camminata dopo 18 s → attacco; `FireFlash(false)` in `Windup` → morso comunque (T20); colori misurati nel property block: `Neutral` (1.3, 3.9, 13.1) blu, `Investigate` (10.6, 5.7, 2.4) ambra, `Attack` (18.4, 1.7, 1.7) rosso, `Hunt` blu più luminoso; 0 errori e 0 warning in console. Non verificati: T16-T18 (sub di spalle, faccia al muro), T21 (camera girata durante la Carica), T26 (teletrasporto), T28 (senza camera), prova di Manu con mouse e tastiera, catture in Game view.
+  - *Pianificato*: passi 6-9 della spec (scala +35%, sangue, due viperfish in Z2).
+- **Limiti noti**: vicino a una parete l'orbita di `Investigate` a 5.5 m ci sbatte contro e l'evitamento la stringe verso il punto (misurato fino a 1.25 m dalla lampada con una roccia a 1.7-2.6 m dal sub alla stazione O₂). Da ritarare nel posizionamento in Z2. In `Windup` il muso resta fino a 25° fuori asse dal casco (gira piano da quasi fermo), quindi lo scatto curva un po'.
 
 ### BurrowZone
 Implementato il 2026-11-08; nessuna zona ancora in scena (il posizionamento è rimandato).
@@ -553,15 +567,17 @@ Implementato il 2026-11-08; nessuna zona ancora in scena (il posizionamento è r
 - Ordine: la mandibola è figlia di `Head`, che `SwimChain` non scrive, quindi le due rotazioni non si pestano.
 
 ### CreatureGlow
-- Responsabilità e ciclo di vita: sulla radice della creatura accanto a `Creature`. In `LateUpdate` scrive `_EmissionColor` sui `renderers` con un `MaterialPropertyBlock`: la mappa di emissione del materiale dà la forma dei fotofori, il colore la moltiplica. L'umore visibile insegue l'aggressività con `responsiveness`; colore, frequenza e profondità della pulsazione vanno da `calmColor`, `pulseFrequency.x`, `pulseDepth.x` a `angryColor`, `pulseFrequency.y`, `pulseDepth.y`. In `Strike` usa `strikeColor` e lampeggia a onda quadra a `strikeStrobe`; in `Hunt` l'umore insegue almeno `huntMood` e l'intensità si moltiplica per `huntBoost`, con almeno 1 pulsazione al secondo (l'aggressività sale solo con luce e rumore del sub, quindi fino al 2026-10-16 la caccia ai lanternfish lontano dal sub restava del colore della calma); in `Flee` per `fleeDim`. Colore e intensità cambiano insieme, così il segnale si legge anche dove il rosso si confonde (luce rossa, daltonismo). Scrive solo se almeno un renderer è visibile. I colori sono moltiplicatori lineari passati con `SetVector`, come l'`_EmissionColor` salvato nel materiale: (8, 8, 8) = mappa per 8. Fino al 2026-10-15 sera passavano con `SetColor`, che in spazio colore Linear tratta il colore come gamma e lo eleva a 2.2: con valori HDR l'emissione esplodeva (il bianco ×8 diventava ×97) e il colore si bruciava in un arancione chiaro.
+- Responsabilità e ciclo di vita: sulla radice della creatura accanto a `Creature`. In `LateUpdate` scrive `_EmissionColor` sui `renderers` con un `MaterialPropertyBlock`: la mappa di emissione del materiale dà la forma dei fotofori, il colore la moltiplica. Se sullo stesso GameObject è presente `CreatureStealth`, colore, frequenza e profondità inseguono `stealth.Alert` (`neutralColor`/`neutralPulse` blu, `investigateColor`/`investigatePulse` ambra, `attackColor`/`attackPulse` rosso) con transizione in `levelBlendTime` (0.3 s); in `Hunt` usa i valori di `Neutral` con `huntBoost`, in `Flee` scala per `fleeDim`, in `Strike` resta `strikeColor` stroboscopico. Senza `CreatureStealth`, l'umore visibile insegue l'aggressività con `responsiveness` da `calmColor` ad `angryColor`. Scrive solo se almeno un renderer è visibile, usando `SetVector` (non `SetColor`).
+- Mappa emissiva del viperfish (2026-11-16): `M_Viperfish.mat` usa `SM_ViperFish_low_UniV_Grid_2K_EmissionWhite.png`, generata dalla mappa arancione (che resta nella cartella) prendendo per ogni pixel il canale più alto, senza normalizzare, così la luminosità resta quella di prima; stesse impostazioni di import. Con la mappa arancione il blu di `Neutral` dava quasi nero. I valori in `Creature_Viperfish.prefab` di `calmColor`, `angryColor` e `strikeColor` sono allineati ai nuovi default.
+- Campi aggiuntivi per stealth: `neutralColor` (1, 3, 10), `neutralPulse` (0.25, 0.3), `investigateColor` (10, 5, 0.8), `investigatePulse` (0.8, 0.4), `attackColor` (16, 1.5, 1.5), `attackPulse` (2.5, 0.5), `levelBlendTime` (0.3).
 - Campi Inspector:
 
 | Campo | Tipo | Default | Significato |
 |---|---|---|---|
 | `renderers` | `Renderer[]` | vuoto | Renderer con il materiale emissivo (URP Lit con `_EMISSION`) |
-| `calmColor` | `Color` HDR | (8, 8, 8) | Moltiplicatore a riposo: bianco = colore della mappa (arancione per il viperfish) |
-| `angryColor` | `Color` HDR | (16, 2.5, 2) | Moltiplicatore ad aggressività piena: sposta l'arancione verso il rosso. Il rosso deve restare molto sopra verde e blu, altrimenti il risultato resta arancione |
-| `strikeColor` | `Color` HDR | (28, 2.5, 2) | Moltiplicatore nello slancio |
+| `calmColor` | `Color` HDR | (8, 3.9, 0) | Colore a riposo senza `CreatureStealth`. Con la mappa bianca del viperfish ridà l'arancione della vecchia mappa (rapporto lineare dei canali r 1, g 0.488, b 0, misurato il 2026-11-16) |
+| `angryColor` | `Color` HDR | (16, 1.22, 0) | Colore ad aggressività piena senza `CreatureStealth`. Il rosso deve restare molto sopra verde e blu, altrimenti il risultato resta arancione |
+| `strikeColor` | `Color` HDR | (28, 1.22, 0) | Colore nello slancio, anche nello `Strike` di `CreatureStealth` |
 | `pulseFrequency` | `Vector2` | (0.25, 2) | Pulsazioni al secondo a riposo e ad aggressività piena |
 | `pulseDepth` | `Vector2` | (0.3, 0.5) | Profondità della pulsazione a riposo e ad aggressività piena |
 | `strikeStrobe` | float ≥ 0 | 9 | Lampeggi al secondo nello slancio |

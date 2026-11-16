@@ -555,6 +555,16 @@ namespace Deeploration.Creatures
             strikeCooldownUntil = now + profile.strikeCooldown;
         }
 
+        /// <summary>
+        /// Morso al sub invocato da un driver esterno (<see cref="CreatureStealth"/>): registra il morso e lo segnala
+        /// al manager senza cambiare stato, lasciando la transizione al driver.
+        /// </summary>
+        internal void BiteDiverGuided()
+        {
+            lastBiteTime = Time.time;
+            manager.ReportBite(this);
+        }
+
         /// <summary>Preda presa: torna nel pool con il suo lampo d'allarme e il predatore resta sazio.</summary>
         private void CatchPrey(float now)
         {
@@ -1028,12 +1038,13 @@ namespace Deeploration.Creatures
             bool lunging = false;
             if (guided)
             {
-                // Nuoto guidato: verso il bersaglio, rallentando nell'ultimo metro e mezzo.
+                // Nuoto guidato: verso il bersaglio, rallentando nell'ultimo metro e mezzo (tranne nello Scatto).
                 Vector3 toTarget = guidedTarget - position;
                 desired = toTarget;
                 targetY = guidedTarget.y;
                 if (!float.IsNaN(floorY)) targetY = Mathf.Max(targetY, floorY + profile.bodyRadius * 2f);
-                targetSpeed = guidedSpeed * Mathf.Clamp(toTarget.magnitude / 1.5f, 0.2f, 1f);
+                lunging = state == CreatureState.Strike;
+                targetSpeed = lunging ? guidedSpeed : guidedSpeed * Mathf.Clamp(toTarget.magnitude / 1.5f, 0.2f, 1f);
             }
             else if (state == CreatureState.Strike)
             {

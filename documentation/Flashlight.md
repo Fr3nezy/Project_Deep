@@ -1,5 +1,5 @@
 # Diver Flashlight
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-16
 
 ## Scopo e confini
 Gestisce la torcia montata sullo scafandro del diver, permettendo la commutazione ciclica tra le modalità di illuminazione subacquea implementate (`Full`, `Low`, `Red`).
@@ -84,7 +84,8 @@ flowchart TD
   void CycleMode();
   void SetMode(FlashlightMode mode);
   void UnlockFlash();
-  void FireFlash(bool full = true); // ignorato se il flash non è sbloccato; false = lampo debole
+  void FireFlash(bool full = true); // ignorato se il flash non è sbloccato; false = lampo debole; aggiorna LastFlashFull
+  bool LastFlashFull { get; } // true se l'ultimo FireFlash era a piena carica
   ```
   - `OnModeChanged`: Invocato a ogni chiamata a `SetMode(mode)`, anche qualora la modalità richiesta coincida con quella già attiva.
   - `CycleMode()`: dal 2026-11-10 `Full → Low → Full`; da `Red` va a `Full` (prima `Full → Low → Red → Full`).

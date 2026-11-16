@@ -18,15 +18,17 @@ namespace Deeploration.Creatures
         [Tooltip("Renderer con il materiale emissivo (URP Lit con _EMISSION).")]
         [SerializeField] private Renderer[] renderers;
 
-        [Tooltip("Moltiplicatore dell'emissione a riposo (HDR). Bianco = colore della mappa.")]
-        [SerializeField, ColorUsage(false, true)] private Color calmColor = new Color(8f, 8f, 8f);
+        // La mappa emissiva del viperfish è bianca (2026-11-16): i default ridanno l'arancione e il rosso della vecchia
+        // mappa arancione (rapporto lineare dei canali r 1, g 0.488, b 0).
+        [Tooltip("Moltiplicatore dell'emissione a riposo (HDR), senza CreatureStealth. Con la mappa bianca è il colore.")]
+        [SerializeField, ColorUsage(false, true)] private Color calmColor = new Color(8f, 3.9f, 0f);
 
-        [Tooltip("Moltiplicatore ad aggressività piena (HDR): sposta la mappa arancione verso il rosso. Tenere il rosso " +
-                 "molto sopra verde e blu, altrimenti resta arancione.")]
-        [SerializeField, ColorUsage(false, true)] private Color angryColor = new Color(16f, 2.5f, 2f);
+        [Tooltip("Moltiplicatore ad aggressività piena (HDR), senza CreatureStealth. Tenere il rosso molto sopra verde " +
+                 "e blu, altrimenti resta arancione.")]
+        [SerializeField, ColorUsage(false, true)] private Color angryColor = new Color(16f, 1.22f, 0f);
 
-        [Tooltip("Moltiplicatore durante lo slancio del morso (HDR).")]
-        [SerializeField, ColorUsage(false, true)] private Color strikeColor = new Color(28f, 2.5f, 2f);
+        [Tooltip("Moltiplicatore durante lo slancio del morso (HDR), anche nello Scatto di CreatureStealth.")]
+        [SerializeField, ColorUsage(false, true)] private Color strikeColor = new Color(28f, 1.22f, 0f);
 
         [Tooltip("Pulsazioni al secondo a riposo e ad aggressività piena.")]
         [SerializeField] private Vector2 pulseFrequency = new Vector2(0.25f, 2f);
@@ -50,14 +52,41 @@ namespace Deeploration.Creatures
         [Tooltip("Velocità con cui l'umore visibile insegue l'aggressività (1/s).")]
         [SerializeField, Min(0.1f)] private float responsiveness = 2f;
 
+        [Header("Livelli stealth (quando presente CreatureStealth)")]
+        [Tooltip("Colore HDR in allerta Neutrale (blu).")]
+        [SerializeField, ColorUsage(false, true)] private Color neutralColor = new Color(1f, 3f, 10f);
+
+        [Tooltip("Pulsazione in Neutrale: x = frequenza (Hz), y = profondità (0..1).")]
+        [SerializeField] private Vector2 neutralPulse = new Vector2(0.25f, 0.3f);
+
+        [Tooltip("Colore HDR in allerta Indaga (ambra).")]
+        [SerializeField, ColorUsage(false, true)] private Color investigateColor = new Color(10f, 5f, 0.8f);
+
+        [Tooltip("Pulsazione in Indaga: x = frequenza (Hz), y = profondità (0..1).")]
+        [SerializeField] private Vector2 investigatePulse = new Vector2(0.8f, 0.4f);
+
+        [Tooltip("Colore HDR in allerta Attacco (rosso).")]
+        [SerializeField, ColorUsage(false, true)] private Color attackColor = new Color(16f, 1.5f, 1.5f);
+
+        [Tooltip("Pulsazione in Attacco: x = frequenza (Hz), y = profondità (0..1).")]
+        [SerializeField] private Vector2 attackPulse = new Vector2(2.5f, 0.5f);
+
+        [Tooltip("Tempo (s) di transizione di colore e ritmo al cambio di livello.")]
+        [SerializeField, Min(0.01f)] private float levelBlendTime = 0.3f;
+
         private Creature creature;
+        private CreatureStealth stealth;
         private MaterialPropertyBlock block;
         private float mood;
         private float phase;
+        private Color currentColor;
+        private float currentFrequency;
+        private float currentDepth;
 
         private void Awake()
         {
             creature = GetComponent<Creature>();
+            stealth = GetComponent<CreatureStealth>();
             block = new MaterialPropertyBlock();
         }
 
@@ -65,6 +94,9 @@ namespace Deeploration.Creatures
         {
             mood = 0f;
             phase = Random.value * Mathf.PI * 2f;
+            currentColor = neutralColor;
+            currentFrequency = neutralPulse.x;
+            currentDepth = neutralPulse.y;
         }
 
         private void LateUpdate()
@@ -72,13 +104,48 @@ namespace Deeploration.Creatures
             if (renderers == null || renderers.Length == 0) return;
             float dt = Time.deltaTime;
             CreatureState state = creature != null ? creature.State : CreatureState.Wander;
-            float aggression = creature != null ? creature.Aggression : 0f;
-            if (state == CreatureState.Hunt) aggression = Mathf.Max(aggression, huntMood);
-            mood = Mathf.Lerp(mood, aggression, 1f - Mathf.Exp(-responsiveness * dt));
 
-            Color color = Color.Lerp(calmColor, angryColor, mood);
-            float frequency = Mathf.Lerp(pulseFrequency.x, pulseFrequency.y, mood);
-            float depth = Mathf.Lerp(pulseDepth.x, pulseDepth.y, mood);
+            Color color;
+            float frequency;
+            float depth;
+            if (stealth != null)
+            {
+                Color targetColor = stealth.Alert switch
+                {
+                    StealthAlert.Investigate => investigateColor,
+                    StealthAlert.Attack => attackColor,
+                    _ => neutralColor
+                };
+                Vector2 targetPulse = stealth.Alert switch
+                {
+                    StealthAlert.Investigate => investigatePulse,
+                    StealthAlert.Attack => attackPulse,
+                    _ => neutralPulse
+                };
+                float blend = 1f - Mathf.Exp(-dt / levelBlendTime);
+                currentColor = Color.Lerp(currentColor, targetColor, blend);
+                currentFrequency = Mathf.Lerp(currentFrequency, targetPulse.x, blend);
+                currentDepth = Mathf.Lerp(currentDepth, targetPulse.y, blend);
+                color = currentColor;
+                frequency = currentFrequency;
+                depth = currentDepth;
+                if (state == CreatureState.Hunt)
+                {
+                    color = neutralColor;
+                    frequency = neutralPulse.x;
+                    depth = neutralPulse.y;
+                }
+            }
+            else
+            {
+                float aggression = creature != null ? creature.Aggression : 0f;
+                if (state == CreatureState.Hunt) aggression = Mathf.Max(aggression, huntMood);
+                mood = Mathf.Lerp(mood, aggression, 1f - Mathf.Exp(-responsiveness * dt));
+
+                color = Color.Lerp(calmColor, angryColor, mood);
+                frequency = Mathf.Lerp(pulseFrequency.x, pulseFrequency.y, mood);
+                depth = Mathf.Lerp(pulseDepth.x, pulseDepth.y, mood);
+            }
             float scale = 1f;
             bool strobe = false;
             switch (state)

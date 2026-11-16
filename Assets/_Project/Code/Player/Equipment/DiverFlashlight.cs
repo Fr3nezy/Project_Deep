@@ -183,6 +183,9 @@ namespace Deeploration.Player
             SetMode(nextMode);
         }
 
+        /// <summary>True se l'ultimo lampo di <see cref="FireFlash"/> era a piena carica.</summary>
+        public bool LastFlashFull { get; private set; }
+
         /// <summary>Sblocca il flash (raccolta del modulo a condensatore).</summary>
         public void UnlockFlash() => flashUnlocked = true;
 
@@ -201,6 +204,7 @@ namespace Deeploration.Player
                 spotLight.intensity = full ? flashIntensity : weakFlashIntensity;
                 spotLight.range = full ? flashRange : weakFlashRange;
             }
+            LastFlashFull = full;
             OnFlashFired?.Invoke();
         }
 

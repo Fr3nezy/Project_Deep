@@ -123,9 +123,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Creatures.CreatureGlow
   renderers:
   - {fileID: 2773181943371577113}
-  calmColor: {r: 8, g: 8, b: 8, a: 1}
-  angryColor: {r: 16, g: 2.5, b: 2, a: 1}
-  strikeColor: {r: 28, g: 2.5, b: 2, a: 1}
+  calmColor: {r: 8, g: 3.9, b: 0, a: 1}
+  angryColor: {r: 16, g: 1.22, b: 0, a: 1}
+  strikeColor: {r: 28, g: 1.22, b: 0, a: 1}
   pulseFrequency: {x: 0.25, y: 2}
   pulseDepth: {x: 0.3, y: 0.5}
   strikeStrobe: 9
@@ -198,8 +198,8 @@ MonoBehaviour:
   motionSightRange: 12
   motionThreshold: 0.3
   giveUpTime: 5
-  inspectDistance: 2
-  investigateSpeed: 1.8
+  inspectDistance: 5.5
+  investigateSpeed: 1.2
   leaveDistance: 10
   approachSpeed: 3.5
   attackGiveUpTime: 8

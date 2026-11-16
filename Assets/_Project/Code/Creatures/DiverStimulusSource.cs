@@ -151,8 +151,12 @@ namespace Deeploration.Creatures
                 // Flash: passaggio a Full da un'altra modalità oppure lampo del modulo (anche da Red).
                 bool flashing = flashlight.CurrentMode == FlashlightMode.Full || flashlight.IsFlashing;
                 if (flashing && Time.time - flashTime < flashDuration)
-                    output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
-                        fullLightReach * flashHaloFraction, StimulusCategory.Flash, true));
+                {
+                    var flashStimulus = CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
+                        fullLightReach * flashHaloFraction, StimulusCategory.Flash, true);
+                    flashStimulus.FullFlash = flashlight.IsFlashing && flashlight.LastFlashFull;
+                    output.Add(flashStimulus);
+                }
             }
 
             float noise = 0f;
