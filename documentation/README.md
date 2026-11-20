@@ -33,7 +33,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (68 / 68)
+## 2. Catalogo Completo degli Script (87 / 87)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -64,6 +64,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Editor/PlayerPrefabValidator.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/PrologueWave1Builder.cs` | Editor Tools | [EditorTools.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EditorTools.md) |
 | `Assets/_Project/Code/Editor/RockBlendDebugMenu.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
+| `Assets/_Project/Code/Editor/Scatter/ScatterPipeline.cs` | Scatter | [Scatter.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Scatter.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/GroundBlendProbe.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/Environment/GroundMaterialPublisher.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
@@ -78,6 +79,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Environment/ShortedCable.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/SeaPenTouchGlow.cs` | Coral | [Coral.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Coral.md) |
 | `Assets/_Project/Code/Environment/StressLightZone.cs` | Darkness Stress | [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md) |
+| `Assets/_Project/Code/Environment/Scatter/ScatterPalette.cs` | Scatter | [Scatter.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Scatter.md) |
+| `Assets/_Project/Code/Environment/Scatter/ScatterRoot.cs` | Scatter | [Scatter.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Scatter.md) |
 | `Assets/_Project/Code/Interaction/IInteractable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/Grabbable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/GrabSocket.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
