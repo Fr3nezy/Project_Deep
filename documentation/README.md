@@ -67,6 +67,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Editor/Scatter/ScatterPipeline.cs` | Scatter | [Scatter.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Scatter.md) |
 | `Assets/_Project/Code/Environment/AirlockDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/GroundBlendProbe.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
+| `Assets/_Project/Code/Environment/GroundSnap.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/GroundMaterialPublisher.cs` | Environment Shading | [EnvironmentShading.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/EnvironmentShading.md) |
 | `Assets/_Project/Code/Environment/HatchDoor.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/HatchExit.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |

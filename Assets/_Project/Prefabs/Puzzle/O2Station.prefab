@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 440403937075855590}
+  - component: {fileID: 2002467739493847763}
   m_Layer: 0
   m_Name: O2Station
   m_TagString: Untagged
@@ -35,6 +36,25 @@ Transform:
   - {fileID: 2891230287634972395}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -83.376, z: 0}
+--- !u!114 &2002467739493847763
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 845399240329578011}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 19a25454fb087c04f9b9aeced3c609b3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Environment.GroundSnap
+  groundMask:
+    serializedVersion: 2
+    m_Bits: 1024
+  footprintSize: {x: 1.9854177, y: 2.2606997}
+  footprintCenter: {x: 0, y: -0.3442358}
+  slopeAlign: 0.5
+  sink: 0.05
 --- !u!1 &5266768730585958729
 GameObject:
   m_ObjectHideFlags: 0
