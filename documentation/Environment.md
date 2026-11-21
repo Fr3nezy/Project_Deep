@@ -1,5 +1,5 @@
 # Environment Systems
-Ultima verifica: 2026-11-20
+Ultima verifica: 2026-11-21
 
 ## Scopo e confini
 Raggruppa gli elementi interattivi e atmosferici dell'ambiente di gioco non appartenenti alla fauna autonoma:
@@ -302,6 +302,17 @@ flowchart TD
   - Contatto con la catena verificato in Play il 2026-11-13, da codice (`UpdateDiver` chiamato via reflection, `NavalMine_1`): centro del diver a 0.70 m dall'asse della catena → niente; a 0.58 m (sfiora: 0.5 + 0.102) → scoppio, ossigeno 0; piedi sulla catena con il centro 1.4 m sopra il pivot → scoppio. Oscillazione a 10° non vista con il tempo che scorre.
   - In `SCN_Gameplay` (2026-11-13, per il test): radice `NavalMines_Z1` con tre istanze ai lati del fondo del canyon fra il lander e la stazione O2, appoggiate con «Appoggia al fondale»: `NavalMine_1` `(-4, 1.63, -20)`, catena 4 m (poi 2.14 m, cambiata in Inspector), yaw 37; `NavalMine_2` `(-10, -2.03, -32)`, 6 m, yaw 152; `NavalMine_3` `(-16, -6.63, -56)`, 8 m, yaw 261. Pareti a 4.5 m o più dal centro della testa. `NavalMine_1` poggia su un pendio dolce: la cassa può staccarsi da un lato.
   - Verificato in Play il 2026-11-13, da codice (istanza temporanea, `Update` chiamato via reflection perché l'editor in background non faceva avanzare il player loop): passaggio laterale a 0.9 m dal contatto a 2 m/s → scostamento della scia 2.1°; diver dritto contro la testa → scoppio, ossigeno 0, testa e catena nascoste; `Rearm` → di nuovo visibili. Non verificati: il riarmo dopo `rearmDelay` (con `Invoke`, serve il tempo che scorre), l'oscillazione naturale a vista, le estremità della catena nascoste in cassa e testa, la scena giocata.
+
+- **Z3, `Z3_Puzzle` (2026-11-21):** le due stazioni O2 (`Stazione_O2_A_bocca`, `Stazione_O2_B_gradone`) e `Centrale_Socket` hanno un figlio `Beacon_Unpowered`, una spia ambra lampeggiante visibile nella nebbia. Il loro `PowerSocket.onSocketed` ha una chiamata in più, `Beacon_Unpowered.SetActive(false)`, dopo `PowerOn` delle stazioni. Dal 2026-11-21 sera le `PowerSocket` delle due stazioni accettano `cable_plug` con `requireSeating` spento (si accendono col cavo, [Cable.md](Cable.md)); il beacon della centrale lo spegne il `SocketGroup` a 3 celle su 3 ([Interaction.md](Interaction.md)). Le stazioni sono ancora copie scollegate dal prefab: rifacendole dal prefab vanno ricollegate le chiamate (`PowerOn` e `SetActive(false)`), rimessi `acceptedItemId = cable_plug` e `requireSeating = false` sulle due stazioni, e tenute le 3 `PowerStation` della centrale col loro `SocketGroup`. Dettagli in [Landmark.md](Landmark.md).
+
+- **Gerarchia di `SCN_Gameplay` (2026-11-21)**: radice riordinata in gruppi vuoti a trasformazione identità, in un solo passo di Undo (posizioni mondo conservate, nessun oggetto spento, rinominato o cancellato tranne l'istanza del `.blend`):
+  - `_Systems`: `Lighting`, `Ambience_Abyss`, `08_UnderwaterAtmosphere`.
+  - `Player` (prefab), `_UI` (`Canvas`, `PrologueCanvas`), `_Prologue` (`Prologue_IntroDirector`, `Prologue_ExitDirector`, `Prologue_WakeUp_Manager`).
+  - `World`: `MapBlocking` (istanza di `MapBlocking.blend`, prima chiamata `SM_LargeRock_low (1)`; dentro restano solo i figli nativi del `.blend`: `BLK_*`, `GD_*`, `Cliff`, `Scatter_Z2`), `UnderwaterLander_Crashed`, `ENV_M1`, `Towe_Beacons`, `Scatter` (solo `ScatterGenerated_Map`: il dressing Polybrush è stato rimosso il 2026-11-21, sostituito dallo scatter procedurale). `ENV_M1` contiene `Palette` (spento), `Rocks`, `CreviceWalls`, `CraterRocks`.
+  - `Zones`: `Z0_Tutorial` (`Chiusa1_Gate`, `Chiusa1_Puzzle`), `Z3_Viperfish` (`Z3_Puzzle`, `Z3_LuciLavoro`).
+  - `Creatures`: sottogruppi `Z0_Tutorial`, `Z1_Center`, `Z2_Lizardfish`, `Z3_Viperfish` (per nome, poi per z > −92 verso Z0); `VFX_CreatureBlood` resta diretto. Nidi e banchi non dipendono dal genitore.
+  - `_DevTools`, `ProbeVolumePerSceneData` alla radice; `_Legacy` (`_BLOCKOUT_OBJECTIVE_1`, `_OBJECTIVE_1_INTERACTIONS`, nomi invariati perché `DeeplonautsLevelBuilder` li cerca con `GameObject.Find`).
+  - I percorsi `Chiusa1_Gate/...` e `Chiusa1_Puzzle/...` citati sopra ora stanno sotto `Zones/Z0_Tutorial/`.
 
 ## Limiti e problemi noti
 - `GroundSnap`: oggetto rigido, sui terreni irregolari alcuni angoli affondano (fino a 0.9 m nella prova a 15.8°). Durante il trascinamento sovrascrive la Y e la rotazione X/Z a ogni frame: per una posa a mano va spento sull'istanza. L'appoggio non registra un Undo proprio: non verificato se `Ctrl+Z` lo annulla insieme allo spostamento.

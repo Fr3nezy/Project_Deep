@@ -156,6 +156,13 @@ Slot per oggetti trascinati, al posto di `ItemSocket` dove si usa il grab.
 
 - **Verifica (2026-11-14, Play da codice, non con mouse e tastiera)**: `PowerSocket` con magnete 0.7 m; cella tenuta (presa impostata da codice con `PlayerGrab` spento, quindi senza la forza della presa) 0.47 m fuori dallo snap, 0.4 m di lato e 0.25 m sopra, inclinata 30° → attirata, raddrizzata e agganciata, scarto 0 e inclinazione 0°. Presa dritta: cella `KeepUpright` inclinata 60° a 2 m davanti alla camera, `TryGrab` vero → dopo meno di 5 s inclinazione 0°, presa ancora attiva. Provato da Manu con mouse e tastiera il 2026-11-14: presa dritta e magnete funzionano.
 
+### SocketGroup *(2026-11-21)*
+- Responsabilità e ciclo di vita: `MonoBehaviour` sealed, gate a N su N. In `OnEnable` si iscrive a `onSocketed` di ogni presa e conta; in `OnDisable` si disiscrive. Quando tutte le prese sono occupate invoca `onAllSocketed` una volta sola.
+- Campi Inspector: `sockets` (`GrabSocket[]`, vuoto): prese del gate; `onAllSocketed` (`UnityEvent`); debug `filled` (int) e `completed` (bool).
+- API pubbliche: `int Filled { get; }`, `int Total { get; }`, `bool Completed { get; }`, evento `onAllSocketed`.
+- Riferimenti: prese nulle ignorate nel conteggio ma contate nel totale (il gate non si chiude). Array vuoto: non scatta mai.
+- In scena: `Zones/Z3_Viperfish/Z3_Puzzle/Centrale_Socket` con `PowerStation_1`, `_2`, `_3` (copie della stessa stazione: `_1` a (79.49, −22.67, −155.00), `_2` a (79.53, −22.72, −156.60), `_3` a (78.49, −22.88, −154.00), appoggiate al `Cliff` fuori dai cumuli `BLK_Cumulo_*`, `acceptedItemId = power_cell`); `onAllSocketed` → `Beacon_Unpowered.SetActive(false)` e `CentraleOnlineLight.SetActive(true)` (point ambra range 10, intensità 8, sopra `BLK_Centrale_ArmadioHydropack`, placeholder dell'apertura dell'armadio). Il beacon non si spegne più alla prima cella.
+
 ## Setup in Unity
 1. Assicurarsi che `PlayerCapsule` abbia `PlayerInteraction` e `PlayerHands`.
 2. Assegnare a entrambi la camera principale o lasciare che la individuino in `Awake()`.

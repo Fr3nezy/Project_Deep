@@ -1,5 +1,5 @@
 # Scatter procedurale
-Ultima verifica: 2026-11-18
+Ultima verifica: 2026-11-21
 
 ## Scopo e confini
 Distribuisce flora (penne di mare, coralli bambù, spugne di vetro) e rocce minori (piccole e medie) sulla mappa (`MapBlocking.blend`) tramite Geometry Nodes in Blender e ricostruisce ogni istanza in Unity come vero prefab con LOD, collider, materiali di gioco e `GroundBlendProbe`.
@@ -12,6 +12,8 @@ Stato:
 - **Implementato e verificato in Blender e all'export (2026-11-18, spec v1.1):** preparazione automatica del `.blend` con `scatter_setup.py`; proiezione UV dinamica `GN_BiomeUV` in coda allo stack del `Cliff`; salvataggio automatico delle maschere al `Ctrl+S` (`scatter_masks_save.py`); gruppo `GN_ScatterLayer` con interfaccia a pannelli, filtro per maschera dipinta, pendenza, regola di vicinanza (`Nessuna` / `Vicino` / `Lontano` con `Sfuma` e raggio anti-copertura verso l'alto) e `Surface Offset` locale proporzionale alla scala; 5 strati Point Cloud (`SCT_Rocks_Small`, `SCT_Rocks_Medium`, `SCT_Pens`, `SCT_Bamboo`, `SCT_Sponges`) e 4 maschere PNG `4096 × 4096` in `MapBlocking_Masks~/`, inizializzate sul fondo della Z2 Lizardfish; `export_scatter.py` deterministico con controllo delle maschere mancanti; palette `ScatterPalette_Map.asset` con 11 voci collegate ai prefab Unity.
 - **Implementato e verificato in Unity (2026-11-17 / 2026-11-18):** pipeline `ScatterExport` / `ScatterPostprocessor`, `ScatterRoot` e `ScatterPalette`, conversione di matrice Blender → Unity, rigenerazione automatica al salvataggio del `.blend` sulla prova iniziale da 56 istanze in Z2 e aggiornamento delle `GroundBlendProbe` dopo la rigenerazione.
 - **Implementato, da verificare in Editor e Play Mode (2026-11-18):** rigenerazione automatica in `SCN_Gameplay` con i 5 nuovi strati `SCT_*` (127 istanze in Z2), verifica in Play Mode, pittura manuale delle maschere in Texture Paint sul `Cliff` (T7) e controllo visivo del layout dei nodi nell'editor di Blender (T8).
+- **Implementato e verificato in Blender (2026-11-21), non ancora importato in Unity:** stampi di terreno `GN_TerrainStamp` (`terrain_stamp.py`): mesh nella collection `TerrainStamps` che scavano il `Cliff` fino alla loro faccia superiore, senza toccare la mesh base. Usati per i gradoni della cava in Z3.
+- **Implementato e verificato (2026-11-21):** massi grandi piazzati a mano (`BLK_Masso_*` in `Z3_Blocking/Z3_Ingombri`): Point Cloud con il modificatore `Masso` (`GN_ManualInstance`) che istanzia `SM_LargeRock_low`; `export_scatter.py` li esporta come lo scatter e in Unity diventano il prefab `SM_LargeRock_low` con `MeshCollider` e `GroundBlendProbe`. Nessun codice nuovo.
 - **Pianificato:** dressing della zona Z3 Viperfish (prossimo passo), conversione procedurale del crinale (Z0), shader del fondale che legge una copia ridotta delle maschere dei biomi, riordino della gerarchia dei 532 oggetti piazzati a mano in `SCN_Gameplay`.
 
 ## File e componenti
@@ -21,6 +23,7 @@ Script C# e Python:
 3. [ScatterPipeline.cs](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Code/Editor/Scatter/ScatterPipeline.cs) (`Deeploration.Editor`, solo Editor): contiene `ScatterExport` (lancio di Blender in background e voci di menu) e `ScatterPostprocessor` (`AssetPostprocessor` che intercetta il reimport di `.blend` e `.scatter.json`).
 4. [export_scatter.py](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Code/Editor/Scatter/export_scatter.py): script Python eseguito da Blender in background per scrivere `<mappa>.scatter.json` dal depsgraph valutato.
 5. [scatter_setup.py](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Code/Editor/Scatter/scatter_setup.py): script Python idempotente da riga di comando che costruisce nel `.blend` i gruppi Geometry Nodes (`GN_ScatterLayer`, `GN_BiomeUV`), lo script `scatter_masks_save.py`, le collection, i 5 strati `SCT_*` e le maschere PNG iniziali.
+6. [terrain_stamp.py](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Code/Editor/Scatter/terrain_stamp.py): script Python idempotente che crea il gruppo `GN_TerrainStamp`, la collection `TerrainStamps`, il modificatore `TerrainStamp` sul `Cliff` e il text block `terrain_stamps_save.py`.
 
 Asset e dati in progetto:
 - [ScatterPalette_Map.asset](file:///Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Entities/Profiles/ScatterPalette_Map.asset): palette canonica della mappa con 11 voci (penne A/B/C, roccia piccola, roccia media, coralli bambù A/B/C, spugne di vetro A/B/C).
@@ -185,6 +188,28 @@ Gruppo Geometry Nodes principale applicato a ogni oggetto strato `SCT_*`. Il gra
 - **Responsabilità:** gruppo Geometry Nodes (`GN_BiomeUV`) applicato come ultimo modificatore (`BiomeUV`) in fondo allo stack dell'oggetto `Cliff` in `MapBlocking.blend`.
 - **Perché serve:** il `Cliff` usa un modificatore `Subdivision` con edge crease, che sposta i vertici suddivisi fino a 17 m rispetto all'interpolazione lineare di una UV map statica sulla mesh di base. `setup_biome_uv` crea comunque un layer UV statico `BiomeUV` sulla mesh base (necessario a Blender per poter selezionare la UV map nella modalità *Single Image* di Texture Paint), ma il modificatore `GN_BiomeUV` in coda allo stack sovrascrive l'attributo `BiomeUV` (`FLOAT2` su dominio `CORNER`) calcolando la proiezione esatta `U = (215 - x_b) / 400`, `V = (345 - y_b) / 400` dalla posizione mondo valutata (`Self Object` → `Object Info (ORIGINAL)` → `Transform Point` → `Vector Math (MULTIPLY_ADD)` → `Store Named Attribute`). Lo scarto rispetto alla formula analitica di `GN_ScatterLayer` scende così a meno di `0.02 mm`, senza alterare i 1208 triangoli del `Cliff` importato da Unity.
 
+### terrain_stamp.py e modificatore GN_TerrainStamp
+- **Responsabilità:** scolpire il terreno in punti precisi (gradoni, rampe, tagli) senza modificare la mesh base del `Cliff`. Ogni mesh nella collection `TerrainStamps` (anche in sotto-collection, es. `Z3_Stamp`) abbassa il terreno sotto di sé fino alla propria faccia superiore. Solo scavo: dove il terreno è già più basso dello stampo non cambia niente.
+- **Esecuzione:** dal Text Editor di Blender con *Run Script*, oppure `blender --background <mappa.blend> --python terrain_stamp.py`. Idempotente: crea `TerrainStamps` e il modificatore solo se mancano, ricostruisce sempre i nodi tenendo l'interfaccia (i valori del modificatore restano). Toglie i socket di versioni precedenti e scrive sul modificatore il default dei socket appena aggiunti (altrimenti partirebbero da `0`).
+- **Posizione nello stack:** lo script inserisce `TerrainStamp` prima di `BiomeUV`, così il `Bevel` non lavora sulla mesh densa e `BiomeUV` proietta sulla forma finale. Ordine attuale in `MapBlocking.blend` (spostato da Manu il 2026-11-21): `Subdivision`, `Bevel`, `TerrainStamp`, `BiomeUV`, `Triangulate`. Con `Triangulate` dopo lo stampo la suddivisione lavora sui quad e il terreno fuori dalla Z3 cambia fino a `0.5 m` rispetto all'ordine con `Triangulate` prima (cresta `(−150, −200)`: `14.95` contro `14.45`). Blender e collider Unity coincidono (verificato in 3 punti). L'ordine resta questo per scelta: triangolare per ultimo toglie molti artefatti di shading e la differenza di quota è trascurabile. Se un oggetto piazzato a mano sulla cresta risulta sospeso o affondato, si corregge l'oggetto (o `GroundSnap`), non lo stack.
+- **Nodi:**
+  1. `Capture Attribute` (dominio `CORNER`) delle normali del `Cliff`, che ha normali custom. `Subdivide Mesh` lineare (livello `Suddivisioni`) le perderebbe.
+  2. Stampi: `Collection Info` (spazio `Relative`) → `Realize Instances` → solo le facce con normale `z > 0.5` (facce superiori) → quota catturata → copia schiacciata a `z = 0` (impronta).
+  3. Per ogni vertice: quota bersaglio `h` = punto colpito da un `Raycast` verso il basso da quota locale `+1000 m` sulle facce superiori, oppure, fuori dall'impronta, quota del punto più vicino dell'impronta (`Sample Nearest Surface`). Peso `w` = smoothstep da `1` a distanza orizzontale `0` fino a `0` a distanza `Sfumatura` (`Geometry Proximity` sull'impronta).
+  4. `Δz = w · min(0, h − z)`, catturato prima di `Set Position` (dopo lo spostamento il raggio ricalcolato darebbe zero).
+  5. Levigatura: `Blur Attribute` della posizione (`Levigatura` passate), applicata con peso `clamp(|Δz| / 0.3)`. Fuori dallo scavo la posizione resta identica e il bordo aperto della mappa non si restringe (un modificatore `Smooth` globale in coda allo stack lo restringeva e spostava tutto il terreno di 0.1–0.2 m).
+  6. `Set Mesh Normal` (`Free`, `CORNER`): normale originale dove `Δz = 0`, normale ricalcolata dove lo scavo supera `0.3 m`, interpolata in mezzo.
+- **Input del modificatore:**
+  - `Stampi` (Collection, `TerrainStamps`): mesh che scavano.
+  - `Suddivisioni` (Int, default `2`, `0`–`5`): suddivisione lineare di tutto il terreno prima dello scavo; non sposta i punti. Livello `2`: ~`29k` triangoli e ~`3.5 m` fra i vertici; livello `3`: ~`116k` triangoli e ~`1.8 m`.
+  - `Sfumatura` (Float, default `4`, `0`–`30`): metri orizzontali fuori dall'impronta in cui lo scavo sfuma fino a zero. Indipendente dalla densità della mesh.
+  - `Levigatura` (Int, default `15`, `0`–`50`): passate di levigatura della posizione solo dove il terreno è stato scavato; distende i triangoli stirati delle pareti.
+- **Stampi:** prismi chiusi con la faccia superiore alla quota voluta (il raggio colpisce per prima la faccia superiore). Nome `STAMP_*`, visualizzazione `Wire`. Una rampa è un prisma con la faccia superiore inclinata.
+
+### Text block terrain_stamps_save.py
+- **Responsabilità:** script incorporato nel `.blend` con *Register* attivo, scritto e registrato da `terrain_stamp.py`. Handler `@persistent` `terrain_stamps_pre` in `save_pre` (mette `exclude = True` sui layer collection `TerrainStamps` attivi di ogni view layer e li ricorda) e `terrain_stamps_post` in `save_post` (li riattiva). Rimuove prima eventuali versioni precedenti degli stessi handler.
+- **Requisito Auto Run:** come `scatter_masks_save.py`.
+
 ### Text block scatter_masks_save.py
 - **Responsabilità:** script Python incorporato nel file `MapBlocking.blend` (`bpy.data.texts["scatter_masks_save.py"]`) con *Register* attivo (`use_module = True`).
 - **Funzionamento:** registra un handler `@persistent` `scatter_save_masks` in `bpy.app.handlers.save_pre` (rimuovendo prima eventuali versioni precedenti dello stesso handler per evitare duplicati). A ogni `Ctrl+S`, prima che Blender scriva il `.blend` su disco, l'handler scorre `bpy.data.images` e chiama `img.save()` su ogni immagine il cui nome inizia con `Mask_`, che ha `img.is_dirty == True` e un `img.filepath` valido.
@@ -230,6 +255,11 @@ Nel pannello **Vicinanza** del modificatore di uno strato:
 - In entrambi i modi (`Vicino` e `Lontano`), un raggio verso l'alto scarta automaticamente i punti sul terreno che finiscono sotto o dentro una roccia del bersaglio.
 - **Attenzione:** non impostare mai come `Bersaglio` una collection che contiene lo strato stesso (es. `Scatter_Rocks` come bersaglio di `SCT_Rocks_Small`), altrimenti si crea una dipendenza circolare in Blender.
 
+### Scolpire il terreno con gli stampi
+1. Attiva la collection `TerrainStamps` nell'Outliner (checkbox).
+2. Sposta, scala o duplica i prismi `STAMP_*`, oppure aggiungine uno nuovo in una sotto-collection di `TerrainStamps`: il terreno si aggiorna subito.
+3. Salva con `Ctrl+S`. Il text block `terrain_stamps_save.py` esclude `TerrainStamps` solo durante il salvataggio e la riattiva subito dopo: lo scavo resta (`Collection Info` valuta anche la collection esclusa) e i prismi non arrivano in Unity. Senza *Auto Run Python Scripts* l'handler non è registrato: togli a mano la spunta prima di salvare, altrimenti i prismi vengono importati come mesh piene alla quota del terreno scavato.
+
 ### Aggiornare i nodi del gruppo senza perdere i valori
 Se `scatter_setup.py` viene aggiornato con nuove modifiche ai nodi di `GN_ScatterLayer`, eseguire da terminale:
 ```powershell
@@ -252,12 +282,19 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
 | `SCT_Bamboo` | `Scatter/Scatter_Flora` | `ScatterSources_Bamboo` (`SM_BambooFan_A/B/C`) | `Mask_Bamboo` | `0.15` | `0.6` m | `4` | `Vicino` a `Scatter_Rocks`, `0.1`–`2.0` m, `Sfuma = True` | `Allinea alla normale = False` | `43` |
 | `SCT_Sponges` | `Scatter/Scatter_Flora` | `ScatterSources_Sponges` (`SM_GlassSponge_A/B/C`) | `Mask_Sponges` | `0.25` | `0.4` m | `5` | `Vicino` a `Scatter_Rocks`, `0.05`–`1.5` m, `Sfuma = True` | default | `41` |
 
+#### Massi a mano `BLK_Masso_*` (verificati il 2026-11-21)
+- **Sorgente:** `SM_LargeRock_low` (mesh `MSH_LargeRock_low`, importata da `Materials/Environment/Rocks/LargeRockV1/SM_LargeRock_low.fbx` con la rotazione FBX applicata alla mesh, trasformazione identità, pivot `0.95` m sopra la base, alta `10.8` m) nella collection `ScatterSources/ScatterSources_RocksLarge`.
+- **Gruppo `GN_ManualInstance`** (creato a mano nel `.blend`, nessuno script lo rigenera): input `Geometry` e `Oggetto` (`NodeSocketObject`), nodi `Points` (1 punto nell'origine) → `Instance on Points` con `Object Info` (`Original`, `As Instance`) dell'`Oggetto` → output. La geometria dell'host non passa: resta solo l'istanza.
+- **Host:** 8 oggetti Point Cloud `BLK_Masso_00`…`07` in `Z3_Blocking/Z3_Ingombri`, modificatore `Masso` con `Oggetto = SM_LargeRock_low`. Posizione, rotazione Z e scala uniforme (`0.36`–`0.50`, massi alti `4`–`5.4` m) stanno sulla trasformazione dell'host: si spostano e si scalano a mano come oggetti normali. Quota: punto più basso del terreno sotto l'impronta `+ 0.35 · scala` (base affondata di `0.6 · scala`).
+- **Perché Point Cloud:** come gli `SCT_*`, non finisce nell'FBX importato da Unity; un'istanza di collection su un Empty arriverebbe nel modello come mesh senza collider né materiali di gioco.
+- **Nuovo masso:** duplicare un `BLK_Masso_*` (`Shift+D`) e spostarlo; per un altro modello, importarlo in una sotto-collection di `ScatterSources`, sceglierlo in `Oggetto` e aggiungere la voce in `ScatterPalette_Map.asset`.
+
 - **Vecchio strato di prova `Scatter_Z2`:** disattivato in viewport e render (`hide_viewport = True`, `hide_render = True`, modificatori spenti) ma non cancellato; `export_scatter.py` ignora gli host con `hide_render`.
 - **Maschere (`Assets/_Project/Assets/Models/Blends/MapBlocking_Masks~/`):** `Mask_Rocks.png`, `Mask_Pens.png`, `Mask_Bamboo.png`, `Mask_Sponges.png`, tutte `4096 × 4096` PNG `Non-Color` con `use_fake_user = True`. Il contenuto iniziale di prova generato da `z2_fill` copre il fondo della Z2 Lizardfish sotto quota `z < 0` (riquadro Blender `x 55..150`, `y 145..240`).
 - **Terreno `Cliff`:** layer UV `BiomeUV` sulla mesh base e modificatore `BiomeUV` (`GN_BiomeUV`) in coda allo stack dopo `Subdivision` (livello 1 in viewport, 2 in render; 1208 triangoli importati in Unity).
 
 ### Palette `ScatterPalette_Map.asset` (verificata il 2026-11-18)
-11 voci attive (`enabled = 1`, `rotationOffset = (0, 0, 0)` su tutte):
+12 voci attive (`enabled = 1`, `rotationOffset = (0, 0, 0)` su tutte; `SM_LargeRock_low` aggiunta il 2026-11-21):
 
 | `sourceName` (Blender) | Prefab collegato (`Assets/_Project/Prefabs/...`) |
 |---|---|
@@ -266,6 +303,7 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
 | `SM_SeaPen_C` | `Organisms/SM_SeaPen_C.prefab` |
 | `SM_SmallRock_low` | `Rocks/SM_SmallRock_low.prefab` |
 | `SM_MediumRock_low` | `Rocks/SM_MediumRock_low.prefab` |
+| `SM_LargeRock_low` | `Rocks/SM_LargeRock_low.prefab` |
 | `SM_BambooFan_A` | `Organisms/SM_BambooFan_A.prefab` |
 | `SM_BambooFan_B` | `Organisms/SM_BambooFan_B.prefab` |
 | `SM_BambooFan_C` | `Organisms/SM_BambooFan_C.prefab` |
@@ -274,7 +312,8 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
 | `SM_GlassSponge_C` | `Organisms/SM_GlassSponge_C.prefab` |
 
 ### Scena `SCN_Gameplay.unity`
-- Radice `ScatterGenerated_Map` nell'origine con `ScatterRoot` (`instances = MapBlocking.scatter.json`, `palette = ScatterPalette_Map.asset`, `autoRegenerate = true`), separata dalla gerarchia del modello `MapBlocking` (che conserva intatti i 531 figli del `Cliff` e i 532 oggetti di dressing a mano).
+- Radice `World/Scatter/ScatterGenerated_Map` nell'origine (anche `World` e `Scatter` sono gruppi a trasformazione identità) con `ScatterRoot` (`instances = MapBlocking.scatter.json`, `palette = ScatterPalette_Map.asset`, `autoRegenerate = true`), separata dalla gerarchia del modello `MapBlocking` Dal 2026-11-21 lo scatter procedurale sostituisce ufficialmente il dressing Polybrush (decisione di Manu): rimossi dalla scena i 530 cloni Polybrush che stavano sotto `Cliff`, i 35 di `ENV_M1/Scatter` e le 9 istanze di flora sparse alla radice. `World/Scatter` contiene solo `ScatterGenerated_Map`.
+- **2026-11-21:** `ScatterExport.Run` + `RegenerateAll` in `SCN_Gameplay`: 1124 istanze, di cui 8 `SM_LargeRock_low` alle posizioni dei `BLK_Masso_*` (convertite `(x, y, z) → (-x, z, -y)`), tutte con `MeshCollider`. Il reimport del `.blend` lanciato da script (`AssetDatabase.ImportAsset`) non ha avviato da solo l'export: è servito chiamare `ScatterExport.Run` a mano.
 - **Stato di verifica in scena:** verificata il 2026-11-18 con la prova precedente da 56 istanze (rocce e penne in Z2); la rigenerazione in `SCN_Gameplay` con il nuovo JSON da 127 istanze (5 strati `SCT_*`) non è ancora stata eseguita in Editor.
 
 ## Estensione del sistema
@@ -298,6 +337,7 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
   - L'indice casuale dell'asset in `Instance on Points` è estratto tra `0` e `9999` (10 000 valori): per una collection con 3 varianti (A/B/C), l'indice `0` ha una frequenza di `3334 / 10000` contro `3333 / 10000` delle altre due (scarto dello `0.01%`, trascurabile).
 - **Composizione di scala non uniforme in `ScatterRoot`:** in `ScatterRoot.Regenerate()`, rotazione e scala vengono estratte dalle colonne della matrice `BlenderToUnity` e composte con `entry.rotationOffset` e `baseRot` del prefab. Con scala non uniforme e un prefab che ha già una rotazione non identità alla radice, la composizione TRS è approssimata (commentato come `shortcut` nel codice; tutti gli strati attuali usano scala uniforme).
 - **Secondo `Flush` a vuoto e scene dirty:** quando `ScatterExport.Run` chiama `AssetDatabase.ImportAsset` sul JSON appena scritto dentro `ScatterPostprocessor.Flush()`, Unity invoca sincronamente `OnPostprocessAllAssets` che riempie `PendingJsons` e pianifica un secondo `delayCall` a `Flush`. Il primo `Flush` consuma subito `PendingJsons` alla riga successiva, quindi il secondo `Flush` gira a vuoto senza effetti collaterali. Inoltre, se un `.blend` viene reimportato con scatter invariato (`regenerated == false`), `RefreshGroundProbes()` aggiorna le sonde in memoria senza marcare la scena come dirty.
+- **Stampi di terreno:** la suddivisione è su tutta la mappa, non solo vicino agli stampi (il terreno in Unity passa da `1208` a ~`29k` triangoli al livello `2`). Fuori dall'impronta lo scavo sfuma per `Sfumatura` metri, quindi la parete sopra il gradone diventa una scarpata: va rivestita con le rocce di dressing. Solo scavo: uno stampo sopra il terreno non lo alza. Senza *Auto Run* l'esclusione automatica al salvataggio non c'è: se `TerrainStamps` resta attiva, i prismi finiscono in Unity (successo il 2026-11-21 con `STAMP_Gradone_S1` e `Cliff.001`, prima dell'handler).
 - **Griglia del prato di penne a runtime:** `DiverStimulusSource` costruisce la griglia delle `SeaPenTouchGlow` una sola volta in `Start()`; le penne generate da `ScatterRoot` in Editor vengono lette regolarmente all'avvio del Play Mode.
 
 ## Verifica
@@ -322,6 +362,14 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
   - Eseguito `export_scatter.py` su `MapBlocking.blend`: esito `SCATTER_OK`, `127` istanze scritte in `MapBlocking.scatter.json`, tutte contenute nel riquadro della Z2 Lizardfish, con campo `host` valorizzato coi nomi `SCT_*`. Secondo lancio consecutivo senza modifiche: `SCATTER_OK 127 invariato` e file non riscritto (T16).
   - Verificata `ScatterPalette_Map.asset`: tutte le 11 voci (`SM_SeaPen_A/B/C`, `SM_SmallRock_low`, `SM_MediumRock_low`, `SM_BambooFan_A/B/C`, `SM_GlassSponge_A/B/C`) sono attive e puntano ai prefab in `Assets/_Project/Prefabs/`.
 
+### Verifiche del 2026-11-21 (stampi di terreno, Blender 5.3, `MapBlocking.blend` non salvato)
+- Quota del `Cliff` valutato campionata in 5 punti fuori dagli stampi (hub, Z2, fondo Z3, bocca Z3, ovest) prima e dopo il modificatore: identica al millimetro.
+- Dentro gli stampi della Z3: E1 `−18.0` (stampo a `−18`), N2 `−13.04` (`−13`), S1 `−17.98` (`−18`), N1 `−17.78` (`−18`, vicino alla rampa).
+- Livello `2`: `28 992` triangoli, piano a ±`0.3 m`. Livello `3`: `115 968` triangoli. Valutazione del modificatore in `0.11 s`.
+- Con `TerrainStamps` esclusa dal view layer lo scavo resta uguale (`−18.43` in E1 in entrambi i casi).
+- Seconda versione (sfumatura in metri e normali custom preservate): quota identica fuori dagli stampi in 4 punti, normali interpolate identiche (scarto `0°`) in 6 punti fuori dagli stampi, profilo attraverso N1 da `−18` sul piano a `−13` in 4 m senza gradini. La prima versione con `Blur Attribute` perdeva le normali custom su tutta la mappa e seguiva la griglia sul bordo.
+- Levigatura interna (`15` passate): quota identica alla versione senza stampo in hub, Z2, cresta e Torre; nella Z3 scavata stesso risultato del modificatore `Smooth` globale (nord `−5.96` contro `−5.99`). Con lo `Smooth` globale il punto Z2 (`−90, −120`) restava senza terreno sotto.
+
 ### Verifiche precedenti in Unity Editor (2026-11-17 / 2026-11-18 mattina)
 - **T1 (2026-11-17):** prova `ScatterSpike` passata (corrispondenza posizione entro 2 cm e asse su entro 1° tra Blender e Unity).
 - **T2 (2026-11-18):** prima prova in Z2 su `MapBlocking.blend` con 56 istanze (rocce e penne): salvataggio del `.blend` → export e rigenerazione automatici in `SCN_Gameplay`, tutte le 56 istanze a contatto col terreno (scarto massimo `0.4 mm`), dressing a mano intatto (`531` figli del `Cliff` e `532` oggetti aggiunti).
@@ -331,6 +379,7 @@ Oggetti strato di tipo Point Cloud con trasformazioni bloccate all'origine e mod
 - Prova in Play Mode in `SCN_Gameplay` con le nuove istanze generate (collisioni sulle rocce, ondeggiamento nello shader `Deeplonauts/Coral`, `SeaPenTouchGlow` sulle penne generate).
 - Pittura manuale delle maschere in Texture Paint sul `Cliff` da parte di Manu e verifica della precisione del pennello su pareti inclinate e bordi con Bevel (T7) e del salvataggio al `Ctrl+S` con Auto Run (T19).
 - Controllo visivo della leggibilità del grafo `GN_ScatterLayer` nell'editor dei nodi di Blender (T8).
+- Stampi di terreno: import in Unity del `Cliff` scavato (conteggio triangoli, collider, ombre), scatter che segue il terreno scavato, `GroundSnap` delle stazioni sui gradoni.
 
 ## Sistemi collegati
 - [Coral.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Coral.md): shader `Deeplonauts/Coral` e componente `SeaPenTouchGlow` usati dai prefab di penne di mare (`SM_SeaPen_A/B/C`), coralli bambù (`SM_BambooFan_A/B/C`) e spugne di vetro (`SM_GlassSponge_A/B/C`) istanziati da `ScatterRoot`.

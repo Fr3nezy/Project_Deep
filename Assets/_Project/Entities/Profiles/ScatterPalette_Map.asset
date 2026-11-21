@@ -57,3 +57,7 @@ MonoBehaviour:
     prefab: {fileID: 7968302323100110733, guid: b9caa2f380cc6c34fbb020f9b8ae6089, type: 3}
     rotationOffset: {x: 0, y: 0, z: 0}
     enabled: 1
+  - sourceName: SM_LargeRock_low
+    prefab: {fileID: 3349895621087545961, guid: cda32013befb91b4ba222c71b45d761d, type: 3}
+    rotationOffset: {x: 0, y: 0, z: 0}
+    enabled: 1

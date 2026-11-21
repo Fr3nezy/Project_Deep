@@ -1,5 +1,5 @@
 # Landmark — sagome visibili nella nebbia e luci di segnalazione
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-21
 
 ## Scopo e confini
 Rende un oggetto lontano (la torre di `SCN_Gameplay`) leggibile come punto di riferimento anche oltre la distanza in cui la nebbia di scena lo cancellerebbe, e aggiunge luci rosse che si accendono in sequenza dall'alto verso il basso.
@@ -15,6 +15,9 @@ Stato: **implementato**, verificato con render da script nell'Editor (vedi Verif
 - `Assets/_Project/Rendering/Shaders/Landmark.shader` (shader `Deeplonauts/Landmark`): shader HLSL scritto a mano per URP, con i pass `ForwardLit`, `ShadowCaster`, `DepthOnly` e `DepthNormals`.
 - `Assets/_Project/Materials/Environment/Landmark/M_Landmark_Tower.mat`: corpo della torre.
 - `Assets/_Project/Materials/Environment/Landmark/M_Landmark_Beacon.mat`: luci di segnalazione.
+- `Assets/_Project/Materials/Environment/Landmark/M_Landmark_AmberWork.mat` (2026-11-21): luci di lavoro fisse della cava Z3.
+- `Assets/_Project/Materials/Environment/Landmark/M_Landmark_AmberUnpowered.mat` (2026-11-21): spie lampeggianti delle stazioni senza cella.
+- `Assets/_Project/Materials/Environment/Landmark/M_Landmark_Escavatore.mat` (2026-11-21): sagoma dei pezzi grossi dell'escavatore della cava Z3.
 
 Nessuno script C#: la sequenza delle luci è calcolata nello shader dal tempo e dalla quota.
 
@@ -59,6 +62,16 @@ Sequenza: `phase` va da 0 a `_BeaconTop` a 1 a `_BeaconBottom` (quota mondo del 
 ### M_Landmark_Beacon
 `_BaseColor` e `_FarColor` (0.1, 0.02, 0.02), `_MaxFog` 0.35, `_EmissionColor` (1, 0.05, 0.03) × 6 HDR, `_BeaconOn` 1, `_BeaconTop` 9.8 (cima della torre), `_BeaconBottom` −66.1 (fondo della torre + 10 m), aggiornati il 2026-11-10 con la torre nuova, `_BeaconFade` 10, il resto ai default.
 
+### M_Landmark_AmberWork *(2026-11-21)*
+Luce di lavoro fissa della cava Z3. `_BaseColor` e `_FarColor` (0.1, 0.06, 0.02), `_MaxFog` 0.4, `_EmissionColor` (1, 0.42, 0.04) × 2.5 HDR, `_BeaconOn` 0 (keyword `_BEACONON_ON` spenta).
+
+### M_Landmark_Escavatore *(2026-11-21)*
+Copia di `M_Landmark_Tower` (`_BaseColor` (0.16, 0.16, 0.16), `_FarColor` nero, nessuna emissione) con `_MaxFog` 0.68 invece di 0.5: l'escavatore sta a 100-150 m dall'hub, la sagoma si legge senza pesare quanto la torre. Applicato come override di materiale sull'istanza `World/MapBlocking` (non nel `.blend`) a `BLK_Escavatore_Ruota`, `BLK_Escavatore_Braccio`, `BLK_Escavatore_Casa`, `BLK_Escavatore_Contrappeso` e `BLK_Nastro` (prima `BLK_Structure`). Tazze, cingoli e cavalletti restano su `BLK_Structure`. Da verificare in Game view dall'hub.
+
+### M_Landmark_AmberUnpowered *(2026-11-21)*
+Spia lampeggiante delle stazioni ancora senza cella. `_BaseColor` e `_FarColor` come sopra, `_MaxFog` 0.3, `_EmissionColor` (1, 0.42, 0.04) × 4 HDR, `_BeaconOn` 1, `_BeaconTop` 0, `_BeaconBottom` −30, `_BeaconPeriod` 2, `_BeaconSweep` 0.05, `_BeaconFade` 4, `_BeaconBase` 0.05. Le spie sono a quote diverse e lampeggiano sfasate.
+Il renderer è in Forward+ (`PC_RPAsset`): nessun limite di luci per oggetto per le 8 luci point della cava.
+
 ## Setup in Unity
 1. Assegnare un materiale con shader `Deeplonauts/Landmark` all'oggetto. Regolare `_MaxFog` guardando la sagoma dalla distanza di gioco: 0.5 dà una sagoma scura leggibile sul fondo blu.
 2. Per le luci: mesh piccole (sfere da 2 m) sulla superficie, con un materiale che abbia `_BeaconOn` attivo e `_BeaconTop`/`_BeaconBottom` pari alle quote mondo dell'oggetto. Ombre spente sulle luci.
@@ -67,7 +80,9 @@ Sequenza: `phase` va da 0 a `_BeaconTop` a 1 a `_BeaconBottom` (quota mondo del 
 ## Configurazione verificata in prefab e scene
 `SCN_Gameplay`:
 - `MapBlocking/Cylinder.020/Towe` (mesh di blockout di 18 vertici, 6.6 × 86 × 5.4 m, base a −76, centro a circa (−85, −33, −516)) con `M_Landmark_Tower`, assegnato nella scena: dal 2026-11-10 la torre è figlia della base `Cylinder.020` nel blend, quindi l'override del vecchio `MapBlocking/Towe` non vale più.
-- `MapBlocking/Towe_Beacons`: 32 sfere `Beacon_<fila>_<lato>`, 8 file, una per lato (N, S, E, W), posizionate sulla superficie con un raycast sulla mesh e scostate di 0.6 m lungo la normale. Il 2026-11-10 sono state rimappate in proporzione sulla torre nuova (altezza e sezione ridotte), da −69 a 8.7 di quota. `M_Landmark_Beacon`, ombre spente, nessun collider.
+- `World/Towe_Beacons` (fino al 2026-11-21 figlio aggiunto di `MapBlocking`, ora fuori dall'istanza del `.blend`): 32 sfere `Beacon_<fila>_<lato>`, 8 file, una per lato (N, S, E, W), posizionate sulla superficie con un raycast sulla mesh e scostate di 0.6 m lungo la normale. Il 2026-11-10 sono state rimappate in proporzione sulla torre nuova (altezza e sezione ridotte), da −69 a 8.7 di quota. `M_Landmark_Beacon`, ombre spente, nessun collider.
+- `Z3_LuciLavoro` (2026-11-21), sfere senza collider né ombre con `M_Landmark_AmberWork`: `Ruota` 10 sfere da 0.3 m, una per tazza, 1.3 m fuori dalla tazza in direzione radiale; `Braccio` 4 sfere da 0.3 m sul dorso del braccio (raycast sul collider); `Nastro` 7 sfere da 0.25 m ogni 6 m da x 54 a 90, alternate sui due bordi a y −17.4. `Ambiente`: 5 `Light` point ambra (1, 0.55, 0.1) senza ombre: `Luce_Ruota` e `Luce_Casa` range 12 intensità 5, `Luce_Braccio` range 10 intensità 4, `Luce_Nastro_A`/`_B` range 10 intensità 3.
+- `Beacon_Unpowered` (2026-11-21) sotto `Z3_Puzzle/Stazione_O2_A_bocca`, `Stazione_O2_B_gradone` e `Centrale_Socket`: sfera `BeaconBulb` da 0.3 m con `M_Landmark_AmberUnpowered` sopra la colonnina, più `BeaconLight` point ambra range 6 intensità 4 senza ombre. Sulle due stazioni O2 il `GrabSocket.onSocketed` chiama `GameObject.SetActive(false)` sul beacon: con la spina del cavo inserita (dal 2026-11-21 sera, prima la cella) la spia si spegne e resta il `SafeBeaconLight` della stazione. Sulla centrale lo spegne `SocketGroup.onAllSocketed` quando le 3 celle sono inserite.
 - Camera del player: far clip 800 (la torre è a circa 520 m dallo spawn dal 2026-11-10).
 
 ## Estensione del sistema
@@ -91,6 +106,8 @@ Eseguita il 2026-10-09 in Unity 6000.3.19f1 (URP 17.3.0):
 - sequenza: render HDR senza post-processing, massimo del rosso per fascia orizzontale. Con la sequenza accesa una sola fascia è a 2.64 e le altre a 0.12; con la sequenza spenta tutte a 3.91; con `_BeaconBase` 0 le fasce spente scendono a 0.01.
 
 Non verificato: Play Mode (animazione a schermo, torcia vicino alla torre), comportamento con la mesh definitiva.
+
+2026-11-21, render da script dalla camera del player alla bocca della Z3 (46, −16.5, −136) verso l'escavatore, circa 50 m: le sfere della ruota e del braccio si leggono nella nebbia, la ruota come cerchio. Con emissione × 4 uscivano quasi bianche, poi abbassata a × 2.5 e spinta verso l'ambra; il colore finale non è stato rivisto a schermo. Non verificati: lampeggio delle spie in Play, spegnimento all'inserimento della cella.
 
 ## Sistemi collegati
 - [EnvironmentShading.md](EnvironmentShading.md): shader del fondale e delle rocce.

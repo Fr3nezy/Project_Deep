@@ -33,7 +33,7 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (87 / 87)
+## 2. Catalogo Completo degli Script (90 / 90)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
@@ -90,6 +90,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Interaction/PlayerHands.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/PlayerGrab.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/PlayerInteraction.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
+| `Assets/_Project/Code/Interaction/PhysicsCable.cs` | Cable | [Cable.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Cable.md) |
+| `Assets/_Project/Code/Interaction/SocketGroup.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/SimpleInteractable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Player/Camera/RotationalFollowThrough.cs` | Camera / Visuals | [CameraFollowThrough.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/CameraFollowThrough.md) |
 | `Assets/_Project/Code/Player/Camera/TorchFollowThrough.cs` | Camera / Visuals | [CameraFollowThrough.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/CameraFollowThrough.md) |

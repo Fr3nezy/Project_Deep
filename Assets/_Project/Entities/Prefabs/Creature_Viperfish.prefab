@@ -33,7 +33,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1.35, y: 1.35, z: 1.35}
+  m_LocalScale: {x: 2.025, y: 2.025, z: 2.025}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 7278889486954976402}
@@ -133,6 +133,13 @@ MonoBehaviour:
   huntMood: 0.8
   fleeDim: 0.4
   responsiveness: 2
+  neutralColor: {r: 1, g: 3, b: 10, a: 1}
+  neutralPulse: {x: 0.25, y: 0.3}
+  investigateColor: {r: 10, g: 5, b: 0.8, a: 1}
+  investigatePulse: {x: 0.8, y: 0.4}
+  attackColor: {r: 16, g: 1.5, b: 1.5, a: 1}
+  attackPulse: {x: 2.5, y: 0.5}
+  levelBlendTime: 0.3
 --- !u!114 &721600411018682210
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -204,6 +211,14 @@ MonoBehaviour:
   approachSpeed: 3.5
   attackGiveUpTime: 8
   helmetHeight: 1.3
+  frontAngle: 45
+  frontDistance: 3.5
+  windupTime: 0.8
+  strikeSpeed: 6
+  strikeMaxDuration: 1.5
+  repelCooldown: 15
+  biteCooldown: 20
+  fleeDuration: 3
 --- !u!1001 &7100336103650734969
 PrefabInstance:
   m_ObjectHideFlags: 0
