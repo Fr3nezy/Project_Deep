@@ -11,7 +11,10 @@ namespace Deeploration.Player
     {
         Full,
         Low,
-        /// <summary>Luci dello scafandro spente, resta solo la spia rossa d'emergenza (ex Off).</summary>
+        /// <summary>
+        /// Fascio rosso del modulo trovato nella Z0 (ex Off): la fauna non lo vede, la fotocellula sì. Prima dello
+        /// sblocco non si seleziona con R; se ci si parte (risveglio in capsula) resta la sola spia d'emergenza.
+        /// </summary>
         Red
     }
 
@@ -28,27 +31,9 @@ namespace Deeploration.Player
         [SerializeField] private KeyCode toggleKey = KeyCode.F;
         [SerializeField] private KeyCode redKey = KeyCode.R;
 
-        [Tooltip("Una pressione più lunga di questi secondi non cicla: con il flash sbloccato inizia a caricarlo.")]
-        [FormerlySerializedAs("holdToRedSeconds")]
-        [SerializeField, Min(0.05f)] private float holdToChargeSeconds = 0.35f;
-
-        [Header("Flash (modulo a condensatore)")]
-        [Tooltip("Senza il modulo il flash non si carica. Lo sblocca UnlockFlash (raccolta del modulo).")]
-        [SerializeField] private bool flashUnlocked;
-
-        [Tooltip("Secondi per riempire la carica, contati dopo holdToChargeSeconds.")]
-        [SerializeField, Min(0f)] private float flashChargeSeconds = 1f;
-
-        [Tooltip("Sweet spot: secondi a carica piena in cui il rilascio dà il lampo pieno. Rilascio prima = lampo debole; " +
-                 "oltre, il condensatore si scarica da solo con un lampo debole.")]
-        [SerializeField, Min(0.05f)] private float sweetSpotSeconds = 0.4f;
-
-        [SerializeField, Min(0f)] private float flashIntensity = 800f;
-        [SerializeField, Min(0f)] private float flashRange = 30f;
-        [Tooltip("Lampo fuori dallo sweet spot: sotto la soglia della fotocellula (200).")]
-        [SerializeField, Min(0f)] private float weakFlashIntensity = 150f;
-        [SerializeField, Min(0f)] private float weakFlashRange = 12f;
-        [SerializeField, Min(0.01f)] private float flashDuration = 0.15f;
+        [Header("Modulo luce rossa")]
+        [Tooltip("Senza il modulo R non fa niente. Lo sblocca UnlockRed (raccolta del modulo nella Z0).")]
+        [SerializeField] private bool redUnlocked;
 
         [Header("Full - Fascio Diretto")]
         [SerializeField, Min(0f)] private float fullIntensity = 55f;
@@ -60,37 +45,49 @@ namespace Deeploration.Player
         [SerializeField, Min(0f)] private float lowRange = 4f;
         [SerializeField, Range(0f, 1f)] private float lowRelief = 0.4f;
 
-        [Header("Red - Spia d'emergenza")]
+        [Header("Red - Fascio rosso")]
+        [Tooltip("Corto e fioco: si vede poco, ma la fauna non lo vede.")]
+        [SerializeField, Min(0f)] private float redIntensity = 6f;
+        [SerializeField, Min(0f)] private float redRange = 8f;
+        [SerializeField] private Color redColor = new Color(1f, 0.08f, 0.04f);
+        [Tooltip("Il rosso non toglie l'ansia da buio: il costo di restare invisibili.")]
         [FormerlySerializedAs("offRelief")]
         [SerializeField, Range(0f, 1f)] private float redRelief = 0f;
+
+        [Header("Surriscaldamento rossa")]
+        [Tooltip("Secondi di rosso continuo a stress zero prima che il modulo vada in protezione.")]
+        [SerializeField, Min(1f)] private float redMaxSeconds = 20f;
+        [Tooltip("Accelerazione del riscaldamento a stress pieno: 1 = il doppio più veloce.")]
+        [SerializeField, Min(0f)] private float stressHeatBoost = 1f;
+        [Tooltip("Stress del sub. Vuoto: cercato in scena; se manca, il riscaldamento ignora lo stress.")]
+        [SerializeField] private StressSystem stress;
+        [Tooltip("Secondi per raffreddarsi da caldo a freddo. Dopo un surriscaldamento il rosso resta bloccato finché non è freddo.")]
+        [SerializeField, Min(0.1f)] private float redCooldownSeconds = 10f;
+        [Tooltip("Ultimi secondi in cui il fascio sfarfalla fino a spegnersi.")]
+        [SerializeField, Min(0f)] private float flickerSeconds = 4f;
+        [Tooltip("Ronzio del modulo: cala dal volume pieno a zero mentre si scalda. Vuoto: sintetizzato.")]
+        [SerializeField] private AudioClip humClip;
+        [SerializeField, Range(0f, 1f)] private float humVolume = 0.35f;
 
         [Header("Debug (sola lettura)")]
         [SerializeField] private FlashlightMode currentMode;
         [SerializeField] private float currentRelief;
+        [SerializeField, Range(0f, 1f)] private float redHeat;
+        [SerializeField] private bool redOverheated;
 
-        private float pressStartTime = -1f;
-        private float flashEndTime = float.NegativeInfinity;
+        private Color beamColor;
+        private AudioSource hum;
 
         public FlashlightMode CurrentMode => currentMode;
         public float CurrentRelief => currentRelief;
-        public bool FlashUnlocked => flashUnlocked;
-
-        /// <summary>Carica del flash 0-1 mentre il tasto è tenuto premuto, 0 altrimenti.</summary>
-        public float FlashCharge { get; private set; }
-
-        /// <summary>Vero a carica piena, nella finestra in cui il rilascio dà il lampo pieno.</summary>
-        public bool FlashInSweetSpot { get; private set; }
-
-        /// <summary>Vero mentre il lampo è acceso.</summary>
-        public bool IsFlashing => Time.time < flashEndTime;
+        public bool RedUnlocked => redUnlocked;
+        /// <summary>Calore del modulo rosso, 0 freddo, 1 surriscaldato.</summary>
+        public float RedHeat => redHeat;
 
         /// <summary>Luce del fascio (può essere null). Posizione e direzione servono agli stimoli delle creature.</summary>
         public Light SpotLight => spotLight;
 
         public event Action<FlashlightMode> OnModeChanged;
-
-        /// <summary>Invocato quando parte un lampo, prima che la luce torni alla modalità corrente.</summary>
-        public event Action OnFlashFired;
 
         private void Awake()
         {
@@ -98,83 +95,102 @@ namespace Deeploration.Player
             {
                 spotLight = GetComponentInChildren<Light>(true);
             }
+            if (spotLight != null) beamColor = spotLight.color;
+            if (stress == null) stress = FindAnyObjectByType<StressSystem>();
+
+            hum = gameObject.AddComponent<AudioSource>();
+            hum.clip = humClip != null ? humClip : SynthHum();
+            hum.loop = true;
+            hum.playOnAwake = false;
+            hum.spatialBlend = 0f;
 
             SetMode(initialMode);
         }
 
-        private void OnDisable()
-        {
-            EndPress();
-            if (IsFlashing)
-            {
-                flashEndTime = float.NegativeInfinity;
-                ApplyLight();
-            }
-        }
-
         private void Update()
         {
-            if (flashEndTime > float.NegativeInfinity && !IsFlashing)
-            {
-                flashEndTime = float.NegativeInfinity;
-                ApplyLight();
-            }
-
             bool pressed = false;
-            bool held = false;
-            bool released = false;
             bool redPressed = false;
 
 #if ENABLE_INPUT_SYSTEM
             if (Keyboard.current != null)
             {
                 pressed |= Keyboard.current.fKey.wasPressedThisFrame;
-                held |= Keyboard.current.fKey.isPressed;
-                released |= Keyboard.current.fKey.wasReleasedThisFrame;
                 redPressed |= Keyboard.current.rKey.wasPressedThisFrame;
             }
 #endif
 #if ENABLE_LEGACY_INPUT_MANAGER
             pressed |= Input.GetKeyDown(toggleKey);
-            held |= Input.GetKey(toggleKey);
-            released |= Input.GetKeyUp(toggleKey);
             redPressed |= Input.GetKeyDown(redKey);
 #endif
 
-            if (redPressed) SetMode(currentMode == FlashlightMode.Red ? FlashlightMode.Full : FlashlightMode.Red);
-
-            if (pressed) pressStartTime = Time.unscaledTime;
-            if (pressStartTime < 0f) return;
-
-            float heldFor = Time.unscaledTime - pressStartTime;
-            bool charging = flashUnlocked && heldFor >= holdToChargeSeconds;
-            if (held && charging)
+            if (redPressed && redUnlocked)
             {
-                float t = heldFor - holdToChargeSeconds;
-                FlashCharge = flashChargeSeconds <= 0f ? 1f : Mathf.Clamp01(t / flashChargeSeconds);
-                FlashInSweetSpot = t >= flashChargeSeconds;
-                if (t > flashChargeSeconds + sweetSpotSeconds)
-                {
-                    // Sovraccarica: il condensatore si scarica da solo.
-                    FireFlash(false);
-                    EndPress();
-                    return;
-                }
+                if (currentMode == FlashlightMode.Red) SetMode(FlashlightMode.Full);
+                else if (!redOverheated) SetMode(FlashlightMode.Red);
             }
+            if (pressed) CycleMode();
 
-            if (released)
-            {
-                if (heldFor < holdToChargeSeconds) CycleMode();
-                else if (charging) FireFlash(FlashInSweetSpot);
-                EndPress();
-            }
+            UpdateRedHeat();
         }
 
-        private void EndPress()
+        // Il rosso regge redMaxSeconds (meno se stressati): il ronzio cala, il fascio sfarfalla e a fine corsa il
+        // modulo torna da solo alla luce bassa. Si raffredda solo spento.
+        private void UpdateRedHeat()
         {
-            pressStartTime = -1f;
-            FlashCharge = 0f;
-            FlashInSweetSpot = false;
+            bool redActive = currentMode == FlashlightMode.Red && redUnlocked;
+            if (redActive)
+            {
+                float stress01 = stress != null ? stress.NormalizedStress : 0f;
+                redHeat = Mathf.Min(1f, redHeat + Time.deltaTime / redMaxSeconds * (1f + stressHeatBoost * stress01));
+            }
+            else
+            {
+                redHeat = Mathf.Max(0f, redHeat - Time.deltaTime / redCooldownSeconds);
+                if (redHeat <= 0f) redOverheated = false;
+            }
+
+            if (redActive && redHeat >= 1f)
+            {
+                redOverheated = true;
+                hum.Stop();
+                SetMode(FlashlightMode.Low);
+                return;
+            }
+
+            if (!redActive)
+            {
+                if (hum.isPlaying) hum.Stop();
+                return;
+            }
+
+            if (!hum.isPlaying) hum.Play();
+            hum.volume = humVolume * (1f - redHeat);
+
+            if (spotLight == null) return;
+            float flickerStart = 1f - flickerSeconds / redMaxSeconds;
+            float flicker = flickerSeconds > 0f ? Mathf.InverseLerp(flickerStart, 1f, redHeat) : 0f;
+            bool on = flicker <= 0f || Mathf.PerlinNoise(Time.time * 18f, 0.37f) > flicker;
+            spotLight.intensity = on ? redIntensity * Mathf.Lerp(1f, 0.5f, flicker) : 0f;
+        }
+
+        // Ronzio di rete a 100 Hz con armoniche, 1 s esatto: ogni frequenza fa cicli interi e il loop non scatta.
+        private static AudioClip SynthHum()
+        {
+            const int rate = 44100;
+            var data = new float[rate];
+            for (int i = 0; i < rate; i++)
+            {
+                float t = i / (float)rate;
+                float value = 0.5f * Mathf.Sin(2f * Mathf.PI * 100f * t)
+                    + 0.3f * Mathf.Sin(2f * Mathf.PI * 200f * t)
+                    + 0.15f * Mathf.Sin(2f * Mathf.PI * 300f * t)
+                    + 0.08f * Mathf.Sign(Mathf.Sin(2f * Mathf.PI * 100f * t)); // ronzio elettrico, non sinusoide pulita
+                data[i] = value * (1f + 0.15f * Mathf.Sin(2f * Mathf.PI * 4f * t)) * 0.7f;
+            }
+            AudioClip clip = AudioClip.Create("RedTorch_Hum", rate, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         public void CycleMode()
@@ -183,29 +199,11 @@ namespace Deeploration.Player
             SetMode(nextMode);
         }
 
-        /// <summary>True se l'ultimo lampo di <see cref="FireFlash"/> era a piena carica.</summary>
-        public bool LastFlashFull { get; private set; }
-
-        /// <summary>Sblocca il flash (raccolta del modulo a condensatore).</summary>
-        public void UnlockFlash() => flashUnlocked = true;
-
-        /// <summary>
-        /// Lampo: per flashDuration il fascio va a flashIntensity e flashRange (pieno) o ai valori deboli, anche da
-        /// Red, poi torna alla modalità corrente senza invocare OnModeChanged.
-        /// </summary>
-        public void FireFlash(bool full = true)
+        /// <summary>Sblocca la luce rossa (raccolta del modulo nella Z0).</summary>
+        public void UnlockRed()
         {
-            if (!flashUnlocked) return;
-
-            flashEndTime = Time.time + flashDuration;
-            if (spotLight != null)
-            {
-                spotLight.enabled = true;
-                spotLight.intensity = full ? flashIntensity : weakFlashIntensity;
-                spotLight.range = full ? flashRange : weakFlashRange;
-            }
-            LastFlashFull = full;
-            OnFlashFired?.Invoke();
+            redUnlocked = true;
+            ApplyLight();
         }
 
         public void SetMode(FlashlightMode mode)
@@ -218,8 +216,7 @@ namespace Deeploration.Player
                 _ => redRelief
             };
 
-            // Durante il lampo la luce resta al massimo: ApplyLight la riporta alla modalità a lampo finito.
-            if (!IsFlashing) ApplyLight();
+            ApplyLight();
 
             if (emergencyLight != null)
             {
@@ -233,9 +230,12 @@ namespace Deeploration.Player
         {
             if (spotLight == null) return;
 
-            spotLight.enabled = currentMode != FlashlightMode.Red;
-            spotLight.intensity = currentMode == FlashlightMode.Full ? fullIntensity : lowIntensity;
-            spotLight.range = currentMode == FlashlightMode.Full ? fullRange : lowRange;
+            bool red = currentMode == FlashlightMode.Red;
+            // Senza modulo (risveglio in capsula) il rosso è la sola spia d'emergenza: fascio spento, la fotocellula non scatta.
+            spotLight.enabled = !red || redUnlocked;
+            spotLight.color = red ? redColor : beamColor;
+            spotLight.intensity = red ? redIntensity : currentMode == FlashlightMode.Full ? fullIntensity : lowIntensity;
+            spotLight.range = red ? redRange : currentMode == FlashlightMode.Full ? fullRange : lowRange;
         }
     }
 }

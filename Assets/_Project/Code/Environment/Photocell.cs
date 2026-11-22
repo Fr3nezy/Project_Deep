@@ -5,16 +5,21 @@ using UnityEngine.Events;
 namespace Deeploration.Environment
 {
     /// <summary>
-    /// Fotocellula delle porte di Tidal Dynamics: scatta quando la colpisce una luce abbastanza forte.
-    /// Guarda il fascio della torcia del diver (forte solo durante il lampo del flash) e le luci in
-    /// <c>extraLights</c> (per esempio un faro di sicurezza). Una luce conta se è accesa, ha intensità almeno
-    /// <c>minSourceIntensity</c>, la cella è entro la sua portata e, per gli spot, dentro il cono, e nessun
-    /// collider (trigger esclusi) sta in mezzo.
+    /// Fotocellula delle porte di Tidal Dynamics. Scatta col fascio rosso della torcia del diver (modalità
+    /// <see cref="FlashlightMode.Red"/>, a qualunque intensità) tenuto sulla cella per <c>redHoldSeconds</c>, oppure con una luce in <c>extraLights</c> (per esempio
+    /// un faro di sicurezza) di intensità almeno <c>minSourceIntensity</c>. In entrambi i casi la cella deve stare entro
+    /// la portata della luce e, per gli spot, dentro il cono, senza collider (trigger esclusi) in mezzo.
     /// </summary>
     public sealed class Photocell : MonoBehaviour
     {
-        [Tooltip("Intensità minima della sorgente. La torcia in Full è 55, il lampo del flash 800.")]
+        [Tooltip("Intensità minima delle extraLights. Non vale per la torcia del diver, che scatta solo in rosso.")]
         [SerializeField, Min(0f)] private float minSourceIntensity = 200f;
+
+        [Tooltip("Secondi di fascio rosso sulla cella per farla scattare. Se il fascio esce la carica scende alla stessa velocità.")]
+        [SerializeField, Min(0.01f)] private float redHoldSeconds = 1.5f;
+
+        [Tooltip("Stazione che alimenta la cella: finché è spenta la cella non scatta. Vuoto: sempre alimentata.")]
+        [SerializeField] private OxygenRefillStation powerSource;
 
         [Tooltip("Luci della scena che possono far scattare la cella, oltre alla torcia del diver.")]
         [SerializeField] private Light[] extraLights = new Light[0];
@@ -36,6 +41,15 @@ namespace Deeploration.Environment
 
         public bool Triggered => triggered;
 
+        /// <summary>Carica del fascio rosso, 0-1: a 1 la cella scatta. Resta a 0 senza corrente, 1 dopo lo scatto.</summary>
+        public float RedCharge { get; private set; }
+
+        /// <summary>Modalità della torcia il cui fascio colpisce la cella in questo frame, null se non la colpisce.</summary>
+        public FlashlightMode? BeamModeOnCell { get; private set; }
+
+        /// <summary>Vero se la stazione che la alimenta è accesa (o se non ne ha una).</summary>
+        public bool Powered => powerSource == null || powerSource.IsPowered;
+
         /// <summary>Luce più forte che arriva alla cella in questo frame, anche sotto soglia (null se nessuna).</summary>
         public Light BrightestLight { get; private set; }
 
@@ -52,16 +66,24 @@ namespace Deeploration.Environment
         {
             UpdateBrightest();
             if (triggered) return;
-
-            if (flashlight != null && IsLitBy(flashlight.SpotLight)) Trigger();
-            else
+            if (!Powered)
             {
-                foreach (Light light in extraLights)
-                {
-                    if (!IsLitBy(light)) continue;
-                    Trigger();
-                    break;
-                }
+                RedCharge = 0f;
+                return;
+            }
+
+            RedCharge = Mathf.MoveTowards(RedCharge, IsLitByRedBeam() ? 1f : 0f, Time.deltaTime / redHoldSeconds);
+            if (RedCharge >= 1f)
+            {
+                Trigger();
+                return;
+            }
+
+            foreach (Light light in extraLights)
+            {
+                if (!IsLitBy(light)) continue;
+                Trigger();
+                break;
             }
         }
 
@@ -70,14 +92,20 @@ namespace Deeploration.Environment
         {
             if (triggered) return;
             triggered = true;
+            RedCharge = 1f;
             if (indicatorLight != null) indicatorLight.color = triggeredColor;
             onTriggered?.Invoke();
         }
 
+        /// <summary>Vero se la torcia del diver è in rosso e il fascio colpisce la cella (letto dal frame corrente).</summary>
+        public bool IsLitByRedBeam() => BeamModeOnCell == FlashlightMode.Red;
+
         /// <summary>Vero se la luce, così com'è in questo frame, colpisce la cella sopra la soglia.</summary>
-        public bool IsLitBy(Light light)
+        public bool IsLitBy(Light light) => light != null && light.intensity >= minSourceIntensity && Reaches(light);
+
+        private bool Reaches(Light light)
         {
-            if (light == null || !light.isActiveAndEnabled || light.intensity < minSourceIntensity) return false;
+            if (light == null || !light.isActiveAndEnabled) return false;
 
             Vector3 toCell = transform.position - light.transform.position;
             float distance = toCell.magnitude;
@@ -90,7 +118,7 @@ namespace Deeploration.Environment
         /// <summary>
         /// Luce che arriva alla cella da questa sorgente, senza soglia: intensità × caduta con la distanza
         /// ((1 − d/range)²) × posizione nel cono per gli spot (1 al centro, 0 al bordo). 0 se spenta, fuori
-        /// portata, fuori cono o coperta. La torcia in Full vicina dà qualche decina, il lampo centinaia.
+        /// portata, fuori cono o coperta. La torcia in Full vicina dà qualche decina.
         /// </summary>
         public float ReceivedLight(Light light)
         {
@@ -117,16 +145,18 @@ namespace Deeploration.Environment
         {
             BrightestLight = null;
             BrightestScore = 0f;
-            if (flashlight != null) Consider(flashlight.SpotLight);
+            BeamModeOnCell = null;
+            if (flashlight != null && Consider(flashlight.SpotLight) > 0f) BeamModeOnCell = flashlight.CurrentMode;
             foreach (Light light in extraLights) Consider(light);
         }
 
-        private void Consider(Light light)
+        private float Consider(Light light)
         {
             float score = ReceivedLight(light);
-            if (score <= BrightestScore) return;
+            if (score <= BrightestScore) return score;
             BrightestScore = score;
             BrightestLight = light;
+            return score;
         }
 
         // Linea di vista dalla cella verso la luce. Si ignorano la cella con i suoi figli (guscio, occhio),

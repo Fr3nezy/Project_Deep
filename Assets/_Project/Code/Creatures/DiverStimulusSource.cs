@@ -101,7 +101,6 @@ namespace Deeploration.Creatures
             {
                 lastMode = flashlight.CurrentMode;
                 flashlight.OnModeChanged += HandleModeChanged;
-                flashlight.OnFlashFired += HandleFlashFired;
             }
         }
 
@@ -111,11 +110,8 @@ namespace Deeploration.Creatures
             if (flashlight != null)
             {
                 flashlight.OnModeChanged -= HandleModeChanged;
-                flashlight.OnFlashFired -= HandleFlashFired;
             }
         }
-
-        private void HandleFlashFired() => flashTime = Time.time;
 
         private void HandleModeChanged(FlashlightMode mode)
         {
@@ -148,15 +144,10 @@ namespace Deeploration.Creatures
                         full ? StimulusCategory.StrongLight : StimulusCategory.WeakLight, true));
                 }
 
-                // Flash: passaggio a Full da un'altra modalità oppure lampo del modulo (anche da Red).
-                bool flashing = flashlight.CurrentMode == FlashlightMode.Full || flashlight.IsFlashing;
-                if (flashing && Time.time - flashTime < flashDuration)
-                {
-                    var flashStimulus = CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
-                        fullLightReach * flashHaloFraction, StimulusCategory.Flash, true);
-                    flashStimulus.FullFlash = flashlight.IsFlashing && flashlight.LastFlashFull;
-                    output.Add(flashStimulus);
-                }
+                // Flash: passaggio a Full da un'altra modalità (la luce che si accende di colpo).
+                if (flashlight.CurrentMode == FlashlightMode.Full && Time.time - flashTime < flashDuration)
+                    output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
+                        fullLightReach * flashHaloFraction, StimulusCategory.Flash, true));
             }
 
             float noise = 0f;

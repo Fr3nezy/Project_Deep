@@ -36,9 +36,6 @@ namespace Deeploration.Creatures
         /// <summary>True se lo stimolo viene dal sub.</summary>
         public bool FromPlayer;
 
-        /// <summary>True solo per il lampo pieno del modulo flash (falso per lampo debole e passaggio a Full).</summary>
-        public bool FullFlash;
-
         /// <summary>Creatura che ha emesso lo stimolo (null per il sub e l'ambiente): non percepisce sé stessa.</summary>
         public Creature Emitter;
 

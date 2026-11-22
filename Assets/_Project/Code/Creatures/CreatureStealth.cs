@@ -51,11 +51,9 @@ namespace Deeploration.Creatures
         [SerializeField, Min(0.5f)] private float strikeSpeed = 6f;
         [Tooltip("Durata massima dello scatto (s) prima di tornare in Avvicinamento.")]
         [SerializeField, Min(0.1f)] private float strikeMaxDuration = 1.5f;
-        [Tooltip("Secondi senza poter riattaccare dopo una respinta con il flash pieno.")]
-        [SerializeField, Min(0f)] private float repelCooldown = 15f;
         [Tooltip("Secondi senza poter riattaccare dopo un morso.")]
         [SerializeField, Min(0f)] private float biteCooldown = 20f;
-        [Tooltip("Durata della fuga (s) dopo morso o respinta.")]
+        [Tooltip("Durata della fuga (s) dopo un morso.")]
         [SerializeField, Min(0.5f)] private float fleeDuration = 3f;
 
         // Fuga: distanza dal casco del punto di fuga (m) e direzioni provate, in gradi dalla direzione opposta al sub.
@@ -153,12 +151,6 @@ namespace Deeploration.Creatures
                     creature.Guide(InvestigateTarget(), investigateSpeed, CreatureState.Stalk, 0f, lastSeen);
                     break;
                 case StealthAlert.Attack:
-                    if ((attackPhase == AttackPhase.Windup || attackPhase == AttackPhase.Strike) &&
-                        CheckFullFlashRepel())
-                    {
-                        StartFlee(now, repelCooldown);
-                        break;
-                    }
                     StepAttack(now);
                     break;
                 default:
@@ -339,19 +331,6 @@ namespace Deeploration.Creatures
             }
 
             return hasLastFreeApproach ? lastFreeApproach : currentPos;
-        }
-
-        private bool CheckFullFlashRepel()
-        {
-            var stimuli = manager.Stimuli;
-            Vector3 pos = cachedTransform.position;
-            for (int i = 0; i < stimuli.Count; i++)
-            {
-                CreatureStimulus s = stimuli[i];
-                if (s.Category != StimulusCategory.Flash || !s.FromPlayer || !s.FullFlash) continue;
-                if ((s.Position - pos).sqrMagnitude <= s.Radius * s.Radius) return true;
-            }
-            return false;
         }
 
         private void StartFlee(float now, float cooldown)

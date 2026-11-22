@@ -1,5 +1,7 @@
 # Viperfish stealth (chiusa 2)
 
+> **Superata in parte (2026-11-21):** il flash è tolto dal gioco (flusso ristrutturato, `Flusso-Slice.md` nel vault). Non valgono più il flash pieno che respinge il viperfish (`G8`, `repelCooldown`, `FullFlash`) né la nota sul flash qui sotto: il viperfish si evita e basta. Il resto della spec resta valido.
+
 | Versione | Autore | Data | Stato |
 |---|---|---|---|
 | 1.0 | Claude Code | 2026-11-14 | approvata |

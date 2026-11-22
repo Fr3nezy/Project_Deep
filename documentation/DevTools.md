@@ -14,7 +14,7 @@ Non coperti:
 
 ## File e componenti
 - `Assets/_Project/Code/DevTools/CheatMenu.cs`: contiene
-  - il menu IMGUI (tasto F1) con invulnerabilità, ossigeno infinito, ricarica O₂, sblocco del flash e teletrasporto;
+  - il menu IMGUI (tasto F1) con invulnerabilità, ossigeno infinito, ricarica O₂, sblocco della luce rossa e teletrasporto;
   - la partenza fuori capsula.
 - `Assets/_Project/Code/DevTools/DevWarpPoint.cs`: marker di destinazione. Ha nome e ordine nel menu, un gizmo sempre visibile e la voce di menu contestuale «Parti da qui».
 
@@ -29,7 +29,7 @@ Non coperti:
   3. `DiverController.PlaceStanding(punto, yaw del marker, HatchExit.EyeHeight)` (vedi [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md)).
   4. `DiverRespawn.SetCheckpoint(marker)`.
 - I cheat dell'ossigeno scrivono `OxygenSystem.Invulnerable` e `OxygenSystem.InfiniteOxygen` (vedi [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md)). Con l'invulnerabilità `DiverBiteReceiver.ReceiveBite` esce subito (vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)). Nessun'altra fonte di danno: la mina passa da `SetNormalized(0)`, che con l'invulnerabilità viene ignorato.
-- Il flash si sblocca con `DiverFlashlight.UnlockFlash()`.
+- La luce rossa si sblocca con `DiverFlashlight.UnlockRed()` (fino al 2026-11-21 era il flash, `UnlockFlash`).
 
 ## Componenti
 ### CheatMenu
@@ -105,7 +105,7 @@ Verificato in Play Mode il 2026-11-14 in `SCN_Gameplay`, chiamando le API da cod
 - **Ossigeno infinito:** 200 `Update` lasciano 0.500 (consumo calcolato 0.804/s); `Consume(10)` porta a 0.475. Senza cheat 200 `Update` portano da 0.475 a 0.467.
 - **Menu:** aperto, `timeScale` 0, input del look spento, cursore libero; chiuso, `timeScale` 1, input del look acceso, cursore bloccato.
 - **Teletrasporto alla capsula:** (−4.62, 0.33, −6.06), yaw 191, checkpoint `Warp_Capsula`.
-- **Sblocca flash:** `FlashUnlocked` da falso a vero.
+- **Sblocca luce rossa:** `RedUnlocked` da falso a vero.
 - **Regressione:** con `startOutside` spento parte il risveglio normale: diver seduto a (−3.92, 0.10, −3.33), controller spento, `LockMovement` vero, risveglio acceso, overlay ad alpha 1.
 
 Non verificati:
@@ -119,4 +119,4 @@ Non verificati:
 - [Prologue.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Prologue.md): `PlayerWakeUpSequence.Skip`.
 - [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md): `HatchExit.EyeHeight` e la fine dell'uscita.
 - [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md): `DiverBiteReceiver.ReceiveBite`.
-- [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md): `DiverFlashlight.UnlockFlash`.
+- [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md): `DiverFlashlight.UnlockRed`.

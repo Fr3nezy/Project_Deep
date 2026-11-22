@@ -1,12 +1,14 @@
+using Deeploration.Player;
 using UnityEngine;
 
 namespace Deeploration.Environment
 {
     /// <summary>
     /// Schermo CRT ambra accanto alla fotocellula. Spento finché la stazione che lo alimenta non ha corrente, poi
-    /// mostra senza testo sulla luce: una barra a segmenti con la luce ricevuta dalla <see cref="Photocell"/>
-    /// (<see cref="Photocell.BrightestScore"/>, con la tacca di soglia nel modello), un occhio che si apre con la luce e
-    /// un lucchetto che allo scatto lampeggia e poi si apre. Solo lettura: non tocca la cella.
+    /// mostra senza testo cosa vuole la <see cref="Photocell"/>: in attesa l'occhio chiuso e l'icona della luce rossa
+    /// che pulsa; con la luce sbagliata l'icona barrata della modalità della torcia che colpisce la cella; col rosso
+    /// l'occhio si apre e un anello si riempie con <see cref="Photocell.RedCharge"/>; allo scatto il lucchetto lampeggia
+    /// e si apre. Solo lettura: non tocca la cella.
     /// </summary>
     public sealed class PhotocellScreen : MonoBehaviour
     {
@@ -15,26 +17,39 @@ namespace Deeploration.Environment
         [SerializeField] private OxygenRefillStation powerSource;
 
         [Header("Schermo")]
-        [Tooltip("Oggetto con barra e icone, acceso solo con la corrente.")]
+        [Tooltip("Oggetto con le icone, acceso solo con la corrente.")]
         [SerializeField] private GameObject content;
         [Tooltip("Fondo dello schermo: emissione accesa solo con la corrente. Opzionale.")]
         [SerializeField] private Renderer background;
         [SerializeField, ColorUsage(false, true)] private Color backgroundGlow = new Color(0.12f, 0.06f, 0.01f);
         [SerializeField] private Color amber = new Color(1f, 0.6f, 0.15f, 1f);
 
-        [Header("Barra")]
-        [Tooltip("Segmenti da sinistra a destra.")]
-        [SerializeField] private Renderer[] barSegments = new Renderer[0];
-        [Tooltip("Punteggio di luce ricevuta che riempie la barra. La torcia vicina fa 10-20, il lampo oltre 100.")]
-        [SerializeField, Min(0.01f)] private float fullScore = 60f;
-        [SerializeField, Range(0f, 1f)] private float unlitSegmentAlpha = 0.12f;
-        [Tooltip("Velocità con cui la barra segue la luce, frazione al secondo.")]
-        [SerializeField, Min(0f)] private float response = 4f;
-
-        [Header("Icone")]
+        [Header("Occhio")]
         [SerializeField] private Renderer eyeIcon;
         [Tooltip("Fotogrammi dell'occhio da chiuso ad aperto.")]
         [SerializeField] private Texture2D[] eyeFrames = new Texture2D[0];
+        [Tooltip("Velocità con cui l'occhio si apre col rosso e si richiude senza, frazione al secondo.")]
+        [SerializeField, Min(0f)] private float eyeResponse = 6f;
+
+        [Header("Modalità della torcia")]
+        [Tooltip("Icona della luce richiesta, o della luce sbagliata barrata. Nascosta dopo lo scatto.")]
+        [SerializeField] private Renderer modeIcon;
+        [SerializeField] private Texture2D redIcon;
+        [SerializeField] private Texture2D fullBarredIcon;
+        [SerializeField] private Texture2D lowBarredIcon;
+        [Tooltip("Pulsazioni al secondo dell'icona rossa in attesa.")]
+        [SerializeField, Min(0.1f)] private float pulseRate = 1.2f;
+        [SerializeField, Range(0f, 1f)] private float pulseMinAlpha = 0.25f;
+        [Tooltip("Colore dell'icona della luce rossa: unica icona non ambra.")]
+        [SerializeField] private Color redTint = new Color(0.85f, 0.13f, 0.14f, 1f);
+
+        [Header("Anello di carica")]
+        [Tooltip("Visibile solo mentre la carica è sopra 0; piena dopo lo scatto.")]
+        [SerializeField] private Renderer chargeRing;
+        [Tooltip("Fotogrammi dell'anello, dal primo spicchio al cerchio pieno.")]
+        [SerializeField] private Texture2D[] ringFrames = new Texture2D[0];
+
+        [Header("Lucchetto")]
         [SerializeField] private Renderer lockIcon;
         [SerializeField] private Texture2D lockClosed;
         [SerializeField] private Texture2D lockOpen;
@@ -46,13 +61,10 @@ namespace Deeploration.Environment
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
         private MaterialPropertyBlock block;
-        private float fill;
+        private float eyeOpen;
         private float triggeredAt = -1f;
         private bool wasPowered;
         private bool initialized;
-
-        /// <summary>Riempimento attuale della barra, 0-1.</summary>
-        public float Fill => fill;
 
         public bool IsPowered => powerSource == null || powerSource.IsPowered;
 
@@ -81,18 +93,35 @@ namespace Deeploration.Environment
 
             bool triggered = photocell != null && photocell.Triggered;
             if (triggered && triggeredAt < 0f) triggeredAt = Time.time;
+            float charge = photocell != null ? photocell.RedCharge : 0f;
+            FlashlightMode? beam = photocell != null ? photocell.BeamModeOnCell : null;
 
-            float score = photocell != null ? photocell.BrightestScore : 0f;
-            float target = triggered ? 1f : Mathf.Clamp01(score / fullScore);
-            fill = Mathf.MoveTowards(fill, target, response * Time.deltaTime);
-
-            int lit = Mathf.RoundToInt(fill * barSegments.Length);
-            for (int i = 0; i < barSegments.Length; i++) SetIcon(barSegments[i], null, i < lit ? 1f : unlitSegmentAlpha);
-
+            eyeOpen = Mathf.MoveTowards(eyeOpen, triggered || beam == FlashlightMode.Red ? 1f : 0f,
+                eyeResponse * Time.deltaTime);
             if (eyeFrames.Length > 0)
+                SetIcon(eyeIcon, eyeFrames[Mathf.RoundToInt(eyeOpen * (eyeFrames.Length - 1))], 1f);
+
+            if (chargeRing != null)
             {
-                int frame = Mathf.Clamp(Mathf.RoundToInt(fill * (eyeFrames.Length - 1)), 0, eyeFrames.Length - 1);
-                SetIcon(eyeIcon, eyeFrames[frame], 1f);
+                bool ringOn = charge > 0f && ringFrames.Length > 0;
+                chargeRing.enabled = ringOn;
+                if (ringOn)
+                {
+                    int frame = Mathf.Clamp(Mathf.CeilToInt(charge * ringFrames.Length) - 1, 0, ringFrames.Length - 1);
+                    SetIcon(chargeRing, ringFrames[frame], 1f);
+                }
+            }
+
+            if (modeIcon != null)
+            {
+                modeIcon.enabled = !triggered;
+                if (!triggered)
+                {
+                    Texture2D icon = beam == FlashlightMode.Full ? fullBarredIcon
+                        : beam == FlashlightMode.Low ? lowBarredIcon : redIcon;
+                    float pulse = 0.5f + 0.5f * Mathf.Cos(Time.time * pulseRate * 2f * Mathf.PI);
+                    SetIcon(modeIcon, icon, beam == null ? Mathf.Lerp(pulseMinAlpha, 1f, pulse) : 1f, icon == redIcon ? redTint : amber);
+                }
             }
 
             bool open = triggered && Time.time - triggeredAt >= blinkDuration;
@@ -100,12 +129,14 @@ namespace Deeploration.Environment
             SetIcon(lockIcon, open ? lockOpen : lockClosed, blinkOff ? 0.15f : 1f);
         }
 
-        private void SetIcon(Renderer target, Texture2D texture, float alpha)
+        private void SetIcon(Renderer target, Texture2D texture, float alpha) => SetIcon(target, texture, alpha, amber);
+
+        private void SetIcon(Renderer target, Texture2D texture, float alpha, Color tint)
         {
             if (target == null) return;
             target.GetPropertyBlock(block);
             if (texture != null) block.SetTexture(BaseMapId, texture);
-            block.SetColor(BaseColorId, new Color(amber.r, amber.g, amber.b, amber.a * alpha));
+            block.SetColor(BaseColorId, new Color(tint.r, tint.g, tint.b, tint.a * alpha));
             target.SetPropertyBlock(block);
         }
     }

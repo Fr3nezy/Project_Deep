@@ -102,7 +102,7 @@ GameObject:
   - component: {fileID: 1725088764074081005}
   - component: {fileID: 4906896881088526210}
   m_Layer: 0
-  m_Name: FlashModule
+  m_Name: RedLightModule
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -158,7 +158,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6e215cd7fdfef65408b2d1b1534d38a0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Interaction.SimpleInteractable
-  promptText: Monta il modulo flash
+  promptText: Monta il modulo luce rossa
   isReusable: 0
   isEnabled: 1
   questObjectiveId: 
@@ -168,7 +168,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: Deeploration.Player.DiverFlashlight, Assembly-CSharp
-        m_MethodName: UnlockFlash
+        m_MethodName: UnlockRed
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

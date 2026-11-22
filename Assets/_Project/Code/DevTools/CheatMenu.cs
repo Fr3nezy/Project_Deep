@@ -149,8 +149,8 @@ namespace Deeploration.DevTools
 
             if (flashlight != null)
             {
-                GUI.enabled = !flashlight.FlashUnlocked;
-                if (GUILayout.Button(flashlight.FlashUnlocked ? "Flash sbloccato" : "Sblocca flash")) flashlight.UnlockFlash();
+                GUI.enabled = !flashlight.RedUnlocked;
+                if (GUILayout.Button(flashlight.RedUnlocked ? "Luce rossa sbloccata" : "Sblocca luce rossa")) flashlight.UnlockRed();
                 GUI.enabled = true;
             }
 

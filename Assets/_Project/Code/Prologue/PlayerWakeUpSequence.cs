@@ -1,6 +1,7 @@
 using System.Collections;
 using Deeploration.Player;
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Deeploration.Prologue
 {
@@ -63,6 +64,9 @@ namespace Deeploration.Prologue
 
         [SerializeField, Tooltip("Durata visibilità della battuta di emergenza.")]
         private float subtitleDuration = 5.0f;
+
+        [SerializeField, Tooltip("A fine risveglio (non con Skip). In SCN_Gameplay: HelmetInstruments.ShowLightsNotice.")]
+        private UnityEvent onCompleted = new UnityEvent();
 
         private CharacterController controller;
         private float timer;
@@ -195,6 +199,7 @@ namespace Deeploration.Prologue
             }
 
             enabled = false;
+            onCompleted.Invoke();
         }
 
         /// <summary>

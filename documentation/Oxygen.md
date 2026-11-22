@@ -1,5 +1,5 @@
 # Oxygen System
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-22
 
 ## Scopo e confini
 Gestisce la riserva vitale di ossigeno (O₂) nello scafandro del diver. L'ossigeno viene costantemente consumato dal metabolismo basale della tuta e subisce incrementi di drenaggio derivanti dallo sforzo motorio (`DiverController`) e dal livello di agitazione psicologica (`StressSystem`).
@@ -8,6 +8,8 @@ Il sistema è completamente disaccoppiato dalle singole sorgenti tramite l'inter
 ## File e componenti
 - `Assets/_Project/Code/Player/Oxygen/OxygenSystem.cs`: Gestore principale della quantità di O₂, del consumo, del refill e degli stati di allerta.
 - `Assets/_Project/Code/Player/Oxygen/OxygenProfile.cs`: ScriptableObject con la configurazione di capacità, consumi base e soglie critiche.
+- `Assets/_Project/Code/Player/Oxygen/OxygenBlackout.cs` (dal 2026-11-22): vignetta nera e oscuramento a ossigeno basso, nero pieno alla morte.
+- `VFX_BreathBubbles` (dal 2026-11-22, `ParticleSystem` nel `Player.prefab`, figlio di `MainCamera/HelmetVisualPivot`): bolle del respiro sotto il casco, nessuno script.
 - `Assets/_Project/Code/Player/Oxygen/IOxygenDrainSource.cs`: Interfaccia implementata da qualsiasi sistema che consuma ossigeno in unità/secondo.
 - `OxygenLevel` (enum definito in `OxygenSystem.cs`): Livello di severità della riserva (`Normal`, `Warning`, `Critical`, `Depleted`).
 
@@ -74,6 +76,17 @@ flowchart TD
 - **API pubbliche**: `Transform Checkpoint { get; }`, `void SetCheckpoint(Transform point)` (lo chiama `OxygenRefillStation` quando il diver entra a stazione accesa), `void Respawn()`.
 - **Limiti**: nessuna dissolvenza né suono; durante l'attesa il diver si muove ancora; non ripristina oggetti, porte o creature. Verificato in Play il 2026-11-10 da codice: ossigeno a 0 a z −100, dopo 2 s diver sul `RespawnPoint` della stazione O₂ 1, a terra, ossigeno 1.0.
 
+### OxygenBlackout *(2026-11-22)*
+- **Responsabilità e ciclo di vita**: sul `PlayerCapsule` accanto a `OxygenSystem` (`RequireComponent`). Richiesta di Manu dopo il playtest del 2026-11-22: a ossigeno basso l'unico feedback era il tremolio della lancetta. In `Awake` crea un `Volume` globale figlio (`OxygenBlackoutVolume`, peso 0) con profilo runtime: `Vignette` (intensità 1, nera, `vignetteSmoothness`) e `ColorAdjustments.colorFilter`. In `Update` calcola il buio bersaglio: 1 se `Level == Depleted`, altrimenti `lowOxygenDarkness × InverseLerp(startNormalized, 0, NormalizedOxygen)`; `Darkness` lo insegue a velocità lineare (`1/blackoutSeconds` scurendo, `1/recoverSeconds` schiarendo). Peso del Volume = `Darkness`, filtro colore = bianco→nero per `Darkness²`: il buio totale cresce circa come d³ e diventa nero pieno solo a d = 1. Il respawn (`DiverRespawn`, 2 s dopo lo zero) avviene a schermo nero; con il serbatoio ricaricato lo schermo torna in `recoverSeconds`. Profilo distrutto in `OnDestroy`.
+- **Campi Inspector**: `startNormalized` (float 0.01-1, default 0.25: soglia Critical del profilo di default), `lowOxygenDarkness` (0-1, 0.8), `blackoutSeconds` (≥0.05, 1.5; deve restare sotto `DiverRespawn.respawnDelay`), `recoverSeconds` (≥0.05, 1.5), `vignetteSmoothness` (0.01-1, 0.6), `volumePriority` (110, sopra la vignetta del morso a 100), `volumeLayer` (0-31, 0, deve stare nella Volume Mask della camera).
+- **API pubbliche**: `float Darkness { get; }` (0 = niente, 1 = nero pieno).
+- **Riferimenti**: `OxygenSystem` sullo stesso GameObject, obbligatorio.
+- **Limiti**: con peso > 0 la sua vignetta (intensità 1) prevale su quelle della scena e del morso, mescolata per peso. Lo stato di morte con «riprova» è pianificato, non implementato: per ora si torna all'ultimo checkpoint. Nessun suono di soffocamento.
+- **Verifica**: Play del 2026-11-22 da codice: O₂ a 0.1 → `Darkness` sale verso 0.48; O₂ a 0 → `Darkness` +0.27 in 0.41 s (lineare, nero pieno a 1.5 s), respawn a 2 s con O₂ 0.99 e `Darkness` tornato a 0. Resa a schermo non ancora vista.
+
+### VFX_BreathBubbles *(2026-11-22)*
+- `ParticleSystem` sotto `MainCamera/HelmetVisualPivot`, posizione locale `(0.06, 0.011, 0.082)` (sotto il casco, un po' a destra). Spazio mondo, loop di 1.5 s con un burst di 4-9 bolle a probabilità 0.2 (in media un respiro ogni 7.5 s, irregolare), vita 1.5-2.5 s, velocità 0.05-0.2, dimensione 0.006-0.02, `gravityModifier` −0.06 (salgono), sfera di raggio 0.015, noise 0.04, dimensione ×0.8→1.3 e dissolvenza nell'ultimo 30% della vita. Materiale `M_VFX_Bubble` (lo stesso dell'esplosione della mina). Verificato in Play solo che emette (5 particelle vive); resa a schermo da giudicare a occhio.
+
 ### IOxygenDrainSource
 - **Interfaccia**:
   ```csharp
@@ -96,7 +109,7 @@ flowchart TD
 
 ## Estensione del sistema
 - Riconoscimento bombole secondarie / upgrade di capacità: sostituzione o modifica dinamica del profilo di capienza.
-- Effetto soffocamento: sottoscrivere `OnOxygenDepleted` per avviare il blackout e il reload dal checkpoint.
+- Effetto soffocamento: implementato da `OxygenBlackout` (2026-11-22). Pianificato: schermata di morte con «riprova».
 
 ## Limiti e problemi noti
 - Se il diver entra in una stazione di ricarica (`OxygenRefillStation`), questa chiama `Refill(Time.deltaTime)` in `OnTriggerStay()`. La stazione ha un proprio parametro serializzato `refillRatePerSecond` che attualmente non viene usato, in quanto la velocità effettiva è governata da `OxygenProfile.refillRatePerSecond`.

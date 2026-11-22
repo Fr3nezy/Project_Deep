@@ -56,7 +56,7 @@ Con `maxTension` (900 N) sopra `PlayerGrab.maxForce` (400 N) il sub non riesce a
 
 ## Configurazione verificata in prefab e scene
 - `CableReel.prefab`: radice con `LineRenderer` (`M_Cable`, larghezza 0.06, ombre spente) e `PhysicsCable` (`collisionMask` = Default, Obstacle, Seafloor); `Reel` cilindro con `BoxCollider`; `CableAnchor` a y 0.95; `CablePlug` a (0, 0.2, 2) con `Rigidbody` massa 4, `Grabbable` (`itemId = cable_plug`, `stimulusReach = 0` → la spina non attira creature, prompt «Tieni premuto il tasto sinistro per tirare il cavo»), `Visual` cubo 0.16 × 0.16 × 0.3 con `BoxCollider`, `Pins` senza collider.
-- `SCN_Gameplay`, `Zones/Z3_Viperfish/Z3_Puzzle` (2026-11-21):
+- `SCN_Gameplay`, `Zones/Z3_Viperfish/Z3_Puzzle` (2026-11-21). **Dalla notte del 2026-11-21 i due cavi sono disattivati** (flusso ristrutturato: la Z3 si gioca solo con le celle, il cavo si impara in Z2 Lizardfish). Restano in scena spenti come riferimento per la Z2; le prese delle stazioni non accettano più `cable_plug` (vedi [Environment.md](Environment.md)). Configurazione com'era:
   - `Cavo_A_bocca`: rocchetto a (53, −21.0, −145.5), in testa al nastro; presa di `Stazione_O2_A_bocca` a 12.9 m in linea d'aria; `maxLength` 24.
   - `Cavo_B_gradone`: rocchetto a (90, −4.0, −98.7) sul gradone, unico punto piano alla quota della presa entro 22 m; presa di `Stazione_O2_B_gradone` a 22 m; `maxLength` 30.
   - Le due `PowerSocket` delle stazioni hanno `acceptedItemId = cable_plug` e `requireSeating` spento (snap all'ingresso nel trigger da 1.45 m, magnete 0.7 m invariato); `onSocketed` invariato (`SafeOxygenStressZone.PowerOn` + `Beacon_Unpowered.SetActive(false)`).

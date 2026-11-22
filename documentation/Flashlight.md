@@ -1,9 +1,10 @@
 # Diver Flashlight
-Ultima verifica: 2026-11-16
+Ultima verifica: 2026-11-22
 
 ## Scopo e confini
 Gestisce la torcia montata sullo scafandro del diver, permettendo la commutazione ciclica tra le modalità di illuminazione subacquea implementate (`Full`, `Low`, `Red`).
 Dal 2026-10-13 la modalità spenta (`Off`) è diventata `Red`: le luci dello scafandro sono spente e resta accesa solo una spia rossa d'emergenza, invisibile alle creature (decisione di Manu: una modalità spenta separata sarebbe stata sempre peggiore della rossa).
+Dal 2026-11-21 (flusso ristrutturato, vedi `Flusso-Slice.md` nel vault) **il flash a condensatore è tolto dal gioco** e il modulo trovato nella Z0 è il **modulo luce rossa**: sbloccato, `Red` accende un fascio rosso corto che la fauna non vede e che fa scattare la fotocellula della chiusa 1.
 Oltre alla funzione visiva essenziale per orientarsi nell'abisso oceanico, la torcia fornisce una quota normalizzata di sollievo dallo stress da oscurità (`CurrentRelief`), letta direttamente da `DarknessStressSource`.
 
 ## File e componenti
@@ -11,20 +12,20 @@ Oltre alla funzione visiva essenziale per orientarsi nell'abisso oceanico, la to
 - `FlashlightMode` (enum definito in `DiverFlashlight.cs`): Definisce i tre stati operativi reali:
   - `Full`: Fascio diretto ad alta intensità e massima portata (`fullIntensity: 55f`, `fullRange: 15f`, `fullRelief: 1f`).
   - `Low`: Luce diffusa / interna a ridotta intensità e corto raggio (`lowIntensity: 8f`, `lowRange: 4f`, `lowRelief: 0.4f`).
-  - `Red`: Fascio spento (`spotLight.enabled = false`), spia d'emergenza accesa (`emergencyLight.enabled = true`), `redRelief: 0f`. Ex `Off`: stesso indice 2 dell'enum, quindi i valori serializzati restano validi.
+  - `Red`: spia d'emergenza accesa (`emergencyLight.enabled = true`), `redRelief: 0f`. Senza modulo il fascio è spento; col modulo (`redUnlocked`) il fascio resta acceso in rosso (`redColor`, `redIntensity`, `redRange`). Nessuno stimolo per le creature in entrambi i casi. Ex `Off`: stesso indice 2 dell'enum, quindi i valori serializzati restano validi.
 
 ## Dipendenze e flusso dati
-- **Luce fisica**: Modifica `enabled`, `intensity` e `range` sul componente `Light` (URP Spot Light) e accende la spia `emergencyLight` solo in `Red`. Non modifica `spotAngle` né il tipo di luce. Se il riferimento alla `Light` è assente, lo stato logico e il calcolo del sollievo continuano a funzionare.
+- **Luce fisica**: Modifica `enabled`, `color`, `intensity` e `range` sul componente `Light` (URP Spot Light) e accende la spia `emergencyLight` solo in `Red`. Non modifica `spotAngle` né il tipo di luce. Se il riferimento alla `Light` è assente, lo stato logico e il calcolo del sollievo continuano a funzionare.
 - **Darkness Stress**: Espone la proprietà `CurrentRelief` (1.0 in Full, 0.4 in Low, 0.0 in Red), letta da `DarknessStressSource` per mitigare l'accumulo di stress al buio.
 - **Creature**: `DiverStimulusSource` legge `CurrentMode` e `SpotLight` (posizione, direzione, `spotAngle`) e ne fa lo stimolo di luce per le creature; in `Red` nessuno stimolo. Vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md).
-- **Fotocellula**: `Photocell` (chiusa 1) legge `SpotLight` e scatta solo con intensità ≥ 200, cioè durante il lampo. Vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
-- **Modulo flash**: in `SCN_Gameplay` `Chiusa1_Puzzle/FlashModule` (`SimpleInteractable`) chiama `UnlockFlash` e si spegne.
+- **Fotocellula**: `Photocell` (chiusa 1) scatta quando `CurrentMode` è `Red` e il fascio acceso la colpisce (`IsLitByRedBeam`). Vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
+- **Modulo luce rossa**: in `SCN_Gameplay` `Chiusa1_Puzzle/RedLightModule` (prefab `Prefabs/Puzzle/RedLightModule.prefab`, ex `FlashModule`, stesso GUID; il modello è ancora `FlashModuleVisual`; prompt «Monta il modulo luce rossa») chiama `UnlockRed` e si spegne.
 - **Overlay UI**: Notifica il cambio modalità tramite l'evento `OnModeChanged` a `SuitDebugOverlay`.
 
 ```mermaid
 flowchart TD
-    Input[Input F] --> Flashlight[DiverFlashlight]
-    Flashlight --> Light[enabled, intensity, range]
+    Input[Input F, R] --> Flashlight[DiverFlashlight]
+    Flashlight --> Light[enabled, color, intensity, range]
     Flashlight --> Emergency[emergencyLight: solo in Red]
     Flashlight -->|CurrentMode, SpotLight| Stimuli[DiverStimulusSource]
     Flashlight -->|CurrentRelief| Darkness[DarknessStressSource]
@@ -36,27 +37,19 @@ flowchart TD
 ### DiverFlashlight
 - **Responsabilità e ciclo di vita**:
   - `Awake()`: Se `spotLight` non è assegnato, tenta di risolverlo nei figli con `GetComponentInChildren<Light>(true)`. Chiama quindi `SetMode(initialMode)`.
-  - `Update()` (controlli dal 2026-11-10, come da TASKS: F tenuto carica il flash, R = rossa):
-    - **R** alterna `Red` e `Full`.
-    - **F**, tocco (rilascio prima di `holdToChargeSeconds`): `CycleMode()`.
-    - **F tenuto** con il flash sbloccato: dopo `holdToChargeSeconds` sale `FlashCharge` (0→1 in `flashChargeSeconds`). A carica piena si apre lo **sweet spot** (`FlashInSweetSpot`, per `sweetSpotSeconds`): rilasciando lì parte il lampo pieno; rilasciando prima parte un lampo debole; oltre la finestra il condensatore si scarica da solo con un lampo debole. Sul CRT del casco le tre tacche si riempiono in fila e l'ultima diventa verde nello sweet spot (vedi [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md)). Senza modulo, una pressione lunga non fa nulla (prima del 2026-11-10 passava a `Red`).
-    - A lampo finito (`flashDuration`) riporta la luce alla modalità corrente senza invocare `OnModeChanged`.
-    - Con New Input System i tasti sono hardcoded (`fKey`, `rKey`); `toggleKey` e `redKey` valgono solo nel ramo legacy. I tempi della pressione usano `Time.unscaledTime`, il lampo `Time.time`.
-  - `OnDisable()`: annulla pressione e carica, chiude un lampo in corso.
+  - `Awake()`: risolve `spotLight`, ne salva il colore come colore del fascio normale, applica `initialMode`.
+  - `Update()` (dal 2026-11-21):
+    - **R** alterna `Red` e `Full`, solo con `redUnlocked`; verso `Red` è ignorato finché il modulo è in protezione (`redOverheated`).
+    - **F** alla pressione: `CycleMode()`. Niente più pressione lunga né carica.
+    - Con New Input System i tasti sono hardcoded (`fKey`, `rKey`); `toggleKey` e `redKey` valgono solo nel ramo legacy.
 - **Campi Inspector**:
   - `Light spotLight` (default: `null`): Riferimento alla sorgente luminosa.
   - `Light emergencyLight` (default: `null`): Spia rossa d'emergenza, accesa solo in `Red`. Opzionale: se manca, `Red` spegne soltanto il fascio.
   - `FlashlightMode initialMode` (default: `FlashlightMode.Full`): Modalità attiva all'avvio.
   - `KeyCode toggleKey` (default: `KeyCode.F`): Tasto impiegato nel ramo legacy manager.
   - `KeyCode redKey` (default: `KeyCode.R`): Tasto della modalità rossa nel ramo legacy.
-  - `float holdToChargeSeconds` (min 0.05, default: `0.35f`): Pressione oltre la quale F non cicla e, col flash sbloccato, inizia la carica. Ex `holdToRedSeconds` (`[FormerlySerializedAs]`).
-  - **Flash (modulo a condensatore)**:
-    - `bool flashUnlocked` (default: `false`): Lo sblocca `UnlockFlash()` alla raccolta del modulo.
-    - `float flashChargeSeconds` (default: `1f`): tempo per riempire la carica.
-    - `float sweetSpotSeconds` (min 0.05, default: `0.4f`): finestra a carica piena per il lampo pieno.
-    - `float flashIntensity` (default: `800f`), `float flashRange` (default: `30f`): lampo pieno.
-    - `float weakFlashIntensity` (default: `150f`, sotto la soglia 200 della fotocellula), `float weakFlashRange` (default: `12f`): lampo debole.
-    - `float flashDuration` (default: `0.15f` s).
+  - **Modulo luce rossa**:
+    - `bool redUnlocked` (default: `false`): Lo sblocca `UnlockRed()` alla raccolta del modulo. Senza, R non fa niente e `Red` (per esempio da `initialMode`) è la sola spia.
   - **Full - Fascio Diretto**:
     - `float fullIntensity` (default: `55f`).
     - `float fullRange` (default: `15f`).
@@ -65,32 +58,37 @@ flowchart TD
     - `float lowIntensity` (default: `8f`).
     - `float lowRange` (default: `4f`).
     - `float lowRelief` (range: 0-1, default: `0.4f`).
-  - **Red - Spia d'emergenza**:
+  - **Red - Fascio rosso**:
+    - `float redIntensity` (default: `6f`), `float redRange` (default: `8f`): corto e fioco.
+    - `Color redColor` (default: `(1, 0.08, 0.04)`).
     - `float redRelief` (range: 0-1, default: `0f`). Ex `offRelief`, migrato con `[FormerlySerializedAs]`.
+  - **Surriscaldamento rossa** (dal 2026-11-22, decisione di Manu: lo svantaggio del rosso è lo stress più un limite di tempo, senza barre nuove):
+    - `float redMaxSeconds` (default: `20f`, min 1): secondi di rosso continuo a stress zero prima della protezione.
+    - `float stressHeatBoost` (default: `1f`): con stress pieno (`StressSystem.NormalizedStress` 1) scalda `1 + boost` volte più in fretta, cioè in 10 s.
+    - `StressSystem stress` (default: `null` → `FindAnyObjectByType`; se manca il riscaldamento ignora lo stress).
+    - `float redCooldownSeconds` (default: `10f`): da caldo a freddo a rosso spento. Dopo un surriscaldamento R non riaccende il rosso finché il calore non torna a 0.
+    - `float flickerSeconds` (default: `4f`): ultimi secondi (in calore, `flickerSeconds / redMaxSeconds`) in cui il fascio sfarfalla (Perlin a 18 Hz) e cala fino a metà, sempre più spesso spento.
+    - `AudioClip humClip` (default: `null` → ronzio sintetizzato in `SynthHum`, 1 s in loop, 100 Hz con armoniche), `float humVolume` (default: `0.35`): il ronzio parte a `humVolume` e cala a 0 col calore. `AudioSource` 2D aggiunta in `Awake`.
+    - A calore 1: `redOverheated` vero, ronzio fermo, `SetMode(Low)`.
   - **Debug (sola lettura)**:
     - `FlashlightMode currentMode`: Modalità corrente.
     - `float currentRelief`: Quota di sollievo corrente.
+    - `float redHeat` (0-1), `bool redOverheated`.
 - **API pubbliche**:
   ```csharp
   FlashlightMode CurrentMode { get; }
   float CurrentRelief { get; }
   Light SpotLight { get; }   // fascio (può essere null), letto dagli stimoli delle creature
-  bool FlashUnlocked { get; }
-  float FlashCharge { get; }  // 0-1 mentre F è tenuto col flash sbloccato
-  bool FlashInSweetSpot { get; } // carica piena, nella finestra del lampo pieno
-  bool IsFlashing { get; }    // vero durante il lampo
+  bool RedUnlocked { get; }
+  float RedHeat { get; } // 0 freddo, 1 surriscaldato
   event Action<FlashlightMode> OnModeChanged;
-  event Action OnFlashFired;  // all'inizio di ogni lampo
   void CycleMode();
   void SetMode(FlashlightMode mode);
-  void UnlockFlash();
-  void FireFlash(bool full = true); // ignorato se il flash non è sbloccato; false = lampo debole; aggiorna LastFlashFull
-  bool LastFlashFull { get; } // true se l'ultimo FireFlash era a piena carica
+  void UnlockRed(); // sblocca il rosso e riapplica la luce (se si è già in Red il fascio si accende)
   ```
   - `OnModeChanged`: Invocato a ogni chiamata a `SetMode(mode)`, anche qualora la modalità richiesta coincida con quella già attiva.
   - `CycleMode()`: dal 2026-11-10 `Full → Low → Full`; da `Red` va a `Full` (prima `Full → Low → Red → Full`).
-  - `FireFlash()`: per `flashDuration` accende il fascio a `flashIntensity` e `flashRange`, anche da `Red`, e invoca `OnFlashFired`. `SetMode` durante il lampo aggiorna modalità e sollievo ma lascia la luce al massimo fino alla fine del lampo.
-  - `SetMode(FlashlightMode mode)`: Imposta la modalità, applica `enabled`, `intensity` e `range` alla `Light` (se presente), accende `emergencyLight` solo in `Red`, assegna `currentRelief` e invoca `OnModeChanged`.
+  - `SetMode(FlashlightMode mode)`: Imposta la modalità, applica `enabled`, `color`, `intensity` e `range` alla `Light` (se presente), accende `emergencyLight` solo in `Red`, assegna `currentRelief` e invoca `OnModeChanged`.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - `spotLight`: Se non assegnato, viene ricercato in `Awake()` tramite `GetComponentInChildren<Light>(true)`. Se non è presente alcun componente `Light`, il sistema opera comunque a livello logico aggiornando `CurrentMode` e `CurrentRelief` senza generare errori o bloccare l'esecuzione.
 
@@ -119,8 +117,12 @@ flowchart TD
 
 ## Limiti e problemi noti
 - Se la torcia viene messa in `Red` o in `Low` al di fuori di una `StressLightZone`, il sollievo scende rispettivamente a `0.0` o `0.4`, causando l'accumulo rapido dello stress da oscurità calcolato da `DarknessStressSource`.
-- Sweet spot verificato in Play il 2026-11-10 con eventi di tastiera simulati (`InputSystem.QueueStateEvent`, non tastiera vera): rilascio a 1.55 s dalla pressione (carica 1, sweet spot) → lampo 800; a 0.8 s → 150; tenuto 2.4 s → scarica da sola a 150, carica a 0. Le tacche verdi sul CRT non sono state guardate a schermo. Nessun suono di carica; la torcia non trema durante la carica.
-- Il tocco lungo non è stato provato con la tastiera vera (verificati in Play solo `SetMode` e gli stimoli); intensità e portata della spia rossa non sono state tarate a vista.
+- Il fascio rosso (6, 8 m) non è stato tarato a vista: da guardare in Game view nella Z0 e nella Z3. Il rosso è il modo di restare invisibili, ma non toglie l'ansia da buio (`redRelief` 0): il costo è voluto.
+- Lo schermo della fotocellula mostra la luce ricevuta di qualunque colore: il fascio bianco riempie la barra senza aprire. Da vedere in playtest se si legge come «luce sbagliata».
+
+## Verifica
+- 2026-11-22, Play da codice (subagente, frame a passi): `RedHeat` sale di circa 0.051/s a stress 0.04; da 0.95 il fascio sfarfalla (intensità 0 nel campione), a 1 passa da solo a `Low` (intensità 8) con `redOverheated` vero, poi raffredda a 0.1/s. Nessun errore in console. Non verificati: il blocco di R con la tastiera vera, il ronzio all'ascolto, lo sfarfallio a vista.
+- 2026-11-21, Play in `SCN_Gameplay`, chiamate dirette (non tastiera vera) col fascio puntato sulla fotocellula della chiusa 1 da 6 m: `Full` → non scatta; `Red` senza modulo → fascio spento, non scatta; `UnlockRed` → fascio rosso acceso (intensità 6, colore (1, 0.08, 0.04)), `IsLitByRedBeam` vero; `CycleMode` da `Red` → `Full` col colore normale. Raccolta del modulo e tasto R non provati a mano.
 
 ## Sistemi collegati
 - [PlayerInput.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerInput.md)

@@ -13,12 +13,12 @@ namespace Deeploration.Player
     {
         private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
+        private static readonly int BaseMapId = Shader.PropertyToID("_BaseMap");
         private static readonly Color Amber = new(1f, 0.69f, 0.25f);
         private static readonly Color EmergencyRed = new(1f, 0.27f, 0.2f);
         private static readonly Color LampYellow = new(0.94f, 0.82f, 0.35f);
         private static readonly Color LampOrange = new(1f, 0.55f, 0.16f);
         private static readonly Color LampRed = new(1f, 0.24f, 0.2f);
-        private static readonly Color SweetGreen = new(0.3f, 1f, 0.45f);
 
         [Header("Riferimenti (auto-trovati se vuoti)")]
         [SerializeField] private OxygenSystem oxygen;
@@ -45,6 +45,24 @@ namespace Deeploration.Player
         [SerializeField] private Renderer[] lightBars;
         [Tooltip("Intensità dell'emissione di una tacca accesa (HDR).")]
         [SerializeField, Min(0f)] private float barIntensity = 2f;
+        [Tooltip("Icona della modalità accanto al nome (quad Unlit trasparente). Opzionale.")]
+        [SerializeField] private Renderer lightIcon;
+        [Tooltip("Icone in ordine di FlashlightMode: Full, Low, Red.")]
+        [SerializeField] private Texture2D[] modeIcons = new Texture2D[3];
+
+        [Header("Avvisi sul CRT")]
+        [Tooltip("Schermata d'avviso (icona grande, titolo, tasto): nasconde i testi del CRT per noticeSeconds. Opzionale.")]
+        [SerializeField] private GameObject noticeRoot;
+        [SerializeField] private Renderer noticeIcon;
+        [SerializeField] private TMP_Text noticeTitle;
+        [SerializeField] private TMP_Text noticeKey;
+        [SerializeField, Min(0.5f)] private float noticeSeconds = 4f;
+        [Tooltip("Avviso alla raccolta del modulo luce rossa.")]
+        [SerializeField] private string redTitle = "RED MODULE ONLINE";
+        [SerializeField] private string redKey = "[R] USE";
+        [Tooltip("Avviso della torcia, lanciato da ShowLightsNotice (fine del risveglio in capsula).")]
+        [SerializeField] private string lightsTitle = "LIGHTS ONLINE";
+        [SerializeField] private string lightsKey = "[F] CYCLE";
 
         [Header("Luce rossa")]
         [Tooltip("Materiali delle fasce verde, arancione e rossa delle scale: con la torcia rossa diventano tre rossi " +
@@ -91,8 +109,10 @@ namespace Deeploration.Player
         private float startY;
         private int shownDepth = int.MinValue;
         private FlashlightMode? shownMode;
-        private bool shownCharging;
         private FlashlightMode? scaleMode;
+        private float noticeUntil = -1f;
+        private bool redWasUnlocked;
+        private bool noticeRed;
         private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
         private static readonly string[] CompassNames = { "N", "E", "S", "O" };
         private readonly TMP_Text[] compassLetters = new TMP_Text[4];
@@ -116,6 +136,38 @@ namespace Deeploration.Player
             // Partono dove sono i valori attuali, senza il giro iniziale.
             oxygenFraction = TargetOxygenFraction();
             pressureFraction = PressureFraction(CurrentDepth());
+            redWasUnlocked = flashlight != null && flashlight.RedUnlocked;
+            if (noticeRoot != null) noticeRoot.SetActive(false);
+        }
+
+        /// <summary>Mostra l'avviso della torcia (icona Full, «[F] CYCLE»).</summary>
+        public void ShowLightsNotice() => ShowNotice(modeIcons.Length > 0 ? modeIcons[0] : null, lightsTitle, lightsKey);
+
+        /// <summary>Per noticeSeconds il CRT mostra solo icona, titolo e tasto, poi torna ai testi normali.</summary>
+        public void ShowNotice(Texture2D icon, string title, string key, bool red = false)
+        {
+            noticeRed = red;
+            if (noticeRoot == null) return;
+            if (noticeIcon != null && icon != null)
+            {
+                noticeIcon.GetPropertyBlock(block);
+                block.SetTexture(BaseMapId, icon);
+                noticeIcon.SetPropertyBlock(block);
+            }
+            if (noticeTitle != null) noticeTitle.SetText(title);
+            if (noticeKey != null) noticeKey.SetText(key);
+            noticeUntil = Time.unscaledTime + noticeSeconds;
+            SetNotice(true);
+        }
+
+        private void SetNotice(bool on)
+        {
+            noticeRoot.SetActive(on);
+            foreach (TMP_Text text in new[] { depthLabel, depthValue, lightLabel, lightValue })
+                if (text != null) text.gameObject.SetActive(!on);
+            if (lightBars != null)
+                foreach (Renderer bar in lightBars)
+                    if (bar != null) bar.gameObject.SetActive(!on);
         }
 
         private void Update()
@@ -131,6 +183,15 @@ namespace Deeploration.Player
                 _ => 3
             };
             FlashlightMode mode = flashlight != null ? flashlight.CurrentMode : FlashlightMode.Full;
+
+            if (flashlight != null && flashlight.RedUnlocked && !redWasUnlocked)
+                ShowNotice(modeIcons.Length > 2 ? modeIcons[2] : null, redTitle, redKey, true);
+            redWasUnlocked = flashlight != null && flashlight.RedUnlocked;
+            if (noticeUntil >= 0f && time >= noticeUntil)
+            {
+                noticeUntil = -1f;
+                SetNotice(false);
+            }
 
             float blend = 1f - Mathf.Exp(-needleResponse * Time.deltaTime);
             oxygenFraction = Mathf.Lerp(oxygenFraction, TargetOxygenFraction(), blend);
@@ -270,6 +331,19 @@ namespace Deeploration.Player
             if (depthLabel != null) depthLabel.color = dim;
             if (lightLabel != null) lightLabel.color = dim;
             if (lightValue != null) lightValue.color = ink;
+            if (noticeUntil >= 0f)
+            {
+                // L'avviso del modulo rosso è rosso anche con la torcia in Full.
+                Color noticeInk = noticeRed ? EmergencyRed : ink;
+                if (noticeTitle != null) noticeTitle.color = noticeInk;
+                if (noticeKey != null) noticeKey.color = ink; // dim in modalità Red era illeggibile
+                if (noticeIcon != null)
+                {
+                    noticeIcon.GetPropertyBlock(block);
+                    block.SetColor(BaseColorId, noticeInk);
+                    noticeIcon.SetPropertyBlock(block);
+                }
+            }
 
             if (depthValue != null)
             {
@@ -277,7 +351,7 @@ namespace Deeploration.Player
                 if (meters != shownDepth)
                 {
                     shownDepth = meters;
-                    depthValue.SetText(meters.ToString("0000") + " M");
+                    depthValue.SetText(meters.ToString("0000") + "<size=60%> M</size>");
                 }
                 // Oltre il limite dello scafo il numero lampeggia in rosso.
                 Color depthColor = pressureBand == 3 ? LampRed * (Mathf.Sin(time * 6f) > 0f ? 1f : 0.4f) : ink;
@@ -285,28 +359,23 @@ namespace Deeploration.Player
                 depthValue.color = depthColor;
             }
 
-            // Carica del flash: le tacche si riempiono in fila e l'ultima diventa verde nello sweet spot.
-            bool charging = flashlight != null && flashlight.FlashCharge > 0f;
-            if (charging != shownCharging || (!charging && shownMode != mode))
+            if (shownMode != mode)
             {
-                shownCharging = charging;
                 shownMode = mode;
                 if (lightValue != null)
-                    lightValue.SetText(charging ? "FLASH" : mode == FlashlightMode.Full ? "FULL" : mode == FlashlightMode.Low ? "LOW" : "RED");
+                    lightValue.SetText(mode == FlashlightMode.Full ? "FULL" : mode == FlashlightMode.Low ? "LOW" : "RED");
+            }
+
+            if (lightIcon != null)
+            {
+                lightIcon.GetPropertyBlock(block);
+                int index = (int)mode;
+                if (index < modeIcons.Length && modeIcons[index] != null) block.SetTexture(BaseMapId, modeIcons[index]);
+                block.SetColor(BaseColorId, ink);
+                lightIcon.SetPropertyBlock(block);
             }
 
             if (lightBars == null) return;
-            if (charging)
-            {
-                float fill = flashlight.FlashCharge * lightBars.Length;
-                for (int i = 0; i < lightBars.Length; i++)
-                {
-                    bool last = i == lightBars.Length - 1;
-                    Color barInk = last && flashlight.FlashInSweetSpot ? SweetGreen : ink;
-                    WriteEmission(lightBars[i], barInk * (Mathf.Lerp(0.12f, 1f, Mathf.Clamp01(fill - i)) * barIntensity));
-                }
-                return;
-            }
 
             int lit = mode == FlashlightMode.Full ? 3 : 1;
             for (int i = 0; i < lightBars.Length; i++)

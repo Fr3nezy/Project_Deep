@@ -105,6 +105,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Player/Movement/DiverController.cs` | Player Movement | [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md) |
 | `Assets/_Project/Code/Player/Movement/DiverProfile.cs` | Player Movement | [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md) |
 | `Assets/_Project/Code/Player/Oxygen/DiverRespawn.cs` | Oxygen | [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md) |
+| `Assets/_Project/Code/Player/Oxygen/OxygenBlackout.cs` | Oxygen | [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md) |
 | `Assets/_Project/Code/Player/Oxygen/IOxygenDrainSource.cs` | Oxygen | [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md) |
 | `Assets/_Project/Code/Player/Oxygen/OxygenProfile.cs` | Oxygen | [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md) |
 | `Assets/_Project/Code/Player/Oxygen/OxygenSystem.cs` | Oxygen | [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md) |
