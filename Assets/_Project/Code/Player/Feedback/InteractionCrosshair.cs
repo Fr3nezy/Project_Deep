@@ -4,9 +4,11 @@ using UnityEngine;
 namespace Deeploration.Player
 {
     /// <summary>
-    /// Mirino del casco: un punto sempre visibile e tenue, più un anello che si apre quando sotto il centro dello
-    /// sguardo c'è qualcosa da usare ([E] di <see cref="PlayerInteraction"/>) o da trascinare (<see cref="PlayerGrab"/>),
-    /// e resta pieno mentre si trascina. Sono quad 3D davanti alla camera, colorati con un MaterialPropertyBlock.
+    /// Mirino del casco: un punto sempre visibile e tenue, un anello esagonale che si apre quando sotto il centro
+    /// dello sguardo c'è qualcosa da usare ([E] di <see cref="PlayerInteraction"/>) e due ganasce che entrano ai lati
+    /// quando c'è qualcosa da trascinare (<see cref="PlayerGrab"/>) e si chiudono sul punto mentre lo si trascina.
+    /// Se il bersaglio è sia da usare sia da trascinare vincono le ganasce: insieme all'anello non si leggevano.
+    /// Sono quad 3D davanti alla camera, colorati con un MaterialPropertyBlock.
     /// </summary>
     public sealed class InteractionCrosshair : MonoBehaviour
     {
@@ -15,6 +17,9 @@ namespace Deeploration.Player
 
         [SerializeField] private Renderer dot;
         [SerializeField] private Renderer ring;
+        [Tooltip("Ganasce: quad posati nella posa di mira (bersaglio trascinabile), uno per lato del nucleo.")]
+        [SerializeField] private Renderer jawLeft;
+        [SerializeField] private Renderer jawRight;
 
         [SerializeField] private Color color = new Color(1f, 0.6f, 0.15f, 1f);
         [Tooltip("Colore quando l'oggetto trascinato è allineato in uno slot (GrabSocket.IsAligned).")]
@@ -24,12 +29,20 @@ namespace Deeploration.Player
         [SerializeField, Range(0f, 1f)] private float ringIdleScale = 0.4f;
         [Tooltip("Velocità di apertura e chiusura, frazione al secondo.")]
         [SerializeField, Min(0f)] private float response = 10f;
+        [Tooltip("Di quanto le ganasce partono più larghe della posa di mira mentre compaiono, metri locali.")]
+        [SerializeField, Min(0f)] private float jawSpread = 0.001f;
+        [Tooltip("Di quanto le ganasce si stringono sul nucleo mentre si trascina, metri locali.")]
+        [SerializeField, Min(0f)] private float jawClose = 0.001f;
 
         private static readonly int BaseColorId = Shader.PropertyToID("_BaseColor");
 
         private MaterialPropertyBlock block;
         private Vector3 ringFullScale;
-        private float amount;
+        private float interactAmount;
+        private float grabAmount;
+        private float heldAmount;
+        private Vector3 jawLeftPose;
+        private Vector3 jawRightPose;
         private GrabSocket[] sockets;
         private Color current;
 
@@ -41,29 +54,48 @@ namespace Deeploration.Player
             if (grab == null) grab = GetComponentInParent<PlayerGrab>();
             block = new MaterialPropertyBlock();
             if (ring != null) ringFullScale = ring.transform.localScale;
+            if (jawLeft != null) jawLeftPose = jawLeft.transform.localPosition;
+            if (jawRight != null) jawRightPose = jawRight.transform.localPosition;
             sockets = FindObjectsByType<GrabSocket>(FindObjectsSortMode.None);
             current = color;
         }
 
         private void LateUpdate()
         {
-            HasTarget = (interaction != null && interaction.HasTarget) ||
-                        (grab != null && (grab.Held != null || grab.FindTarget(out _) != null));
-            amount = Mathf.MoveTowards(amount, HasTarget ? 1f : 0f, response * Time.deltaTime);
+            bool interact = interaction != null && interaction.HasTarget;
+            bool held = grab != null && grab.Held != null;
+            bool grabbable = held || (grab != null && grab.FindTarget(out _) != null);
+            HasTarget = interact || grabbable;
+            float step = response * Time.deltaTime;
+            interactAmount = Mathf.MoveTowards(interactAmount, interact && !grabbable ? 1f : 0f, step);
+            grabAmount = Mathf.MoveTowards(grabAmount, grabbable ? 1f : 0f, step);
+            heldAmount = Mathf.MoveTowards(heldAmount, held ? 1f : 0f, step);
 
             bool aligned = false;
-            if (grab != null && grab.Held != null)
+            if (held)
                 foreach (GrabSocket socket in sockets)
                     if (socket != null && socket.IsAligned) { aligned = true; break; }
             current = aligned ? alignedColor : color;
 
-            SetColor(dot, Mathf.Lerp(idleDotAlpha, 1f, amount));
+            SetColor(dot, Mathf.Lerp(idleDotAlpha, 1f, Mathf.Max(interactAmount, grabAmount)));
             if (ring != null)
             {
-                ring.transform.localScale = ringFullScale * Mathf.Lerp(ringIdleScale, 1f, amount);
-                SetColor(ring, amount);
-                ring.enabled = amount > 0.001f;
+                ring.transform.localScale = ringFullScale * Mathf.Lerp(ringIdleScale, 1f, interactAmount);
+                SetColor(ring, interactAmount);
+                ring.enabled = interactAmount > 0.001f;
             }
+            // verso l'esterno mentre compaiono, verso il nucleo mentre si trascina
+            float jawShift = jawSpread * (1f - grabAmount) - jawClose * heldAmount;
+            UpdateJaw(jawLeft, jawLeftPose, -jawShift);
+            UpdateJaw(jawRight, jawRightPose, jawShift);
+        }
+
+        private void UpdateJaw(Renderer jaw, Vector3 pose, float shiftX)
+        {
+            if (jaw == null) return;
+            jaw.transform.localPosition = pose + new Vector3(shiftX, 0f, 0f);
+            SetColor(jaw, grabAmount);
+            jaw.enabled = grabAmount > 0.001f;
         }
 
         private void SetColor(Renderer target, float alpha)
