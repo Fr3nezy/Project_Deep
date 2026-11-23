@@ -44,6 +44,9 @@ namespace Deeploration.Interaction
 
         public Grabbable Held => held;
 
+        /// <summary>Punto davanti alla camera verso cui la presa tira l'oggetto tenuto.</summary>
+        public Vector3 HoldTarget => playerCamera.transform.position + playerCamera.transform.forward * holdDistance;
+
         private void Awake()
         {
             diver = GetComponent<DiverController>();
@@ -116,8 +119,7 @@ namespace Deeploration.Interaction
 
             Rigidbody body = held.Body;
             Vector3 anchor = held.transform.TransformPoint(localAnchor);
-            Vector3 target = playerCamera.transform.position + playerCamera.transform.forward * holdDistance;
-            Vector3 delta = target - anchor;
+            Vector3 delta = HoldTarget - anchor;
             if (delta.magnitude > breakDistance) { Release(); return; }
 
             Vector3 desired = Vector3.ClampMagnitude(delta * followStrength, maxFollowSpeed);

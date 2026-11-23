@@ -39,6 +39,10 @@ namespace Deeploration.Interaction
         [SerializeField, Min(0f)] private float magnetMaxForce = 900f;
         [Tooltip("Rigidità della molla che raddrizza l'oggetto sull'alto di snapPoint (rad/s), al centro.")]
         [SerializeField, Min(0f)] private float magnetUprightFrequency = 6f;
+        [Tooltip("Se il punto di presa del giocatore va oltre questa distanza da snapPoint, il magnete molla, in metri.")]
+        [SerializeField, Min(0f)] private float magnetReleaseDistance = 1.2f;
+        [Tooltip("Secondi di oggetto fermo e non allineato dentro il raggio prima che il magnete molli (incastro); molla per altrettanti secondi.")]
+        [SerializeField, Min(0f)] private float magnetStuckTime = 1f;
 
         [Header("Feedback")]
         [SerializeField] private Light statusLight;
@@ -59,6 +63,10 @@ namespace Deeploration.Interaction
         private float alignedSince = -1f;
         private float lastAlignedCheck = -1f;
         private PlayerGrab playerGrab;
+        // Strappo: magnete spento finché l'oggetto non esce dal raggio. Incastro: spento per magnetStuckTime, poi riprova.
+        private bool magnetDisarmed;
+        private float stuckFor;
+        private float stuckPauseUntil = -1f;
 
         private void Awake()
         {
@@ -98,7 +106,24 @@ namespace Deeploration.Interaction
             Rigidbody body = item.Body;
             Vector3 delta = snapPoint.position - body.position;
             float distance = delta.magnitude;
-            if (distance > magnetRadius) return;
+            if (distance > magnetRadius) { magnetDisarmed = false; stuckFor = 0f; return; }
+            if (magnetDisarmed || Time.time < stuckPauseUntil) return;
+
+            // Il magnete al centro batte la forza della presa: senza queste uscite una cella incastrata storta non si stacca più.
+            if (Vector3.Distance(playerGrab.HoldTarget, snapPoint.position) > magnetReleaseDistance)
+            {
+                magnetDisarmed = true;
+                stuckFor = 0f;
+                return;
+            }
+            bool stuck = !IsAligned && body.linearVelocity.magnitude < 0.05f;
+            stuckFor = stuck ? stuckFor + Time.fixedDeltaTime : 0f;
+            if (stuckFor >= magnetStuckTime)
+            {
+                stuckPauseUntil = Time.time + magnetStuckTime;
+                stuckFor = 0f;
+                return;
+            }
 
             float weight = 1f - distance / magnetRadius;
             Vector3 desired = Vector3.ClampMagnitude(delta * magnetFollow, magnetMaxSpeed);
