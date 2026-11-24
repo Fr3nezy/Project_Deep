@@ -81,7 +81,11 @@ namespace Deeploration.Comms
         private float openness; // 0 chiuso, 1 aperto
         private float typedChars, typeRate, holdUntil, nextAllowed, lingerUntil, pauseUntil;
         private int totalChars, shownChars, turnedPage;
-        private bool wasOpen, voicePending;
+        private bool wasOpen, voicePending, introPending;
+        private float introUntil;
+
+        /// <summary>Una battuta comincia sullo schermo (non quando entra in coda). Usato da HelmetMarkerTarget.</summary>
+        public static event System.Action<SubtitleLine> LineStarted;
 
         /// <summary>Vero mentre un messaggio è sullo schermo o in coda.</summary>
         public bool IsBusy => current != null || queue.Count > 0;
@@ -150,6 +154,15 @@ namespace Deeploration.Comms
             ApplyInk();
 
             if (current == null || openness < 1f) return;
+
+            // Jingle della battuta: a pannello aperto, prima di voce e scrittura.
+            if (introPending)
+            {
+                introPending = false;
+                voiceSource.PlayOneShot(current.Line.intro);
+                introUntil = now + current.Line.intro.length;
+            }
+            if (now < introUntil) return;
 
             // La voce parte a pannello aperto, insieme alla prima parola, e non sopra il bip.
             if (voicePending)
@@ -242,12 +255,15 @@ namespace Deeploration.Comms
             // Testo vuoto (chiave mancante nella tabella): niente da scrivere, si chiude dopo minHoldSeconds.
             holdUntil = totalChars == 0 ? Time.unscaledTime + minHoldSeconds : float.MaxValue;
             typeRate = charsPerSecond;
+            introPending = message.Line.intro != null;
+            introUntil = 0f;
             voicePending = message.Line.voice != null;
             if (voicePending)
             {
                 // Le parole seguono la voce: tutto il testo nella durata parlata del clip.
                 typeRate = totalChars / Mathf.Max(0.5f, message.Line.voice.length - voiceTailSeconds);
             }
+            LineStarted?.Invoke(message.Line);
         }
 
         private void Clear()

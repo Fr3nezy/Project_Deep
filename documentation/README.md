@@ -104,6 +104,8 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Player/Camera/TorchFollowThrough.cs` | Camera / Visuals | [CameraFollowThrough.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/CameraFollowThrough.md) |
 | `Assets/_Project/Code/Player/Equipment/DiverFlashlight.cs` | Equipment | [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md) |
 | `Assets/_Project/Code/Player/Feedback/HelmetInstruments.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |
+| `Assets/_Project/Code/Player/Feedback/HelmetMarkers.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |
+| `Assets/_Project/Code/Player/Feedback/HelmetMarkerTarget.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |
 | `Assets/_Project/Code/Player/Feedback/HelmetDamage.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |
 | `Assets/_Project/Code/Player/Feedback/InteractionCrosshair.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |
 | `Assets/_Project/Code/Player/Feedback/SuitDebugOverlay.cs` | Feedback | [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md) |

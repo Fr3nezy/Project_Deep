@@ -5004,6 +5004,68 @@ Transform:
   m_Children: []
   m_Father: {fileID: 5446934738901400048}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &1318653152044077125
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6173075810654658079}
+  - component: {fileID: 2735941830055850779}
+  m_Layer: 0
+  m_Name: HelmetMarkers
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6173075810654658079
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318653152044077125}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2136362581478521672}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2735941830055850779
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1318653152044077125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a2344ab124de43f489db562c26827899, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Player.HelmetMarkers
+  showOnVisor: 1
+  showOnCompass: 1
+  viewCamera: {fileID: 2136362581478521679}
+  instruments: {fileID: 8194844412188602940}
+  flashlight: {fileID: 6190238896408459994}
+  markerMaterial: {fileID: 2100000, guid: 924a05635edc7fe4eb007822af0a2f9b, type: 2}
+  defaultIcon: {fileID: 2800000, guid: 6ae155d265af9c443ae8aa5db951c346, type: 3}
+  distanceFont: {fileID: 11400000, guid: 68d349f341c4c5141908cb55fe5cb90b, type: 2}
+  revealDuration: 0.8
+  visorDistance: 0.3
+  visorIconSize: 0.0075
+  visorTextHeight: 0.0046
+  fadeStartDistance: 6
+  hideDistance: 2.5
+  compassZOffset: 0
+  compassIconSize: 0.007
+  compassDim: 0.55
+  compassLetterClearance: 8
 --- !u!1 &1806171419615463433
 GameObject:
   m_ObjectHideFlags: 0
@@ -5489,6 +5551,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4110964196302362523}
+  - {fileID: 6173075810654658079}
   m_Father: {fileID: 923543129504440592}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!20 &2136362581478521679

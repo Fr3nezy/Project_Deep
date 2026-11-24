@@ -125,6 +125,14 @@ namespace Deeploration.Player
         private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
         private readonly System.Collections.Generic.List<(TMP_Text text, float bearing)> compassMarks = new();
 
+        internal const float CompassConeSlope = 0.14f;
+        internal Renderer CompassStrip => compassStrip;
+        internal Vector3 CompassCenter => compassCenter;
+        internal float CompassRadius => compassRadius;
+        internal float CompassArcHalf => compassArcHalf;
+        internal float CompassWindowHalf => compassWindowHalf;
+        internal TMP_Text ReferenceText => depthLabel != null ? depthLabel : depthValue;
+
         private void Awake()
         {
             if (headingSource == null && Camera.main != null) headingSource = Camera.main.transform;
@@ -300,7 +308,7 @@ namespace Deeploration.Player
                 float angle = off / compassWindowHalf * compassArcHalf * Mathf.Deg2Rad;
                 var outward = new Vector3(Mathf.Sin(angle), -Mathf.Cos(angle), 0f);
                 // Lo schermo è conico (dr/dz ≈ -0.14): inclina le lettere sulla sua faccia così la cima non entra nella mesh.
-                Vector3 worldOut = strip.TransformDirection(outward + Vector3.forward * 0.14f);
+                Vector3 worldOut = strip.TransformDirection(outward + Vector3.forward * CompassConeSlope);
                 mark.transform.SetPositionAndRotation(
                     strip.TransformPoint(compassCenter + outward * compassRadius),
                     Quaternion.LookRotation(worldOut, strip.TransformDirection(Vector3.forward)));

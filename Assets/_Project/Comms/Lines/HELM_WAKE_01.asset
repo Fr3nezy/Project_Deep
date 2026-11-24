@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Prologue.SubtitleLine
   speaker:
     m_TableReference:
-      m_TableCollectionName: GUID:589d40514a6cca14ba52d5bc263a867b
+      m_TableCollectionName: Comms
     m_TableEntryReference:
       m_KeyId: 0
       m_Key: SPK_HELM
@@ -23,7 +23,7 @@ MonoBehaviour:
     m_LocalVariables: []
   text:
     m_TableReference:
-      m_TableCollectionName: GUID:589d40514a6cca14ba52d5bc263a867b
+      m_TableCollectionName: Comms
     m_TableEntryReference:
       m_KeyId: 0
       m_Key: HELM_WAKE_01
@@ -31,6 +31,7 @@ MonoBehaviour:
     m_WaitForCompletion: 0
     m_LocalVariables: []
   voice: {fileID: 8300000, guid: 886787e74e2213a42974228d23db47c0, type: 3}
+  intro: {fileID: 0}
   references:
     version: 2
     RefIds: []

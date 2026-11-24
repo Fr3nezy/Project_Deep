@@ -31,8 +31,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16934954328064
-    m_Localized: "H.E.L.M. attivo. Integrit\xE0 dello scafandro: 61%. Sistemi primari
-      non disponibili."
+    m_Localized: "Integrit\xE0 dello scafandro: 61%. Sistemi primari non disponibili."
     m_Metadata:
       m_Items: []
   - m_Id: 16935373758464
@@ -97,6 +96,33 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 50911954067457
     m_Localized: Molla la cella. Resta fermo.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047027159040
+    m_Localized: H.E.L.M. attivo. Hazard and Environment Linked Monitor. Assistente
+      dello scafandro.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102080
+    m_Localized: Cella di energia nucleare. Si illumina quando si muove. Maneggiala
+      con cura.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102081
+    m_Localized: "\xC8 anche radioattiva. Non dormirci accanto."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102082
+    m_Localized: Energia ripristinata. Resta vicino alla stazione per ricaricare
+      l'ossigeno.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102083
+    m_Localized: Il gate ha un sensore ottico. Aspetta un tipo di luce preciso.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102084
+    m_Localized: 'Sensore ottico: accettato. Apertura della chiusa.'
     m_Metadata:
       m_Items: []
   references:

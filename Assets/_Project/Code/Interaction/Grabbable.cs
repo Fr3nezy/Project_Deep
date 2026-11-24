@@ -74,8 +74,8 @@ namespace Deeploration.Interaction
         [Tooltip("Loop del ronzio della cella accesa. Vuoto = ronzio sintetico a 60 Hz.")]
         [SerializeField] private AudioClip humClip;
         [Tooltip("Volume a riposo (segue la pulsazione) e in allerta. 0 a riposo = nessun ronzio.")]
-        [SerializeField, Range(0f, 1f)] private float humVolume = 0.35f;
-        [SerializeField, Range(0f, 1f)] private float humAlertVolume = 0.6f;
+        [SerializeField, Range(0f, 1f)] private float humVolume = 0.14f;
+        [SerializeField, Range(0f, 1f)] private float humAlertVolume = 0.24f;
         [Tooltip("Distanza (m) oltre la quale il ronzio non si sente più.")]
         [SerializeField, Min(1f)] private float humMaxDistance = 8f;
 

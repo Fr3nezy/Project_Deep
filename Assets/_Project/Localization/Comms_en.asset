@@ -31,7 +31,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16934954328064
-    m_Localized: 'H.E.L.M. online. Suit integrity: 61%. Primary systems offline.'
+    m_Localized: 'Suit integrity: 61%. Primary systems offline.'
     m_Metadata:
       m_Items: []
   - m_Id: 16935373758464
@@ -93,6 +93,31 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 50911954067457
     m_Localized: Drop the cell. Hold still.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047027159040
+    m_Localized: H.E.L.M. online. Hazard and Environment Linked Monitor. Your suit
+      assistant.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102080
+    m_Localized: Nuclear energy cell. It flares when it moves. Carry it gently.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102081
+    m_Localized: It is also radioactive. Do not sleep next to it.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102082
+    m_Localized: Power restored. Stand close to the station to refill your oxygen.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102083
+    m_Localized: The gate has an optical sensor. It is waiting for a specific light.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102084
+    m_Localized: 'Optical sensor: accepted. Lock gate opening.'
     m_Metadata:
       m_Items: []
   references:

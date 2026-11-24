@@ -1,13 +1,19 @@
 id,text
-HELM_WAKE_01,"H.E.L.M. online. Suit integrity, sixty-one percent. Primary systems offline."
+HELM_WAKE_01,"Suit integrity, sixty-one percent. Primary systems offline."
 HELM_WAKE_02,"Emergency mode active. Technically, you are still operational."
 HELM_BRIEF_01,"Depth, two thousand meters. We landed several kilometers off the designated dock."
 HELM_BRIEF_02,"This area is an abandoned company complex. Environment, hostile."
 HELM_BRIEF_03,"Survival probability, zero point zero zero one percent. I rounded up."
 HELM_BRIEF_04,"Oxygen reserve is limited. Nearest company structure, a lock gate. South, down the canyon."
-HELM_FISH_01,"Bioluminescent fauna ahead. Artificial light at this depth works like a dinner bell."
-HELM_FISH_02,"Watch how they react to your light. Then decide how bright you want to be."
-HELM_O2_01,"Oxygen station detected. No power."
-HELM_O2_02,"Company stations run on standard energy cells. Find one. Plug it in."
-HELM_RED_01,"Red light module installed. Most local fauna cannot see red."
-HELM_RED_02,"Most."
+HELM_FISH_01,Bioluminescent fauna ahead. Artificial light at this depth works like a dinner bell.
+HELM_FISH_02,Watch how they react to your light. Then decide how bright you want to be.
+HELM_O2_01,Oxygen station detected. No power.
+HELM_O2_02,Company stations run on standard energy cells. Find one. Plug it in.
+HELM_RED_01,Red light module installed. Most local fauna cannot see red.
+HELM_RED_02,Most.
+HELM_BOOT_01,H.E.L.M. online. Hazard and Environment Linked Monitor. Your suit assistant.
+HELM_CELL_01,Nuclear energy cell. It flares when it moves. Carry it gently.
+HELM_CELL_02,It is also radioactive. Do not sleep next to it.
+HELM_POWER_01,Power restored. Stand close to the station to refill your oxygen.
+HELM_RED_03,The gate has an optical sensor. It is waiting for a specific light.
+HELM_GATE_01,"Optical sensor, accepted. Lock gate opening."

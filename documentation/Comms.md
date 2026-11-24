@@ -10,7 +10,7 @@ Non scrive le battute (sono asset `SubtitleLine` con testi nella tabella `Comms`
 - `Assets/_Project/Code/Comms/HelmetComms.cs`: enum `CommsPriority` e componente `HelmetComms` (pannello, testi, coda, audio).
 - `Assets/_Project/Code/Comms/CommsTrigger.cs`: manda una o più battute allo schermo all'ingresso del diver in un trigger, quando guarda un oggetto, o da un `UnityEvent` di scena.
 - `Assets/_Project/Code/Comms/FaunaCommsCue.cs`: battuta critica alla prima allerta di una creatura stealth mentre il giocatore tiene in mano una cella accesa.
-- `Assets/_Project/Code/Prologue/SubtitleLine.cs`: asset della battuta, condiviso col prologo (vedi [Prologue.md](Prologue.md)); il campo `voice` serve solo qui.
+- `Assets/_Project/Code/Prologue/SubtitleLine.cs`: asset della battuta, condiviso col prologo (vedi [Prologue.md](Prologue.md)); i campi `voice` e `intro` (suono prima della battuta, es. jingle di avvio di H.E.L.M.) servono solo qui.
 - Asset: modello `Assets/_Project/Assets/Models/Helmet/SM_CommsPanel.fbx` (radice `MSH_CommsHinge` = cerniera e perno della rotazione, figli `MSH_ScreenChassist` = telaio, `MSH_Screen` = schermo, `MSH_Glass` = vetro; importer con `preserveHierarchy` attivo, altrimenti Unity fonde la radice unica del FBX con l'oggetto del prefab), tabella stringhe `Assets/_Project/Localization/Comms.asset` (+ `Comms_en`, `Comms_it`), battute in `Assets/_Project/Comms/Lines/`, font `Assets/_Project/Assets/Fonts/VT323 SDF.asset` (VT323, licenza OFL in `VT323_OFL.txt`).
 
 ## Dipendenze e flusso dati
@@ -43,6 +43,7 @@ Enum, in ordine crescente (GDD, «Concorrenza degli avvisi»):
   - I testi sono accesi solo a pannello tutto aperto: lo shader TMP (`TMP_SDF-Mobile`) usa `ZTest [unity_GUIZTestMode]`, globale, che la UI può lasciare ad Always; un testo acceso mentre il pannello scende dietro il bordo del casco si vedrebbe sopra il casco senza il pannello (segnalato da Manu il 2026-11-24). `Begin` accende `bodyText` solo per misurare la battuta (TMP non conta i caratteri di un testo spento).
   - Testo vuoto (chiave mancante nella tabella): niente scrittura, si chiude dopo `minHoldSeconds`.
   - La voce non parte in `Begin`: parte nel primo `Update` a pannello tutto aperto (`voicePending`), insieme alla prima parola e dopo il bip, che dura 0.21 s contro 0.45 s di ribaltamento.
+  - Se la battuta ha `intro` (2026-11-24), a pannello aperto suona prima quella (`introPending`, `PlayOneShot`) e voce e scrittura aspettano la sua durata (`introUntil`). Un messaggio critico che interrompe ferma anche l'intro (`voiceSource.Stop`).
 - **Campi Inspector**:
   - `Transform panel` (`null`): pannello che ruota. Importato in posa aperta: quella posa è angolo 0.
   - `float closedAngle` (`-162.5`): angolo del pannello chiuso attorno all'asse X del genitore, in gradi. Riproduce la posa chiusa di `Helmet.blend`.
@@ -58,6 +59,7 @@ Enum, in ordine crescente (GDD, «Concorrenza degli avvisi»):
   - `float criticalSeconds` (`4.5`), `float hintExpirySeconds` (`8`), `float gapSeconds` (`0.4`), `float repeatBlockSeconds` (`10`): regole della coda.
   - `DiverFlashlight flashlight` (`null` = `FindFirstObjectByType`).
 - **API pubbliche**:
+  - `public static event System.Action<SubtitleLine> LineStarted`: lanciato in `Begin`, quando una battuta comincia sullo schermo (non quando entra in coda; un dialogo interrotto lo rilancia alla ripresa). Lo ascolta `HelmetMarkerTarget` per far comparire i marker solo quando H.E.L.M. nomina il POI (vedi [SuitFeedback.md](SuitFeedback.md)).
   - `public bool IsBusy { get; }`: vero con un messaggio sullo schermo o in coda.
   - `public void Say(SubtitleLine line, CommsPriority priority = CommsPriority.Dialogue)`: mette in coda. Ignora la battuta se è identica a quella sullo schermo, a una già in coda o a una mostrata da meno di `repeatBlockSeconds`. Con priorità maggiore del messaggio corrente lo interrompe subito (dialogo interrotto rimesso in testa, consiglio interrotto perso, voce fermata). A pari priorità l'ordine è di arrivo.
 - **Riferimenti obbligatori**: `panel`, `speakerText`, `bodyText`. Senza `panel` il pannello non si muove; senza i testi `Begin` lancia `NullReferenceException`. Battuta nulla o senza testo: `Debug.LogError` e scartata.
@@ -74,6 +76,7 @@ Enum, in ordine crescente (GDD, «Concorrenza degli avvisi»):
   - `Transform gazeTarget` (`null`): oggetto guardato (es. il cartello). Senza, lo sguardo non scatta mai.
   - `float gazeSeconds` (`1`, min 0): secondi continui di sguardo.
   - `float gazeAngle` (`10`, 1-90): semi-angolo in gradi fra `forward` della camera e direzione verso il bersaglio.
+  - `Grabbable playWhenHeld` (`null`): se impostato, `Update` chiama `Play()` la prima volta che l'oggetto è in mano (`IsHeld`); indipendente dal collider (2026-11-24, per la cella di Chiusa 1).
 - **API pubbliche**: `public void Play()`: mette in coda tutte le battute (una volta sola con `once`). Collegabile da `UnityEvent` (es. `GrabSocket.onRejected`, raccolta del modulo luce rossa).
 
 ### FaunaCommsCue
@@ -93,17 +96,27 @@ Enum, in ordine crescente (GDD, «Concorrenza degli avvisi»):
 ## Configurazione verificata in prefab e scene
 - `Player.prefab`: `MainCamera/HelmetVisualPivot/Helmet/SM_CommsPanel` con `HelmetComms` collegato a `MSH_CommsHinge`, `Speaker`, `Body`; valori di default.
 - `SM_CommsPanel.fbx`: pannello largo 109 mm (accorciato all'85% in `Helmet.blend` il 2026-11-24 perché si sovrapponeva al CRT di profondità); telaio, schermo e vetro separati da Manu lo stesso giorno (prima un solo mesh `Plane` con `PH_Screen` su tutto); box di testo larghi 89 mm sullo schermo. Verificato in Play: ribaltamento sulla cerniera e testo sullo schermo.
-- Tabella `Comms`: `SPK_HELM`, `SPK_BATHY`, `TEST_001` e le battute della Z0 `HELM_WAKE_01-02`, `HELM_BRIEF_01-04`, `HELM_FISH_01-02`, `HELM_O2_01-02`, `HELM_RED_01-02` (en e it, bozze da rifinire con Manu). Un asset `SubtitleLine` per chiave in `Assets/_Project/Comms/Lines/`.
+- Tabella `Comms`: `SPK_HELM`, `SPK_BATHY`, `TEST_001` e le battute della Z0 `HELM_BOOT_01`, `HELM_WAKE_01-02`, `HELM_BRIEF_01-04`, `HELM_FISH_01-02`, `HELM_O2_01-02`, `HELM_CELL_01-02`, `HELM_POWER_01`, `HELM_RED_01-03`, `HELM_GATE_01` (en e it, bozze da rifinire con Manu). Un asset `SubtitleLine` per chiave in `Assets/_Project/Comms/Lines/`.
 - Voci di H.E.L.M. in `Assets/_Project/Assets/Audio/VO/HELM/` (`<id>.wav`, `robot.py` preset `helm`), sorgente `_lines_z0.csv` e `_manifest.csv` di `robot.py` accanto. Per rigenerarle: `python Z:\_PROJECTS\GitHub\HarnessSystem\skills\voce\robot.py batch _lines_z0.csv -d <questa cartella>`.
 - Battute FAUNA PROTOCOL (Z2, **bozze da rifinire con Manu**, 2026-11-24), en e it nella tabella `Comms`, un `SubtitleLine` per chiave con voce collegata: `HELM_FAUNA_01` «Fauna protocol.» / «Protocollo fauna.»; `HELM_FAUNA_02` «Thaladyne reminds you: the fauna is not company property. You are.» / «La Thaladyne ricorda: la fauna non è proprietà aziendale. Tu sì.»; `HELM_DROP_01` «Drop the cell. Hold still.» / «Molla la cella. Resta fermo.». Voci generate con `_lines_z2.csv` (stessa cartella HELM); `_manifest.csv` di `robot.py` viene sovrascritto a ogni batch: le righe Z0 e Z2 sono state riunite a mano, rilanciando un batch bisogna rifarlo. Montate in scena il 2026-11-24 (sotto).
 - `SCN_Gameplay`, `Zones/Z3_Viperfish/Comms_Z2` (zona Z2, la gerarchia usa ancora il vecchio nome):
   - `Comms_Fauna`: `BoxCollider` trigger 8×4×8 m a (45.2, −19.5, −129.3), davanti al cartello FAUNA PROTOCOL (`SignPost_Fauna`, 49.2, −129.0; vedi [Environment.md](Environment.md)); `CommsTrigger` con `lines` = `HELM_FAUNA_01`, `HELM_FAUNA_02`, `priority` Dialogue, `once` vero, `playOnGaze` vero, `gazeTarget` = `Sign_FAUNA_PROTOCOL`, `gazeSeconds` 1, `gazeAngle` 10. Il `Housing` del cartello ha un `BoxCollider` non trigger (verificato), quindi la linea libera conta.
   - `FaunaCommsCue`: `line` = `HELM_DROP_01`, `once` vero.
-- `SCN_Gameplay`, `Z0_Tutorial/Comms_Z0`:
-  - `PlayerWakeUpSequence.wakeUpSubtitle` = `HELM_WAKE_01`; il suo `onCompleted` chiama `Comms_Brief.Play` (`HELM_WAKE_02`, `HELM_BRIEF_01-04`, senza collider).
-  - `Comms_Fish`: trigger 30×30×3 m a (−5, 1, −10), appena fuori dal portello, prima del banco di lanternfish a z −14.
-  - `Comms_O2`: trigger 30×30×4 m a (−13, −6, −64), prima della stazione O₂ 1 (−12.6, −78.7).
-  - `Comms_Red`: senza collider, chiamato da `RedLightModule` (`SimpleInteractable.onInteracted`, override sull'istanza di scena).
+- `SCN_Gameplay`, `Z0_Tutorial/Comms_Z0`. Dal 2026-11-24 sera il briefing è **scandito lungo il percorso** (Manu: prima ~40 s di parlato di fila al risveglio, si arrivava alle zone con H.E.L.M. che parlava ancora). Timeline (durate voce da `_manifest.csv`, più ~1 s fra battute per bip, ribaltamento e `gapSeconds`):
+
+  | Momento | Trigger | Battute | Parlato |
+  |---|---|---|---|
+  | Risveglio in capsula | `PlayerWakeUpSequence.wakeUpSubtitle`, poi `onCompleted` → `Comms_Brief` (senza collider) | jingle `HELM_BOOT_JINGLE` (1.3 s) + `HELM_BOOT_01`; `HELM_WAKE_01`, `HELM_WAKE_02`, `HELM_BRIEF_01` | ~24 s |
+  | Fuori dal portello | `Comms_Fish`, 30×30×3 m a (−5, 1, −10), prima dei lanternfish a z −14 | `HELM_FISH_01-02` | ~11 s |
+  | Canyon, direzione | `Comms_Gate_Dir`, 30×30×4 m a (−8, −1, −25) | `HELM_BRIEF_04` (rivela il marker del gate) | ~7 s |
+  | Metà canyon | `Comms_Canyon`, 30×30×4 m a (−10, −3.5, −44) | `HELM_BRIEF_02-03` | ~11 s |
+  | Davanti alla stazione O₂ 1 | `Comms_O2`, 30×30×4 m a (−13, −6, −64); stazione a (−12.6, −78.7) | `HELM_O2_01-02` (rivelano i marker O₂ e cella) | ~9 s |
+  | Prima presa della cella | `Comms_Cell` (senza collider, `playWhenHeld` = `Chiusa1_Puzzle/PowerCell`) | `HELM_CELL_01-02` | ~9 s |
+  | Cella inserita | `Comms_Power` (senza collider), da `PowerStation/PowerSocket.onSocketed` | `HELM_POWER_01` | ~5 s |
+  | Modulo luce rossa raccolto | `Comms_Red` (senza collider), da `RedLightModule` (`SimpleInteractable.onInteracted`, override sull'istanza) | `HELM_RED_01-03` (03: hint sul sensore ottico del gate) | ~11 s |
+  | Fotocellula scattata | `Comms_GateOpen` (senza collider), da `Chiusa1_Gate/PhotocellUnit/Photocell.onTriggered` | `HELM_GATE_01` | ~4 s |
+
+  Testi (en / it) delle battute aggiunte o cambiate il 2026-11-24 sera, **bozze da rifinire con Manu**: `HELM_BOOT_01` «H.E.L.M. online. Hazard and Environment Linked Monitor. Your suit assistant.» (acronimo dal GDD); `HELM_WAKE_01` «Suit integrity: 61%. Primary systems offline.» (tolto «H.E.L.M. online», ora in BOOT); `HELM_CELL_01` «Nuclear energy cell. It flares when it moves. Carry it gently.»; `HELM_CELL_02` «It is also radioactive. Do not sleep next to it.»; `HELM_POWER_01` «Power restored. Stand close to the station to refill your oxygen.»; `HELM_RED_03` «The gate has an optical sensor. It is waiting for a specific light.»; `HELM_GATE_01` «Optical sensor: accepted. Lock gate opening.». Voci con `robot.py` preset `helm`; jingle `HELM_BOOT_JINGLE.wav` sintetizzato (tre note quadre smussate 660/880/1320 Hz da 110 ms + coda sinusoidale 990/1485 Hz a decadimento esponenziale, 1.3 s), collegato come `intro` di `HELM_BOOT_01`.
 - Verificato in Play: il risveglio manda `HELM_WAKE_01` con la voce e mette in coda le 5 battute del briefing.
 
 ## Estensione del sistema

@@ -1,3 +1,4 @@
+using Deeploration.Interaction;
 using Deeploration.Prologue;
 using UnityEngine;
 
@@ -25,6 +26,8 @@ namespace Deeploration.Comms
         [SerializeField, Min(0f)] private float gazeSeconds = 1f;
         [Tooltip("Semi-angolo massimo (gradi) fra il forward della camera e la direzione verso gazeTarget.")]
         [SerializeField, Range(1f, 90f)] private float gazeAngle = 10f;
+        [Tooltip("Parte la prima volta che il diver prende in mano questo oggetto (es. la cella di energia). Vuoto = ignorato.")]
+        [SerializeField] private Grabbable playWhenHeld;
 
         private HelmetComms comms;
         private bool played;
@@ -60,6 +63,7 @@ namespace Deeploration.Comms
 
         private void Update()
         {
+            if (playWhenHeld != null && playWhenHeld.IsHeld && !played) Play();
             if (!playOnGaze || !inside || gazeTarget == null || (once && played)) return;
             if (IsLookingAtTarget()) gazeTime += Time.deltaTime; else gazeTime = 0f;
             if (gazeTime < gazeSeconds) return;

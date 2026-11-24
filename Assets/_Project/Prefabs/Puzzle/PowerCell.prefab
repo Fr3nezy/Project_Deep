@@ -209,10 +209,26 @@ MonoBehaviour:
   waterDrag: 3
   waterAngularDrag: 3
   fallResetDepth: 40
+  socketBlendTime: 0.35
   glowLight: {fileID: 8013040928662123975}
+  calmLightColor: {r: 0.55, g: 0.8, b: 1, a: 1}
+  calmLightIntensity: 0.6
+  alertLightColor: {r: 0.1, g: 0.45, b: 1, a: 1}
+  alertLightIntensity: 4
   glowRenderer: {fileID: 94968819238822864}
+  calmGlowColor: {r: 1, g: 1.3, b: 1.3, a: 1}
+  alertGlowColor: {r: 0.5, g: 4, b: 8, a: 1}
+  glowBlendTime: 0.2
+  calmPulseDepth: 0.6
+  calmPulseRate: 0.6
+  humClip: {fileID: 0}
+  humVolume: 0.14
+  humAlertVolume: 0.24
+  humMaxDistance: 8
   stimulusReach: 10
   stimulusPerSpeed: 6
+  stimulusMoveThreshold: 0.2
+  movedByPlayerWindow: 10
 --- !u!1 &9125376917984753579
 GameObject:
   m_ObjectHideFlags: 0

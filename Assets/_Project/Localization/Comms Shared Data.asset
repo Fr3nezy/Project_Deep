@@ -87,6 +87,30 @@ MonoBehaviour:
     m_Key: HELM_DROP_01
     m_Metadata:
       m_Items: []
+  - m_Id: 134047027159040
+    m_Key: HELM_BOOT_01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102080
+    m_Key: HELM_CELL_01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102081
+    m_Key: HELM_CELL_02
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102082
+    m_Key: HELM_POWER_01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102083
+    m_Key: HELM_RED_03
+    m_Metadata:
+      m_Items: []
+  - m_Id: 134047069102084
+    m_Key: HELM_GATE_01
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:
