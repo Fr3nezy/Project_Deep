@@ -72,20 +72,27 @@ namespace Deeploration.Player
         [SerializeField] private Material redScale;
 
         [Header("Bussola")]
-        [Tooltip("Il nastro della bussola (Cylinder.007): un arco nel piano XY locale, centrato su compassCenter.")]
+        [Tooltip("Lo schermo della bussola (MSH_CompassScreen in SM_Compass.fbx): un arco nel piano XY locale, centrato su compassCenter.")]
         [SerializeField] private Renderer compassStrip;
         [Tooltip("Dà la rotta. Default: la camera principale.")]
         [SerializeField] private Transform headingSource;
-        [Tooltip("Centro dell'arco del nastro, nello spazio locale della mesh.")]
-        [SerializeField] private Vector3 compassCenter = new(0f, -0.019f, 0.046f);
-        [Tooltip("Raggio a cui stanno le lettere: poco dentro la faccia interna del nastro (r ≈ 0.10).")]
-        [SerializeField, Min(0.001f)] private float compassRadius = 0.097f;
+        [Tooltip("Centro dell'arco dello schermo, nello spazio locale della mesh (unità del FBX, 1/100 di metro). " +
+                 "Z = metà larghezza dello schermo: le lettere sono centrate su quella Z, che si alza verso +Z.")]
+        [SerializeField] private Vector3 compassCenter = new(0f, 0.001724f, 0.000018f);
+        [Tooltip("Raggio a cui stanno le lettere: poco dentro la faccia dello schermo (r ≈ 0.00165).")]
+        [SerializeField, Min(0.0001f)] private float compassRadius = 0.00164f;
         [Tooltip("Metà dell'arco visibile del nastro, in gradi.")]
-        [SerializeField, Range(10f, 90f)] private float compassArcHalf = 45f;
+        [SerializeField, Range(10f, 90f)] private float compassArcHalf = 32f;
         [Tooltip("Metà della finestra di rotta mostrata sul nastro, in gradi.")]
         [SerializeField, Range(10f, 180f)] private float compassWindowHalf = 75f;
         [Tooltip("Altezza delle lettere, in unità del mondo.")]
         [SerializeField, Min(0.001f)] private float compassLetterHeight = 0.009f;
+        [Tooltip("Altezza delle intercardinali (NE, SE, SW, NW) rispetto alle cardinali.")]
+        [SerializeField, Range(0.2f, 1f)] private float compassMinorScale = 0.65f;
+        [Tooltip("Passo delle tacche fra le direzioni, in gradi (0 = niente tacche). Le tacche sulle direzioni sono saltate.")]
+        [SerializeField, Range(0f, 45f)] private float compassTickStep = 15f;
+        [Tooltip("Altezza delle tacche rispetto alle lettere cardinali.")]
+        [SerializeField, Range(0.2f, 1f)] private float compassTickScale = 0.6f;
 
         [Header("Lancette: gradi")]
         [Tooltip("Rotazione della lancetta dalla fine verde (0) alla fine rossa (1) della scala: 270° in senso orario " +
@@ -114,8 +121,9 @@ namespace Deeploration.Player
         private bool redWasUnlocked;
         private bool noticeRed;
         private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
-        private static readonly string[] CompassNames = { "N", "E", "S", "O" };
-        private readonly TMP_Text[] compassLetters = new TMP_Text[4];
+        // shortcut: lettere fisse in inglese, localizzare con la tabella quando serve
+        private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+        private readonly System.Collections.Generic.List<(TMP_Text text, float bearing)> compassMarks = new();
 
         private void Awake()
         {
@@ -244,54 +252,61 @@ namespace Deeploration.Player
         private void BuildCompassLetters()
         {
             if (compassStrip == null || depthValue == null) return;
-            for (int i = 0; i < compassLetters.Length; i++)
-            {
-                var go = new GameObject("Compass_" + CompassNames[i]);
-                go.transform.SetParent(transform, false);
-                var t = go.AddComponent<TextMeshPro>();
-                t.font = depthValue.font;
-                t.fontSharedMaterial = depthValue.fontSharedMaterial;
-                t.fontStyle = FontStyles.Bold;
-                t.alignment = TextAlignmentOptions.Center;
-                t.enableWordWrapping = false;
-                t.rectTransform.sizeDelta = new Vector2(0.03f, 0.02f);
-                t.text = CompassNames[i];
-                t.fontSize = 1f;
-                float lineHeight = t.GetPreferredValues("H").y; // altezza della riga a fontSize 1
-                t.fontSize = compassLetterHeight / Mathf.Max(lineHeight, 1e-6f);
-                compassLetters[i] = t;
-            }
+            for (int i = 0; i < CompassNames.Length; i++)
+                AddCompassMark(CompassNames[i], i * 45f, i % 2 == 0 ? 1f : compassMinorScale, FontStyles.Bold);
+            if (compassTickStep <= 0f) return;
+            for (float a = 0f; a < 360f - 0.01f; a += compassTickStep)
+                if (Mathf.Abs(Mathf.Repeat(a + 22.5f, 45f) - 22.5f) > 0.01f) // salta le direzioni
+                    AddCompassMark("|", a, compassTickScale, FontStyles.Normal);
         }
 
-        // Nastro: la lettera di un punto cardinale scorre sull'arco secondo lo scarto dalla rotta (destra = più a est),
-        // e sfuma verso i bordi della finestra. Sulla mesh +X locale è la sinistra di chi guarda.
+        private void AddCompassMark(string label, float bearing, float scale, FontStyles style)
+        {
+            var go = new GameObject("Compass_" + label + "_" + bearing);
+            go.transform.SetParent(transform, false);
+            var t = go.AddComponent<TextMeshPro>();
+            t.font = depthValue.font;
+            t.fontSharedMaterial = depthValue.fontSharedMaterial;
+            t.fontStyle = style;
+            t.alignment = TextAlignmentOptions.Center;
+            t.enableWordWrapping = false;
+            t.rectTransform.sizeDelta = new Vector2(0.03f, 0.02f);
+            t.text = label;
+            t.fontSize = 1f;
+            float lineHeight = t.GetPreferredValues("H").y; // altezza della riga a fontSize 1
+            t.fontSize = compassLetterHeight * scale / Mathf.Max(lineHeight, 1e-6f);
+            compassMarks.Add((t, bearing));
+        }
+
+        // Nastro: lettere e tacche scorrono sull'arco secondo lo scarto dalla rotta (destra = più a est),
+        // e sfumano verso i bordi della finestra. Sulla mesh +X locale è la destra di chi guarda, +Z l'alto.
         private void UpdateCompass(FlashlightMode mode)
         {
             if (compassStrip == null) return;
             Color ink = mode == FlashlightMode.Red ? EmergencyRed : Amber;
             Color glow = ink * 0.12f;
             WriteEmission(compassStrip, glow);
-            if (compassLetters[0] == null) return;
+            if (compassMarks.Count == 0) return;
 
             float heading = headingSource != null ? headingSource.eulerAngles.y : 0f;
             Transform strip = compassStrip.transform;
-            for (int i = 0; i < compassLetters.Length; i++)
+            foreach (var (mark, bearing) in compassMarks)
             {
-                float off = Mathf.DeltaAngle(heading, i * 90f);
+                float off = Mathf.DeltaAngle(heading, bearing);
                 float fade = 1f - Mathf.Abs(off) / compassWindowHalf;
-                var letter = compassLetters[i];
-                letter.enabled = fade > 0f;
+                mark.enabled = fade > 0f;
                 if (fade <= 0f) continue;
 
                 float angle = off / compassWindowHalf * compassArcHalf * Mathf.Deg2Rad;
-                var outward = new Vector3(-Mathf.Sin(angle), -Mathf.Cos(angle), 0f);
-                Vector3 worldOut = strip.TransformDirection(outward);
-                letter.transform.SetPositionAndRotation(
+                var outward = new Vector3(Mathf.Sin(angle), -Mathf.Cos(angle), 0f);
+                // Lo schermo è conico (dr/dz ≈ -0.14): inclina le lettere sulla sua faccia così la cima non entra nella mesh.
+                Vector3 worldOut = strip.TransformDirection(outward + Vector3.forward * 0.14f);
+                mark.transform.SetPositionAndRotation(
                     strip.TransformPoint(compassCenter + outward * compassRadius),
-                    Quaternion.LookRotation(worldOut, -strip.TransformDirection(Vector3.forward)));
+                    Quaternion.LookRotation(worldOut, strip.TransformDirection(Vector3.forward)));
                 Color c = ink;
                 c.a = fade;
-                letter.color = c;
+                mark.color = c;
             }
         }
 

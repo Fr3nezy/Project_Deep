@@ -12,6 +12,7 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 
 ```
 Assets/_Project/Code/
+├── Comms/                     # Schermo comunicazioni del casco (pannello a cerniera, coda con priorità) e trigger delle battute
 ├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub, banco GPU
 │   └── Debug/                 # Sonda di benchmark del costo per frame
 ├── DevTools/                  # Menu cheat, punti di teletrasporto e partenza fuori capsula
@@ -33,10 +34,13 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (90 / 90)
+## 2. Catalogo Completo degli Script (92 / 92)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
+| `Assets/_Project/Code/Comms/CommsTrigger.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
+| `Assets/_Project/Code/Comms/FaunaCommsCue.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
+| `Assets/_Project/Code/Comms/HelmetComms.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
 | `Assets/_Project/Code/Creatures/Creature.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/BurrowZone.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
 | `Assets/_Project/Code/Creatures/CreatureAmbush.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |
@@ -79,6 +83,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Environment/PhotocellScreen.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/LightLure.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/SocketGroupScreen.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
+| `Assets/_Project/Code/Environment/ScreenFlipbook.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/ShortedCable.cs` | Environment | [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md) |
 | `Assets/_Project/Code/Environment/SeaPenTouchGlow.cs` | Coral | [Coral.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Coral.md) |
 | `Assets/_Project/Code/Environment/StressLightZone.cs` | Darkness Stress | [DarknessStress-docs.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/DarknessStress-docs.md) |
@@ -133,6 +138,7 @@ Assets/_Project/Code/
 
 Sistemi senza script C# (solo shader e materiali):
 - CherenkovGlow: `Assets/_Project/Rendering/Shaders/CherenkovGlow.shader`, bagliore blu delle celle nucleari: unlit additivo con Fresnel invertito, onde che salgono lungo l'oggetto, mappa d'emissione e maschera opzionali, sfuma al nero nella nebbia; `_Color` scritto da `Grabbable`: celeste spento a riposo, azzurro acceso quando la cella allerta le creature. Materiali `Assets/_Project/Assets/Models/NuclearCell/Materials/M_NuclearCell_Glow.mat` (cella) e `Assets/_Project/Materials/Environment/Props/M_CherenkovGlow.mat` (generico, senza mappe). Reference: [Interaction.md](Interaction.md).
+- VisorGlass: `Assets/_Project/Rendering/Shaders/VisorGlass.shader`, vetro del visore visto da dentro: unlit additivo con `Cull Front` e Fresnel ai bordi, centro libero. Reference: [SuitFeedback.md](SuitFeedback.md).
 - Landmark: `Assets/_Project/Rendering/Shaders/Landmark.shader`, torre visibile nella nebbia e luci di segnalazione in sequenza. Reference: [Landmark.md](Landmark.md).
 - Coral (shader e materiali; l'unico script è `SeaPenTouchGlow`, nel catalogo sopra): `Assets/_Project/Rendering/Shaders/Coral.shader`, organismi sessili procedurali con LOD: corallo bambù (rami con bande dei nodi, polipi su card con alpha clip, glow, ondeggiamento) spugna di vetro tubolare a reticolo (bordo luminoso, interni a doppia faccia) e toppe ibride di penne di mare (steli veri più card con alpha clip, inclinazione e ondeggiamento per stelo con la corrente, bioluminescenza dove passa il sub). Reference: [Coral.md](Coral.md).
 - Fish (shader dei pesci senza ossa, usato dalle creature): `Assets/_Project/Rendering/Shaders/Fish.shader`, nuoto come onda nel vertex shader con fase, ampiezza e piega per istanza scritte da `Creature`, pinne con alpha a retino, fotofori emissivi, dissolvenza d'entrata per istanza (`_Fade`) per il paracadute dei nidi; percorso di instancing procedurale per il banco GPU (`FishSchool`). Compute del banco: `Assets/_Project/Rendering/Shaders/FishSchool.compute` (boids, repulsione da sub e fascio, cull e LOD). Reference: [Creatures.md](Creatures.md).
