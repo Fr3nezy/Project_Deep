@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6ac5ff83929d1844d9a59a78a7e49cd7, type: 3}
   m_Name: DiverProfile
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Player.DiverProfile
-  walkSpeed: 1.6
+  walkSpeed: 2
   sprintSpeed: 2.8
   acceleration: 2.2
   deceleration: 1.6

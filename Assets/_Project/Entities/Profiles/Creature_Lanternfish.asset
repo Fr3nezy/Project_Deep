@@ -19,6 +19,7 @@ MonoBehaviour:
   turnRate: 90
   heightAboveFloor: 1.5
   heightTolerance: 0.75
+  crawlsOnFloor: 0
   wanderTurn: 45
   wanderFrequency: 0.15
   lightSensitivity: 1
@@ -36,9 +37,24 @@ MonoBehaviour:
   cohesionWeight: 0.5
   alignmentWeight: 0.5
   diverClearance: 1
+  stalkRange: 0
+  stalkRadius: 8
+  strikeRadius: 2.5
+  aggressionRate: 0.15
+  aggressionDecay: 0.1
+  strikeSpeed: 5
+  biteReach: 0.5
+  strikeCooldown: 20
+  prey: {fileID: 0}
+  huntRange: 5
+  huntMaxAggression: 0.6
+  lungeDistance: 1.5
+  preyAlertRadius: 1.2
+  satiation: 30
   startleDuration: 0.35
   startleGlow: 4
   startleGlowDuration: 1.2
   alarmRadius: 4
   bodyRadius: 0.125
+  passesThroughFences: 1
   lookAhead: 1.5

@@ -1,5 +1,5 @@
 # Suit Feedback & Debug Overlay
-Ultima verifica: 2026-11-22
+Ultima verifica: 2026-11-23
 
 ## Scopo e confini
 Rappresenta l'anello di congiunzione tra le letture dei sistemi interni della tuta (`OxygenSystem`, `StressSystem`, `DiverFlashlight`), le interazioni fisiche (`PlayerHands`, `PlayerInteraction`), la progressione narrativa (`QuestManager`) e i canali percettivi del giocatore.
@@ -95,10 +95,10 @@ Implementato e verificato in Play il 2026-10-26. Sostituisce l'overlay 2D `Helme
 Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, vedi *Verifica*.
 - **Responsabilità e ciclo di vita**: sul GameObject `Helmet` (figlio di `MainCamera/HelmetVisualPivot`), accanto a `HelmetInstruments`. In `Awake` risolve camera (genitori) e `DiverBiteReceiver` (se vuoto, `FindFirstObjectByType`), aggiunge un `AudioSource` 2D e genera i suoni sintetici; in `OnEnable`/`OnDisable` si iscrive e si toglie da `DiverBiteReceiver.OnBitten`. A ogni morso (`AddCrack`):
   1. le crepe già presenti si allargano di `growPerBite`, fino a `maxGrowth` volte la loro dimensione iniziale;
-  2. una crepa nuova nasce nel punto d'impatto: centro della visuale più uno scarto casuale entro `impactJitter` (viewport), a `glassDistance` dall'occhio lungo quel raggio, quad rivolto alla camera con rotazione casuale, una delle 4 crepe dell'atlante, lato `crackSize × sizeVariation`;
+  2. una crepa nuova nasce nel punto d'impatto: direzione casuale dal centro della visuale, a una distanza (viewport) fra `impactRing.x` e `impactRing.y`, quindi verso i bordi con il centro libero (dal 2026-11-23: prima cadeva entro `impactJitter` dal centro e copriva la visuale), a `glassDistance` dall'occhio lungo quel raggio, quad rivolto alla camera con rotazione casuale, una delle 4 crepe dell'atlante, lato `crackSize × sizeVariation`;
   3. suona lo schiocco di vetro; al morso numero `criticalBites` anche l'allarme (tre bip);
   4. dal secondo morso il vetro scricchiola ogni `creakInterval` secondi (intervallo dimezzato e volume pieno da critico, al 60% prima).
-  Le crepe sono figlie di `Helmet`, quindi seguono l'ondeggiare del casco, e restano fino a `ResetDamage`. Nessun effetto su ossigeno o stress oltre a quelli del morso.
+  Le crepe sono figlie di `Helmet`, quindi seguono l'ondeggiare del casco, e restano fino a `ResetDamage`, che dal 2026-11-23 chiamano `OxygenRefillStation` (aggancio a stazione accesa) e `DiverRespawn.Respawn` (prima le crepe restavano anche dopo la morte). Nessun effetto su ossigeno o stress oltre a quelli del morso.
 - **Campi Inspector**:
 
 | Campo | Tipo | Default | Significato |
@@ -108,7 +108,7 @@ Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, v
 | `crackMaterial` | `Material` | null | Materiale delle crepe; vuoto = avviso in console e nessuna crepa. Prefab: `M_HelmetCrack` |
 | `crackSize` | float ≥ 0.01 | 0.09 | Lato di una crepa nuova (m) |
 | `sizeVariation` | `Vector2` | (0.8, 1.25) | Moltiplicatore casuale della dimensione |
-| `impactJitter` | float [0, 0.5] | 0.12 | Raggio (viewport) attorno al centro per il punto d'impatto |
+| `impactRing` | Vector2 | (0.25, 0.42) | Distanza minima e massima (viewport) dal centro per il punto d'impatto; sostituisce `impactJitter` dal 2026-11-23 |
 | `growPerBite` | float ≥ 1 | 1.25 | Allargamento delle crepe vecchie a ogni morso |
 | `maxGrowth` | float ≥ 1 | 1.8 | Allargamento massimo rispetto alla dimensione iniziale |
 | `glassDistance` | float ≥ 0.15 | 0.39 | Distanza dall'occhio lungo il raggio (la visiera è a 0.407 m sull'asse) |
@@ -117,7 +117,7 @@ Implementato il 2026-11-08 (bozza); verificato in Play con tre morsi simulati, v
 | `crackClip`, `creakClip`, `alarmClip` | `AudioClip` | null | Suoni di design; vuoti = sintetici |
 | `crackVolume`, `creakVolume`, `alarmVolume` | float [0, 1] | 0.8, 0.35, 0.5 | Volumi |
 
-- **API pubbliche**: `int Bites { get; }`; `bool Critical { get; }` (da `criticalBites`); `event Action<int> OnDamageChanged` (a ogni crepa e alla riparazione, con il numero di morsi); `void AddCrack()`; `void ResetDamage()` (toglie le crepe, per la riparazione alla stazione di aggancio, non ancora collegata).
+- **API pubbliche**: `int Bites { get; }`; `bool Critical { get; }` (da `criticalBites`); `event Action<int> OnDamageChanged` (a ogni crepa e alla riparazione, con il numero di morsi); `void AddCrack()`; `void ResetDamage()` (toglie le crepe e azzera i morsi; la chiamano `OxygenRefillStation` all'aggancio e `DiverRespawn.Respawn`, dal 2026-11-23).
 - **Suoni sintetici**: schiocco (clic di 4 ms, rumore passa-alto, risonanze a 3150 e 4720 Hz, tonfo a 90 Hz; 0.7 s), scricchiolio (impulsi di attrito da 18 a 45 al secondo filtrati, 1.3 s), allarme (tre bip a 1.1 kHz).
 - **Riferimenti obbligatori**: `crackMaterial` e una camera. Senza `DiverBiteReceiver` non riceve morsi, ma `AddCrack` resta chiamabile.
 - **Limiti**: distanza fissa invece di un raggio sulla visiera, perché la mesh di `Helmet.fbx` non è leggibile a runtime: dove una crepa supera il bordo dell'apertura, parte delle linee si disegna sopra la cornice del casco. L'apertura della visiera non è centrata sulla camera, e l'impatto (centro della visuale, dove arriva la testa della lucertola) cade verso il suo bordo destro. Texture e suoni sono provvisori.

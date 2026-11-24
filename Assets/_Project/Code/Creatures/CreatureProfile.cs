@@ -198,6 +198,10 @@ namespace Deeploration.Creatures
         [Range(0.05f, 5f)]
         public float bodyRadius = 0.3f;
 
+        [Tooltip("Acceso: passa dalle maglie delle reti (layer CreatureManager.fenceMask), come i pesci piccoli. " +
+                 "Spento: le reti lo fermano come una roccia.")]
+        public bool passesThroughFences = false;
+
         [Tooltip("Quanti secondi di strada guarda avanti per gli ostacoli")]
         [Range(0.2f, 5f)]
         public float lookAhead = 1.5f;

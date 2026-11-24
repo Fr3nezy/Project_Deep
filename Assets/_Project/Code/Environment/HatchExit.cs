@@ -19,7 +19,7 @@ namespace Deeploration.Environment
         [SerializeField] private Transform passPoint;
         [Tooltip("Posizione dei piedi del diver a fine uscita, sul fondale.")]
         [SerializeField] private Transform exitPoint;
-        [SerializeField] private float eyeHeight = 1.375f;
+        [SerializeField] private float eyeHeight = 1.5f;
         [SerializeField] private string promptText = "Esci";
         [Tooltip("Se attivo l'atterraggio avviene sul suolo sotto exitPoint (raycast), non alla quota del punto.")]
         [SerializeField] private bool snapExitToGround = true;

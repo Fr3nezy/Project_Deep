@@ -1,5 +1,5 @@
 # Oxygen System
-Ultima verifica: 2026-11-22
+Ultima verifica: 2026-11-23
 
 ## Scopo e confini
 Gestisce la riserva vitale di ossigeno (O₂) nello scafandro del diver. L'ossigeno viene costantemente consumato dal metabolismo basale della tuta e subisce incrementi di drenaggio derivanti dallo sforzo motorio (`DiverController`) e dal livello di agitazione psicologica (`StressSystem`).
@@ -66,12 +66,12 @@ flowchart TD
 - **Campi Inspector**:
   - `float maxOxygen` (default: `400f`).
   - `float baselineDrain` (default: `0.8f` unità/s, consumo da fermo).
-  - `float refillRate` (default: `25f` unità/s alla stazione).
+  - `float refillRate` (default: `25f` unità/s alla stazione; nell'asset `OxygenProfile` `60` dal 2026-11-23, serbatoio pieno in circa 7 s invece di 16, dopo il playtest blind).
   - `float warningThreshold` (`0.5f`), `float criticalThreshold` (`0.25f`), `float emergencyThreshold` (`0.1f`).
   - Correzione del 2026-11-10: la lista precedente riportava nomi e default vecchi (`baseDrainPerSecond` 0.25, `refillRatePerSecond` 15, soglie 35%/15%).
 
 ### DiverRespawn *(2026-11-10)*
-- **Responsabilità e ciclo di vita**: checkpoint del diver, sul `PlayerCapsule` accanto a `OxygenSystem` (`RequireComponent`). Salva la posa iniziale in `Awake`; si iscrive a `OnOxygenDepleted` in `OnEnable`. A ossigeno finito aspetta `respawnDelay`, poi `Respawn()`: spegne il `CharacterController`, porta il diver al checkpoint (solo yaw) o alla posa iniziale se non ce n'è uno, lo riaccende, chiama `DiverController.ResetMotion()` e `OxygenSystem.SetNormalized(respawnOxygen)`.
+- **Responsabilità e ciclo di vita**: checkpoint del diver, sul `PlayerCapsule` accanto a `OxygenSystem` (`RequireComponent`). Salva la posa iniziale in `Awake`; si iscrive a `OnOxygenDepleted` in `OnEnable`. A ossigeno finito aspetta `respawnDelay`, poi `Respawn()`: spegne il `CharacterController`, porta il diver al checkpoint (solo yaw) o alla posa iniziale se non ce n'è uno, lo riaccende, chiama `DiverController.ResetMotion()` e `OxygenSystem.SetNormalized(respawnOxygen)` e, dal 2026-11-23, `HelmetDamage.ResetDamage()` sull'unico `HelmetDamage` in scena (cercato con `FindAnyObjectByType`: il casco sta sotto `MainCamera`, fuori dal `PlayerCapsule`).
 - **Campi Inspector**: `float respawnDelay` (`2` s), `float respawnOxygen` (range 0-1, `1`).
 - **API pubbliche**: `Transform Checkpoint { get; }`, `void SetCheckpoint(Transform point)` (lo chiama `OxygenRefillStation` quando il diver entra a stazione accesa), `void Respawn()`.
 - **Limiti**: nessuna dissolvenza né suono; durante l'attesa il diver si muove ancora; non ripristina oggetti, porte o creature. Verificato in Play il 2026-11-10 da codice: ossigeno a 0 a z −100, dopo 2 s diver sul `RespawnPoint` della stazione O₂ 1, a terra, ossigeno 1.0.
@@ -112,7 +112,7 @@ flowchart TD
 - Effetto soffocamento: implementato da `OxygenBlackout` (2026-11-22). Pianificato: schermata di morte con «riprova».
 
 ## Limiti e problemi noti
-- Se il diver entra in una stazione di ricarica (`OxygenRefillStation`), questa chiama `Refill(Time.deltaTime)` in `OnTriggerStay()`. La stazione ha un proprio parametro serializzato `refillRatePerSecond` che attualmente non viene usato, in quanto la velocità effettiva è governata da `OxygenProfile.refillRatePerSecond`.
+- Se il diver entra in una stazione di ricarica (`OxygenRefillStation`), questa chiama `Refill(Time.deltaTime)` in `OnTriggerStay()`. La stazione ha un proprio parametro serializzato `refillRatePerSecond` che attualmente non viene usato, in quanto la velocità effettiva è governata da `OxygenProfile.refillRate`.
 
 ## Configurazione in `SCN_Gameplay` (2026-11-10)
 - Istanza del Player: `startNormalized` 0.52, `DiverRespawn` con i default. Dalla capsula alla stazione O₂ 1 (circa 90 m) si arriva al 24% circa al buio e al 37% circa con la torcia (stima dai consumi, non misurata camminando).

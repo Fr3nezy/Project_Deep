@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Player.OxygenProfile
   maxOxygen: 400
   baselineDrain: 0.8
-  refillRate: 25
+  refillRate: 60
   warningThreshold: 0.5
   criticalThreshold: 0.25
   emergencyThreshold: 0.1

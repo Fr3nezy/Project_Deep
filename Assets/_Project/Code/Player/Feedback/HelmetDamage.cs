@@ -7,10 +7,10 @@ namespace Deeploration.Player
 {
     /// <summary>
     /// Danni al vetro del casco (bozza): a ogni morso ricevuto da <see cref="DiverBiteReceiver"/> compare una crepa
-    /// sulla visiera, nel punto colpito (centro della visuale con un po' di variazione). Le crepe già presenti si
+    /// sulla visiera, in un punto a caso dell'anello verso i bordi (il centro resta libero). Le crepe già presenti si
     /// allargano a ogni morso; al morso numero <c>criticalBites</c> suona l'allarme e da quel momento il vetro
     /// scricchiola. Le crepe sono quad figli del casco, quindi seguono il suo ondeggiare, e restano fino a
-    /// <see cref="ResetDamage"/> (la riparazione alla stazione di aggancio, non ancora collegata). Solo visivo e sonoro:
+    /// <see cref="ResetDamage"/>, chiamato dalla stazione O₂ accesa e dal respawn. Solo visivo e sonoro:
     /// nessun effetto su ossigeno o stress oltre a quelli del morso.
     /// </summary>
     public sealed class HelmetDamage : MonoBehaviour
@@ -32,8 +32,9 @@ namespace Deeploration.Player
         [Tooltip("Variazione casuale della dimensione (moltiplicatore minimo, massimo).")]
         [SerializeField] private Vector2 sizeVariation = new Vector2(0.8f, 1.25f);
 
-        [Tooltip("Raggio (viewport 0..1) attorno al centro in cui cade il punto d'impatto.")]
-        [SerializeField, Range(0f, 0.5f)] private float impactJitter = 0.12f;
+        // Le crepe al centro coprivano la visuale (playtest 2026-11-23): l'impatto cade in un anello verso i bordi.
+        [Tooltip("Distanza dal centro (viewport 0..1) entro cui cade il punto d'impatto: minima, massima.")]
+        [SerializeField] private Vector2 impactRing = new Vector2(0.25f, 0.42f);
 
         [Tooltip("Di quanto si allargano le crepe già presenti a ogni nuovo morso.")]
         [SerializeField, Min(1f)] private float growPerBite = 1.25f;
@@ -138,7 +139,7 @@ namespace Deeploration.Player
 
             if (crackMaterial != null && viewCamera != null)
             {
-                Vector2 jitter = UnityEngine.Random.insideUnitCircle * impactJitter;
+                Vector2 jitter = UnityEngine.Random.insideUnitCircle.normalized * UnityEngine.Random.Range(impactRing.x, impactRing.y);
                 Ray ray = viewCamera.ViewportPointToRay(new Vector3(0.5f + jitter.x, 0.5f + jitter.y, 0f));
                 // dall'occhio, non da ray.origin: ViewportPointToRay parte dal piano near
                 cracks.Add(CreateCrack(viewCamera.transform.position + ray.direction * glassDistance, ray.direction));

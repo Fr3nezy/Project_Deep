@@ -99,7 +99,7 @@ Non coperti:
 Verificato in Play Mode il 2026-11-14 in `SCN_Gameplay`, chiamando le API da codice e non con mouse e tastiera:
 - **Partenza su `Warp_Chiusa_1_oltre`:** al primo frame
   - diver a (−18.49, −11.46, −97), yaw 180, a terra;
-  - `CharacterController` e `DiverController` accesi, `LockMovement` falso, `ViewRoll` 0, camera a (0, 1.375, 0);
+  - `CharacterController` e `DiverController` accesi, `LockMovement` falso, `ViewRoll` 0, camera a (0, 1.375, 0) (verifica del 2026-11-14; dal 2026-11-23 `HatchExit.eyeHeight` è 1.5, quindi la camera va a (0, 1.5, 0));
   - `PlayerWakeUpSequence` spento, overlay ad alpha 0, checkpoint = il marker.
 - **Invulnerabile:** da 0.50, `SetNormalized(0)`, `Consume(30)` e `ReceiveBite` lasciano 0.50 con `BiteCount` 0; `SetNormalized(1)` porta a 1.00.
 - **Ossigeno infinito:** 200 `Update` lasciano 0.500 (consumo calcolato 0.804/s); `Consume(10)` porta a 0.475. Senza cheat 200 `Update` portano da 0.475 a 0.467.

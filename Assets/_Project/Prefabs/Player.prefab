@@ -4998,7 +4998,7 @@ Transform:
   m_GameObject: {fileID: 1020819376488995345}
   serializedVersion: 2
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.375, z: 0}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -5303,7 +5303,7 @@ Transform:
   m_GameObject: {fileID: 2136362581478521677}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.375, z: 0}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -7444,7 +7444,7 @@ Transform:
   m_GameObject: {fileID: 7482259422156750345}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.375, z: 0}
+  m_LocalPosition: {x: 0, y: 1.5, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -8004,7 +8004,7 @@ MonoBehaviour:
   crackMaterial: {fileID: 2100000, guid: 524f7e3ca6d23844abab11cb201f055d, type: 2}
   crackSize: 0.09
   sizeVariation: {x: 0.8, y: 1.25}
-  impactJitter: 0.12
+  impactRing: {x: 0.25, y: 0.42}
   growPerBite: 1.25
   maxGrowth: 1.8
   glassDistance: 0.39

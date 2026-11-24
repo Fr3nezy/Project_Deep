@@ -745,7 +745,7 @@ namespace Deeploration.Creatures
         private void Probe()
         {
             Vector3 position = cachedTransform.position;
-            LayerMask mask = manager.ObstacleMask;
+            LayerMask mask = manager.MovementMask(profile);
 
             if (Physics.Raycast(position, Vector3.down, out RaycastHit floorHit, FloorProbeDistance, mask,
                     QueryTriggerInteraction.Ignore))
@@ -1036,7 +1036,7 @@ namespace Deeploration.Creatures
 
             Vector3 direction = step / length;
             int count = Physics.SphereCastNonAlloc(position, profile.bodyRadius + CrawlSweepSkin, direction, SweepBuffer,
-                length, manager.ObstacleMask, QueryTriggerInteraction.Ignore);
+                length, manager.MovementMask(profile), QueryTriggerInteraction.Ignore);
             float nearest = float.MaxValue;
             Vector3 normal = Vector3.zero;
             for (int i = 0; i < count; i++)

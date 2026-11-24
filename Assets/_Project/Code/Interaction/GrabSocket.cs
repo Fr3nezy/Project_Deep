@@ -5,7 +5,9 @@ namespace Deeploration.Interaction
 {
     /// <summary>
     /// Slot per oggetti trascinati: quando un <see cref="Grabbable"/> con itemId uguale entra nel trigger, viene
-    /// bloccato su snapPoint (la presa si stacca) e parte onSocketed. Una volta sola.
+    /// bloccato su snapPoint (la presa si stacca) e parte onSocketed. Con allowEject il giocatore può sfilarlo
+    /// afferrandolo (onUnsocketed) e reinserirlo; senza, una volta sola. Un oggetto con rejectedItemId portato nel
+    /// trigger (la cella scarica) viene respinto: la presa si stacca, l'oggetto è spinto via e parte onRejected.
     /// </summary>
     [RequireComponent(typeof(Collider))]
     public sealed class GrabSocket : MonoBehaviour
@@ -49,13 +51,29 @@ namespace Deeploration.Interaction
         [SerializeField] private Color emptyColor = Color.red;
         [SerializeField] private Color filledColor = Color.green;
 
+        // Prima la cella scarica entrava nel trigger senza nessuna reazione e il giocatore non capiva (playtest 2026-11-23).
+        [Header("Rifiuto")]
+        [Tooltip("Id dell'oggetto che la presa respinge con una spinta e onRejected. Vuoto = nessun rifiuto.")]
+        [SerializeField] private string rejectedItemId = "power_cell_dead";
+        [Tooltip("Velocità con cui l'oggetto respinto viene allontanato da snapPoint, in m/s.")]
+        [SerializeField, Min(0f)] private float rejectSpeed = 2.5f;
+        [Tooltip("Scintille o altro effetto da avviare al rifiuto, su snapPoint. Opzionale.")]
+        [SerializeField] private ParticleSystem rejectEffect;
+
+        [Header("Estrazione")]
+        [Tooltip("Acceso: afferrando l'oggetto inserito il giocatore lo sfila e parte onUnsocketed. Spento: resta bloccato per sempre.")]
+        [SerializeField] private bool allowEject;
+
         public UnityEvent onSocketed = new UnityEvent();
+        public UnityEvent onUnsocketed = new UnityEvent();
+        public UnityEvent onRejected = new UnityEvent();
 
         [Header("Debug (sola lettura)")]
         [SerializeField] private Grabbable current;
 
         public bool IsOccupied => current != null;
         public Grabbable Current => current;
+        public bool AllowEject => allowEject;
 
         /// <summary>Vero nei frame in cui un oggetto accettato è in posizione per agganciarsi (solo con requireSeating).</summary>
         public bool IsAligned { get; private set; }
@@ -67,6 +85,8 @@ namespace Deeploration.Interaction
         private bool magnetDisarmed;
         private float stuckFor;
         private float stuckPauseUntil = -1f;
+        // Appena sfilato: ignorato finché non si allontana, se no lo slot lo riprende subito.
+        private Grabbable ejected;
 
         private void Awake()
         {
@@ -80,7 +100,9 @@ namespace Deeploration.Interaction
         {
             if (current != null || other.attachedRigidbody == null) return;
             Grabbable item = other.attachedRigidbody.GetComponent<Grabbable>();
-            if (item == null || item.IsSocketed || item.ItemId != acceptedItemId) return;
+            if (item == null || item == ejected || item.IsSocketed) return;
+            if (!string.IsNullOrEmpty(rejectedItemId) && item.ItemId == rejectedItemId) { if (item.IsHeld) Reject(item); return; }
+            if (item.ItemId != acceptedItemId) return;
             if (requireSeating && !Seated(item)) return;
             Insert(item);
         }
@@ -93,6 +115,8 @@ namespace Deeploration.Interaction
                 IsAligned = false;
                 alignedSince = -1f;
             }
+            if (ejected != null && Vector3.Distance(ejected.transform.position, snapPoint.position) > Mathf.Max(magnetRadius, 0.5f))
+                ejected = null;
             Attract();
         }
 
@@ -101,7 +125,7 @@ namespace Deeploration.Interaction
         {
             if (magnetRadius <= 0f || current != null || playerGrab == null) return;
             Grabbable item = playerGrab.Held;
-            if (item == null || item.IsSocketed || item.ItemId != acceptedItemId) return;
+            if (item == null || item == ejected || item.IsSocketed || item.ItemId != acceptedItemId) return;
 
             Rigidbody body = item.Body;
             Vector3 delta = snapPoint.position - body.position;
@@ -156,8 +180,37 @@ namespace Deeploration.Interaction
             if (current != null || item == null) return;
             current = item;
             item.Socket(snapPoint);
+            item.Holder = this;
             if (statusLight != null) statusLight.color = filledColor;
             onSocketed?.Invoke();
+        }
+
+        /// <summary>Respinge un oggetto tenuto in mano: la presa del giocatore si stacca, l'oggetto è spinto via da snapPoint e parte onRejected.</summary>
+        public void Reject(Grabbable item)
+        {
+            if (item == null) return;
+            if (playerGrab != null && playerGrab.Held == item) playerGrab.Release();
+            ejected = item; // ignorato finché non si allontana, come dopo un'estrazione
+            Vector3 away = item.Body.position - snapPoint.position;
+            away = (away.sqrMagnitude > 0.0001f ? away.normalized : -snapPoint.forward) + snapPoint.up * 0.5f;
+            item.Body.linearVelocity = away.normalized * rejectSpeed;
+            if (rejectEffect != null)
+            {
+                rejectEffect.transform.position = snapPoint.position;
+                rejectEffect.Play();
+            }
+            onRejected?.Invoke();
+        }
+
+        /// <summary>Sfila l'oggetto inserito, se allowEject è acceso. Lo chiama PlayerGrab quando il giocatore lo afferra.</summary>
+        public void Eject()
+        {
+            if (current == null || !allowEject) return;
+            ejected = current;
+            current = null;
+            ejected.Unsocket();
+            if (statusLight != null) statusLight.color = emptyColor;
+            onUnsocketed?.Invoke();
         }
     }
 }

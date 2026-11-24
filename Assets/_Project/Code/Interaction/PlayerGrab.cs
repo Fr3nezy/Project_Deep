@@ -23,6 +23,11 @@ namespace Deeploration.Interaction
         [SerializeField, Min(0.3f)] private float minHoldDistance = 1.5f;
         [Tooltip("Oltre questa distanza fra punto afferrato e bersaglio la presa si stacca (m).")]
         [SerializeField, Min(0.5f)] private float breakDistance = 2.5f;
+        // L'oggetto davanti al crosshair copriva la visuale (playtest 2026-11-23): lo si porta basso, come a mani basse.
+        [Tooltip("Gradi sotto la linea di vista a cui l'oggetto viene tenuto. 0 = sul crosshair.")]
+        [SerializeField, Range(0f, 45f)] private float holdDropAngle = 16.5f;
+        [Tooltip("Abbassamento massimo sotto la linea di vista, in metri: oltre, a presa lontana il magnete di GrabSocket molla.")]
+        [SerializeField, Min(0f)] private float holdDropMax = 0.45f;
 
         [Header("Forza")]
         [Tooltip("Velocità cercata per metro di distanza dal bersaglio (1/s).")]
@@ -44,8 +49,16 @@ namespace Deeploration.Interaction
 
         public Grabbable Held => held;
 
-        /// <summary>Punto davanti alla camera verso cui la presa tira l'oggetto tenuto.</summary>
-        public Vector3 HoldTarget => playerCamera.transform.position + playerCamera.transform.forward * holdDistance;
+        /// <summary>Punto a holdDistance sulla linea di vista, abbassato di holdDropAngle (al massimo holdDropMax metri), verso cui la presa tira l'oggetto tenuto.</summary>
+        public Vector3 HoldTarget
+        {
+            get
+            {
+                Transform view = playerCamera.transform;
+                float drop = Mathf.Min(holdDistance * Mathf.Tan(holdDropAngle * Mathf.Deg2Rad), holdDropMax);
+                return view.position + view.forward * holdDistance - view.up * drop;
+            }
+        }
 
         private void Awake()
         {
@@ -79,6 +92,7 @@ namespace Deeploration.Interaction
         {
             Grabbable target = FindTarget(out RaycastHit hit);
             if (target == null) return false;
+            if (target.IsSocketed) target.Holder.Eject();
 
             held = target;
             held.IsHeld = true;
@@ -88,7 +102,7 @@ namespace Deeploration.Interaction
             return true;
         }
 
-        /// <summary>Grabbable libero sotto il crosshair entro grabDistance, o null. Non lo afferra.</summary>
+        /// <summary>Grabbable libero (o in uno slot che lo lascia estrarre) sotto il crosshair entro grabDistance, o null. Non lo afferra.</summary>
         public Grabbable FindTarget(out RaycastHit targetHit)
         {
             targetHit = default;
@@ -98,7 +112,7 @@ namespace Deeploration.Interaction
             {
                 if (hit.collider.transform.IsChildOf(transform)) continue;
                 Grabbable target = hit.rigidbody != null ? hit.rigidbody.GetComponent<Grabbable>() : null;
-                if (target == null || target.IsSocketed) continue;
+                if (target == null || (target.IsSocketed && (target.Holder == null || !target.Holder.AllowEject))) continue;
                 targetHit = hit;
                 return target;
             }

@@ -53,6 +53,18 @@ namespace Deeploration.Environment
             if (playerOxygen != null) Dock(playerOxygen);
         }
 
+        /// <summary>Spegne la stazione (cella sfilata): smette di ricaricare. Il checkpoint già preso resta.</summary>
+        public void PowerOff()
+        {
+            if (!isPowered) return;
+            isPowered = false;
+            if (stationBeaconLight != null)
+            {
+                stationBeaconLight.color = standbyColor;
+                stationBeaconLight.enabled = false;
+            }
+        }
+
         private void OnTriggerEnter(Collider other)
         {
             OxygenSystem oxy = other.GetComponentInParent<OxygenSystem>() ?? other.GetComponent<OxygenSystem>();
@@ -72,6 +84,11 @@ namespace Deeploration.Environment
 
             DiverRespawn respawn = oxy.GetComponent<DiverRespawn>();
             if (respawn != null) respawn.SetCheckpoint(respawnPoint);
+
+            // Agganciarsi a una stazione accesa ripara anche il vetro del casco.
+            // shortcut: il casco sta sotto MainCamera, fuori dal PlayerCapsule; un solo diver in scena. Con più diver, riferimento esplicito.
+            HelmetDamage helmet = FindAnyObjectByType<HelmetDamage>();
+            if (helmet != null) helmet.ResetDamage();
 
             if (stationBeaconLight != null)
                 stationBeaconLight.color = activeColor;

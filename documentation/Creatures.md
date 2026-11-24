@@ -201,6 +201,7 @@ flowchart TD
 
 I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 sono stati tolti il 2026-10-13 con la task 2: al buio il corpo del sub non si vede, quindi le creature percepiscono solo la sua luce e il suo rumore.
 | `bodyRadius` | float [0.05, 5] | 0.3 | Raggio d'ingombro per ostacoli e spawn (m) |
+| `passesThroughFences` | bool | false | *(2026-11-23)* Passa dalle maglie delle reti (layer `CreatureManager.fenceMask`). Spento: le reti lo fermano come una roccia. Acceso solo su `Creature_Lanternfish` |
 | `lookAhead` | float [0.2, 5] | 1.5 | Secondi di strada controllati in avanti |
 
 - API pubbliche: i campi e `StimulusReaction ReactionTo(StimulusCategory category)` (Ignore per `None`).
@@ -280,6 +281,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
 | `player` | `DiverStimulusSource` | null | Sorgente degli stimoli del sub, sul `PlayerCapsule`; registrata come prima sorgente in `Awake`. Senza, nessuno stimolo del sub e LOD calcolato dalla camera (warning in `Awake`) |
 | `viewCamera` | `Camera` | null | Camera per la visibilità; vuota = `Camera.main` in `Start` |
 | `obstacleMask` | `LayerMask` | Default, Obstacle, Seafloor (1153) | Layer che bloccano vista e moto. Non includere Player ed Entity |
+| `fenceMask` | `LayerMask` | TransparentFX (2) | *(2026-11-23)* Reti: bloccano il moto delle creature senza `passesThroughFences`, non la vista né le luci. Oggi c'è solo il recinto della discarica Z2 |
 | `nearDistance` | float ≥ 1 | 25 | Raggio del livello `Near` (m) |
 | `farDistance` | float ≥ 1 | 60 | Oltre questa distanza, livello `Far` (m) |
 | `midInterval` | int [1, 30] | 4 | Livello `Mid`: un frame ogni N |
@@ -299,6 +301,7 @@ I campi `sightRange`, `fovAngle`, `hearingRange` e `fleeDistance` della task 1 s
   - Interne per i predatori: `ReportBite(Creature biter)` passa il morso al `DiverBiteReceiver` trovato in `Awake` sullo stesso GameObject del `player` (senza, il morso non ha effetti); `Eat(Creature prey, Creature predator)` emette `bloodParticles` particelle da `bloodBurst` nel punto della preda (se `bloodBurst` manca: nessun sangue), aggiunge il lampo d'allarme della preda (se la specie ha `alarmRadius`); se la preda può dissolversi (`CanFadeIn`) la fa inghiottire (`Swallow`) e la rimette nel pool alla fine dell'`Update` in cui la dissolvenza finisce, le altre alla fine dell'`Update` corrente, così la lista delle attive non cambia mentre il manager la scorre. Fino al 2026-10-16 ogni preda tornava nel pool nel frame della presa: il lanternfish spariva di colpo accanto alla bocca, e con il ricambio dei nidi ricompariva poco dopo in dissolvenza; `FindNearest(CreatureProfile species, Vector3 position, float radius)` scorre le creature attive (costo lineare, va bene per pochi predatori).
   - `void AddPulse(CreatureStimulus stimulus, float duration)`: stimolo breve senza sorgente registrata (il lampo di un pesce spaventato), attivo per `duration` secondi a partire dal frame dopo. Gli impulsi scaduti escono dalla lista con uno scambio dall'ultimo posto, senza allocazioni a regime.
   - `LayerMask ObstacleMask { get; }`
+  - `LayerMask MovementMask(CreatureProfile profile)` *(2026-11-23)*: `obstacleMask`, più `fenceMask` se il profilo non ha `passesThroughFences`. La usa `Creature` per sondare fondale, soffitto e ostacoli (`Probe`) e per lo sweep di chi striscia; vista, linea di vista delle luci, posto di osservazione, spawn dei nidi e agguato usano ancora `ObstacleMask`.
   - `Camera ViewCamera { get; }` (dal 2026-11-08): la camera della visibilità, null prima di `Start` se non assegnata. La legge `CreatureAmbush` per il fronte del sub.
   - `bool IsHidden(Vector3 point, float radius)`: true se la sfera non si vede dalla camera: oltre `hiddenDistance`, fuori dall'inquadratura (con `visibilityMargin`) o coperta da un ostacolo di `obstacleMask` sulla linea di vista (un raggio). Senza camera true. Calcola i piani della camera a ogni chiamata, senza allocazioni.
   - `bool IsBeyondFog(Vector3 point, float radius)`: true se tutta la sfera sta oltre `hiddenDistance` dalla camera. Senza camera true.
@@ -856,6 +859,7 @@ Nel prefab `Player` (2026-10-13): `DiverStimulusSource` sul `PlayerCapsule` con 
 - **Scrittura di `unity_ObjectToWorld` nella variante procedurale:** verificata con Direct3D12, come negli esempi di instancing procedurale di URP; non provata con Vulkan, Metal o console.
 
 ## Verifica
+- Reti della discarica Z2 (2026-11-23 notte, Play da codice, `Linecast` sul layer `TransparentFX` fra le posizioni di due frame): prima il recinto stava solo su `TransparentFX` e i viperfish lo attraversavano (visto da Manu in playtest). Con `fenceMask`: in 60 s col player fuori, 0 passaggi di viperfish e 89 di lanternfish, ciclo della lampada invariato; col player dentro il recinto vicino al mucchio, per 30 s il viperfish si ferma alla rete a 6 m e non passa. Non verificato: viperfish che entra dal buco della rete, creature lontane aggiornate a passi lunghi (possono saltare un pannello sottile da 0.12 m).
 - **Lucertola, vita da insabbiata, rigonfiamento e particelle (2026-11-08), Play in `SCN_Gameplay`, altre creature nascoste, torcia `Full`, sub teletrasportato via `CharacterController`:**
   - Cambio nascondiglio (forzato a `nextRelocate` = 0, sub a 6 m): `Emerge` 1.2 s → `Return` 5.6 s → `Bury` 2.5 s → `Buried` a 4.3 m dal posto di partenza.
   - Piccolo spostamento (forzato a `nextShuffle` = 0): `Burrow` a 0.4 m/s per 2.4 m in 6 s, poi `Buried`.

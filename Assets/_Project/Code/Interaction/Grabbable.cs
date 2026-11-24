@@ -64,6 +64,20 @@ namespace Deeploration.Interaction
         [SerializeField, ColorUsage(false, true)] private Color alertGlowColor = new Color(0.5f, 4f, 8f);
         [Tooltip("Secondi per passare da un bagliore all'altro (costante di tempo).")]
         [SerializeField, Min(0.01f)] private float glowBlendTime = 0.2f;
+        // A riposo la cella accesa sembrava spenta fra i riflessi delle scariche (playtest 2026-11-23): il bagliore calmo pulsa.
+        [Tooltip("Ampiezza della pulsazione del bagliore calmo: intensità fra (1 - x) e (1 + x). 0 = fisso.")]
+        [SerializeField, Range(0f, 1f)] private float calmPulseDepth = 0.6f;
+        [Tooltip("Pulsazioni al secondo del bagliore calmo.")]
+        [SerializeField, Min(0f)] private float calmPulseRate = 0.6f;
+
+        [Header("Ronzio (solo con glowRenderer)")]
+        [Tooltip("Loop del ronzio della cella accesa. Vuoto = ronzio sintetico a 60 Hz.")]
+        [SerializeField] private AudioClip humClip;
+        [Tooltip("Volume a riposo (segue la pulsazione) e in allerta. 0 a riposo = nessun ronzio.")]
+        [SerializeField, Range(0f, 1f)] private float humVolume = 0.35f;
+        [SerializeField, Range(0f, 1f)] private float humAlertVolume = 0.6f;
+        [Tooltip("Distanza (m) oltre la quale il ronzio non si sente più.")]
+        [SerializeField, Min(1f)] private float humMaxDistance = 8f;
 
         [Tooltip("Portata dello stimolo di luce da fermo (m), per una creatura con sensibilità 1. 0 = nessuno stimolo.")]
         [SerializeField, Min(0f)] private float stimulusReach = 6f;
@@ -83,6 +97,8 @@ namespace Deeploration.Interaction
 
         private float glowBlend;
         private MaterialPropertyBlock glowBlock;
+        private AudioSource hum;
+        private static AudioClip synthHum;
         private CharacterController playerCollider;
         private bool ignoringPlayer;
 
@@ -96,6 +112,8 @@ namespace Deeploration.Interaction
         public Rigidbody Body => body;
         public bool IsHeld { get; internal set; }
         public bool IsSocketed { get; private set; }
+        /// <summary>Slot che tiene l'oggetto, o null. Lo scrive <see cref="GrabSocket"/>.</summary>
+        public GrabSocket Holder { get; internal set; }
         public string PromptText => promptText;
         public bool KeepsUpright => grabMode == GrabMode.KeepUpright;
 
@@ -117,6 +135,21 @@ namespace Deeploration.Interaction
             startPosition = transform.position;
             startRotation = transform.rotation;
             if (glowRenderer != null) glowBlock = new MaterialPropertyBlock();
+            // Solo le celle accese hanno glowRenderer: la scarica resta muta.
+            if (glowRenderer != null && humVolume > 0f)
+            {
+                if (humClip == null && synthHum == null) synthHum = SynthHum();
+                hum = gameObject.AddComponent<AudioSource>();
+                hum.clip = humClip != null ? humClip : synthHum;
+                hum.loop = true;
+                hum.spatialBlend = 1f;
+                hum.rolloffMode = AudioRolloffMode.Linear;
+                hum.minDistance = 0.5f;
+                hum.maxDistance = humMaxDistance;
+                hum.volume = 0f;
+                hum.time = Random.Range(0f, hum.clip.length * 0.9f);
+                hum.Play();
+            }
         }
 
         private void Start()
@@ -168,18 +201,42 @@ namespace Deeploration.Interaction
         {
             if (IsHeld) lastHeldTime = Time.time;
             glowBlend = Mathf.Lerp(glowBlend, AlertsCreatures ? 1f : 0f, 1f - Mathf.Exp(-Time.deltaTime / glowBlendTime));
+            float pulse = 1f + calmPulseDepth * Mathf.Sin(Time.time * calmPulseRate * 2f * Mathf.PI);
             if (glowLight != null)
             {
                 glowLight.color = Color.Lerp(calmLightColor, alertLightColor, glowBlend);
-                glowLight.intensity = Mathf.Lerp(calmLightIntensity, alertLightIntensity, glowBlend);
+                glowLight.intensity = Mathf.Lerp(calmLightIntensity * pulse, alertLightIntensity, glowBlend);
             }
             if (glowRenderer != null)
             {
                 glowRenderer.GetPropertyBlock(glowBlock);
                 // SetVector e non SetColor: in Linear SetColor eleva a 2.2 e i valori HDR esplodono (come CreatureGlow).
-                glowBlock.SetVector(ColorId, Color.Lerp(calmGlowColor, alertGlowColor, glowBlend));
+                glowBlock.SetVector(ColorId, Color.Lerp(calmGlowColor * pulse, alertGlowColor, glowBlend));
                 glowRenderer.SetPropertyBlock(glowBlock);
             }
+            if (hum != null) hum.volume = Mathf.Lerp(humVolume * (0.6f + 0.4f * pulse), humAlertVolume, glowBlend);
+        }
+
+        // Ronzio elettrico: 60 Hz con armoniche e un filo di fruscio, 1 s esatto così il loop non ha salti.
+        private static AudioClip SynthHum()
+        {
+            const int rate = 44100;
+            var data = new float[rate];
+            var random = new System.Random(91);
+            float peak = 0f, lp = 0f;
+            for (int i = 0; i < rate; i++)
+            {
+                float t = i / (float)rate;
+                lp += (((float)random.NextDouble() * 2f - 1f) - lp) * 0.05f;
+                float value = Mathf.Sin(2f * Mathf.PI * 60f * t) + 0.6f * Mathf.Sin(2f * Mathf.PI * 120f * t) +
+                              0.3f * Mathf.Sin(2f * Mathf.PI * 180f * t) + 0.15f * Mathf.Sin(2f * Mathf.PI * 300f * t) + lp * 0.4f;
+                data[i] = value;
+                peak = Mathf.Max(peak, Mathf.Abs(value));
+            }
+            for (int i = 0; i < rate; i++) data[i] *= 0.9f / peak;
+            AudioClip clip = AudioClip.Create("Cell_Hum", rate, 1, rate, false);
+            clip.SetData(data, 0);
+            return clip;
         }
 
         private float Speed => body.isKinematic ? 0f : body.linearVelocity.magnitude;
@@ -198,6 +255,15 @@ namespace Deeploration.Interaction
             socketToRotation = Quaternion.FromToRotation(socketFromRotation * Vector3.up, snapPoint.up) * socketFromRotation;
             socketStartTime = Time.time;
             if (socketBlendTime <= 0f) BlendIntoSocket();
+        }
+
+        /// <summary>Libera l'oggetto dallo slot: torna dinamico e trascinabile. Lo chiama <see cref="GrabSocket.Eject"/>.</summary>
+        public void Unsocket()
+        {
+            IsSocketed = false;
+            Holder = null;
+            socketTarget = null;
+            body.isKinematic = false;
         }
 
         private void BlendIntoSocket()

@@ -25,6 +25,9 @@ namespace Deeploration.Creatures
         [Tooltip("Layer che bloccano vista e movimento delle creature (rocce, fondale). Non includere Player ed Entity.")]
         [SerializeField] private LayerMask obstacleMask = (1 << 0) | (1 << 7) | (1 << 10);
 
+        [Tooltip("Reti: bloccano il movimento delle creature senza passesThroughFences, non la vista né la luce.")]
+        [SerializeField] private LayerMask fenceMask = 1 << 1;
+
         [Header("Livello di dettaglio")]
         [Tooltip("Entro questa distanza dal sub, se visibile, la creatura ragiona a ogni frame (m)")]
         [SerializeField, Min(1f)] private float nearDistance = 25f;
@@ -93,6 +96,10 @@ namespace Deeploration.Creatures
 
         /// <summary>Layer che bloccano vista e movimento delle creature.</summary>
         public LayerMask ObstacleMask => obstacleMask;
+
+        /// <summary>Layer che bloccano il movimento di una creatura con questo profilo: ostacoli più reti, se non ci passa.</summary>
+        public LayerMask MovementMask(CreatureProfile profile) =>
+            profile.passesThroughFences ? obstacleMask : obstacleMask | fenceMask;
 
         /// <summary>Camera usata per la visibilità (null prima di <c>Start</c> se non assegnata).</summary>
         public Camera ViewCamera => viewCamera;

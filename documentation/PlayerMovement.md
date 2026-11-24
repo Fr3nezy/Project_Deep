@@ -1,5 +1,5 @@
 # Player Movement
-Ultima verifica: 2026-11-10
+Ultima verifica: 2026-11-23
 
 ## Scopo e confini
 Gestisce la locomozione sul fondale marino del diver in scafandro pesante ispirata a *SOMA*. Non prevede salto convenzionale né manovre 6DOF in acqua libera: il movimento è vincolato al contatto col fondale tramite `CharacterController`, con inerzia percepibile, roll/pitch del casco e head-bob sinusoidale legato al passo. L'Hydropack per il traversal verticale è pianificato come componente a sé stante sbloccabile in seguito.
@@ -65,7 +65,7 @@ flowchart LR
   - `ScriptableObject` serializzato come asset `.asset`.
 - **Campi Inspector**:
   - **Andatura**:
-    - `float walkSpeed` (range: 0.5-4, default: `1.6f` m/s).
+    - `float walkSpeed` (range: 0.5-4, default: `1.6f` m/s; nell'asset `DiverProfile` `2.0` dal 2026-11-23, +25% dopo il playtest blind. Il drain da sforzo cresce con la velocità, quindi camminando si consuma di più al secondo, ma uguale per metro).
     - `float sprintSpeed` (range: 0.5-6, default: `2.8f` m/s).
   - **Inerzia**:
     - `float acceleration` (range: 0.5-12, default: `2.2f`).
@@ -115,7 +115,7 @@ flowchart LR
 ### Struttura del prefab Player (ricostruita il 2026-10-13)
 Fino al 2026-10-13 `Player.prefab` era un contenitore di quattro prefab annidati di *Starter Assets* (`MainCamera`, `PlayerFollowCamera`, `PlayerCapsule`, `UI_EventSystem`) con i figli spostati di (9.37, 14.11) dalla radice, cioè la posizione della loro demo: il pivot della radice stava a 17 m dal diver e ogni scena compensava con decine di override (57 in `SCN_Gameplay`). In più `CinemachineBrain` (`[ExecuteAlways]`) spostava `MainCamera` sulla camera virtuale anche in Editor, quindi aprendo il prefab il casco, figlio della camera, saltava. Ora:
 - i quattro prefab sono spacchettati di un livello: il Player è autonomo, solo il modello `Helmet.fbx` resta collegato;
-- la radice coincide con i piedi del diver: `PlayerCapsule` e `UI_EventSystem` in (0, 0, 0), `MainCamera` e `PlayerFollowCamera` in (0, 1.375, 0), cioè sul `PlayerCameraRoot`. Il brain sposta la camera dove già si trova, quindi in Editor non salta più niente;
+- la radice coincide con i piedi del diver: `PlayerCapsule` e `UI_EventSystem` in (0, 0, 0), `MainCamera` e `PlayerFollowCamera` in (0, 1.375, 0), cioè sul `PlayerCameraRoot` (dal 2026-11-23 `PlayerCameraRoot`, `MainCamera` e `PlayerFollowCamera` sono a (0, 1.5, 0) nel `Player.prefab`, con `HatchExit.eyeHeight` 1.5: camera alzata dopo il playtest blind). Il brain sposta la camera dove già si trova, quindi in Editor non salta più niente;
 - portati nel prefab i valori che esistevano solo nelle scene: `PlayerInteraction` e `PlayerHands` sul `PlayerCapsule`, colore ambra della torcia (1, 0.725, 0.498), camera con sfondo a tinta unita (0, 0.057, 0.113) e far clip 800 (anche sulla lente di `PlayerFollowCamera`, che è quella che conta);
 - tolti il `Rigidbody` del `PlayerCapsule` (nessuno script lo usa; due scene su tre lo avevano già tolto) e il figlio `Capsule` spento;
 - la spia rossa `EmergencyLight` sta sotto `MainCamera/HelmetVisualPivot` (vedi [Flashlight.md](Flashlight.md)).

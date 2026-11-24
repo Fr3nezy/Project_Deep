@@ -5,7 +5,7 @@ namespace Deeploration.Player
 {
     /// <summary>
     /// Checkpoint del diver: quando l'ossigeno finisce lo riporta all'ultimo punto registrato
-    /// (le stazioni O₂ accese lo registrano all'ingresso) con il serbatoio ricaricato.
+    /// (le stazioni O₂ accese lo registrano all'ingresso) con il serbatoio ricaricato e il vetro del casco nuovo.
     /// Va sul PlayerCapsule, accanto a OxygenSystem.
     /// </summary>
     [RequireComponent(typeof(OxygenSystem))]
@@ -44,7 +44,7 @@ namespace Deeploration.Player
             Respawn();
         }
 
-        /// <summary>Porta il diver al checkpoint (o al punto di partenza) e ricarica il serbatoio.</summary>
+        /// <summary>Porta il diver al checkpoint (o al punto di partenza), ricarica il serbatoio e ripara il vetro.</summary>
         public void Respawn()
         {
             Vector3 position = checkpoint != null ? checkpoint.position : startPosition;
@@ -60,6 +60,10 @@ namespace Deeploration.Player
             if (diver != null) diver.ResetMotion();
 
             oxygen.SetNormalized(respawnOxygen);
+
+            // shortcut: il casco sta sotto MainCamera, fuori dal PlayerCapsule; un solo diver in scena. Con più diver, riferimento esplicito.
+            HelmetDamage helmet = FindAnyObjectByType<HelmetDamage>();
+            if (helmet != null) helmet.ResetDamage();
         }
     }
 }
