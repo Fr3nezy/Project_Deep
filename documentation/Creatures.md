@@ -501,6 +501,7 @@ Spec: `docs/specs/ViperfishStealth.md` (passi 1-5 implementati e verificati in P
     - `Windup`: resta quasi fermo (`0.3` m/s verso il casco) per `windupTime` s, poi `Strike`.
     - `Strike`: scatta verso il casco a `strikeSpeed` (`CreatureState.Strike`, `personalSpace: false`, `ignoreCeiling: true`; `Creature.Move` imposta `lunging` e salta il rallentamento finale). Se la distanza fra il centro del pesce e il casco < `profile.biteReach + profile.bodyRadius` (0.7 m: la bocca è avanti di `bodyRadius`; col solo `biteReach` uno scatto di sbieco passava a 0.63 m senza mordere), chiama `Creature.BiteDiverGuided()` e fugge con `biteCooldown`; se scade `strikeMaxDuration`, torna `Approach`.
     - **Respinta col flash pieno: tolta il 2026-11-21** (flash fuori dal gioco, il viperfish si evita e basta). L'attacco finisce col morso (fuga con `biteCooldown`) o, se lo scatto manca, dopo `strikeMaxDuration`.
+- **Eventi**: `event Action<StealthAlert> OnAlertChanged` (d'istanza, a ogni cambio di livello) e, dal 2026-11-24, `public static event Action<CreatureStealth, StealthAlert> AnyAlertChanged`, invocato in `SetAlert` subito dopo l'evento d'istanza con (creatura, nuovo livello). Serve a chi non può iscriversi a creature in pool (es. `FaunaCommsCue`, vedi [Comms.md](Comms.md)); essendo statico va disiscritto in `OnDisable`. Compila, non verificato in Play.
 - **Campi Inspector**:
 
 | Campo | Tipo | Default | Significato |

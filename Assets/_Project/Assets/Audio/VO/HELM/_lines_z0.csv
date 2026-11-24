@@ -1,0 +1,13 @@
+id,text
+HELM_WAKE_01,"H.E.L.M. online. Suit integrity, sixty-one percent. Primary systems offline."
+HELM_WAKE_02,"Emergency mode active. Technically, you are still operational."
+HELM_BRIEF_01,"Depth, two thousand meters. We landed several kilometers off the designated dock."
+HELM_BRIEF_02,"This area is an abandoned company complex. Environment, hostile."
+HELM_BRIEF_03,"Survival probability, zero point zero zero one percent. I rounded up."
+HELM_BRIEF_04,"Oxygen reserve is limited. Nearest company structure, a lock gate. South, down the canyon."
+HELM_FISH_01,"Bioluminescent fauna ahead. Artificial light at this depth works like a dinner bell."
+HELM_FISH_02,"Watch how they react to your light. Then decide how bright you want to be."
+HELM_O2_01,"Oxygen station detected. No power."
+HELM_O2_02,"Company stations run on standard energy cells. Find one. Plug it in."
+HELM_RED_01,"Red light module installed. Most local fauna cannot see red."
+HELM_RED_02,"Most."

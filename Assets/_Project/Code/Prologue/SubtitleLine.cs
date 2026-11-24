@@ -8,5 +8,7 @@ namespace Deeploration.Prologue
     {
         public LocalizedString speaker = new LocalizedString();
         public LocalizedString text = new LocalizedString();
+        [Tooltip("Voce della battuta (opzionale). La usa HelmetComms; il prologo su Timeline la ignora.")]
+        public AudioClip voice;
     }
 }

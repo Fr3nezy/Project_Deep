@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e9620f8c34305754d8cc9a7e49e852d9, type: 3}
+  m_Name: Comms_en
+  m_EditorClassIdentifier: Unity.Localization::UnityEngine.Localization.Tables.StringTable
+  m_LocaleId:
+    m_Code: en
+  m_SharedData: {fileID: 11400000, guid: 589d40514a6cca14ba52d5bc263a867b, type: 2}
+  m_Metadata:
+    m_Items: []
+  m_TableData:
+  - m_Id: 762306560
+    m_Localized: H.E.L.M.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 804249600
+    m_Localized: BATHY
+    m_Metadata:
+      m_Items: []
+  - m_Id: 804249601
+    m_Localized: Comms link online. Helmet systems nominal.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16934954328064
+    m_Localized: 'H.E.L.M. online. Suit integrity: 61%. Primary systems offline.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16935373758464
+    m_Localized: Emergency mode active. Technically, you are still operational.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16935675748352
+    m_Localized: 'Depth: 2000 m. We landed several kilometers off the designated
+      dock.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16935977738240
+    m_Localized: 'This area is an abandoned company complex. Environment: hostile.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16936309088256
+    m_Localized: 'Survival probability: 0.001%. I rounded up.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16936615272448
+    m_Localized: 'Oxygen reserve is limited. Nearest company structure: a lock gate.
+      South, down the canyon.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16936921456640
+    m_Localized: Bioluminescent fauna ahead. Artificial light at this depth works
+      like a dinner bell.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16937194086400
+    m_Localized: Watch how they react to your light. Then decide how bright you want
+      to be.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16937483493376
+    m_Localized: Oxygen station detected. No power.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16937764511744
+    m_Localized: Company stations run on standard energy cells. Find one. Plug it
+      in.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16938045530112
+    m_Localized: Red light module installed. Most local fauna cannot see red.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 16938330742784
+    m_Localized: Most.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50911912124416
+    m_Localized: Fauna protocol.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50911954067456
+    m_Localized: 'Thaladyne reminds you: the fauna is not company property. You are.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 50911954067457
+    m_Localized: Drop the cell. Hold still.
+    m_Metadata:
+      m_Items: []
+  references:
+    version: 2
+    RefIds: []

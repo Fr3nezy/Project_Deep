@@ -1,4 +1,5 @@
 using System.Collections;
+using Deeploration.Comms;
 using Deeploration.Player;
 using UnityEngine;
 using UnityEngine.Events;
@@ -19,7 +20,7 @@ namespace Deeploration.Prologue
         [SerializeField] private DiverController diver;
         [SerializeField] private Transform cameraTarget;
         [SerializeField] private CanvasGroup fadeOverlay;
-        [SerializeField] private SubtitlePanel subtitlePanel;
+        [SerializeField, Tooltip("Schermo comunicazioni del casco. Vuoto = cercato in scena.")] private HelmetComms comms;
         [SerializeField] private SubtitleLine wakeUpSubtitle;
 
         [Header("Posa da svenuto")]
@@ -62,9 +63,6 @@ namespace Deeploration.Prologue
         [SerializeField, Tooltip("Ritardo prima della comparsa della battuta di emergenza.")]
         private float subtitleDelay = 1.2f;
 
-        [SerializeField, Tooltip("Durata visibilità della battuta di emergenza.")]
-        private float subtitleDuration = 5.0f;
-
         [SerializeField, Tooltip("A fine risveglio (non con Skip). In SCN_Gameplay: HelmetInstruments.ShowLightsNotice.")]
         private UnityEvent onCompleted = new UnityEvent();
 
@@ -84,9 +82,9 @@ namespace Deeploration.Prologue
                 if (fadeGo != null) fadeOverlay = fadeGo.GetComponent<CanvasGroup>();
             }
 
-            if (subtitlePanel == null)
+            if (comms == null)
             {
-                subtitlePanel = Object.FindFirstObjectByType<SubtitlePanel>();
+                comms = Object.FindFirstObjectByType<HelmetComms>();
             }
 
             // Imposta subito lo stato iniziale stordito a nero
@@ -140,11 +138,7 @@ namespace Deeploration.Prologue
             if (!subtitleTriggered && timer >= subtitleDelay)
             {
                 subtitleTriggered = true;
-                if (subtitlePanel != null && wakeUpSubtitle != null)
-                {
-                    subtitlePanel.Show(wakeUpSubtitle);
-                    StartCoroutine(ClearSubtitleAfter(subtitleDuration));
-                }
+                if (comms != null && wakeUpSubtitle != null) comms.Say(wakeUpSubtitle);
             }
 
             // 3. Completamento sequenza
@@ -217,18 +211,8 @@ namespace Deeploration.Prologue
                 fadeOverlay.alpha = 0.0f;
                 fadeOverlay.blocksRaycasts = false;
             }
-            if (subtitleTriggered && subtitlePanel != null) subtitlePanel.Clear();
 
             enabled = false;
-        }
-
-        private IEnumerator ClearSubtitleAfter(float delay)
-        {
-            yield return new WaitForSeconds(delay);
-            if (subtitlePanel != null)
-            {
-                subtitlePanel.Clear();
-            }
         }
     }
 }

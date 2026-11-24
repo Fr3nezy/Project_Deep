@@ -1,5 +1,5 @@
 # Prologue
-Ultima verifica: 2026-11-22
+Ultima verifica: 2026-11-24
 
 ## Scopo e confini
 Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `SCN_Gameplay.unity`.
@@ -7,7 +7,7 @@ Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1
 ## File e componenti
 - `Assets/_Project/Code/Prologue/CinematicControlGate.cs`: Cancello di controllo per disabilitare/ripristinare i componenti del player, congelare il `CharacterController` e azzerare il moto in sincronia con `PlayableDirector`.
 - `Assets/_Project/Code/Prologue/ElevatorPrologueSequence.cs`: Sequencer per la scena isolata dell'ascensore (`SCN_Intro.unity`): blocco locomozione con freelook, treadmill di cubi esterni dall'oblò, screenshake continuo e da impatto, sequenza sottotitoli a battute, dissolvenza a nero e caricamento asincrono/sincrono del gameplay loop.
-- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `SCN_Gameplay.unity`, con il diver agganciato al sedile della capsula: partenza da schermo nero con la testa reclinata, dissolvenza in apertura, battuta di riavvio tuta, testa che si rialza ruotando su X attorno al collo, restituzione della visuale con il diver ancora seduto.
+- `Assets/_Project/Code/Prologue/PlayerWakeUpSequence.cs`: Componente per la sequenza di rinvenimento in `SCN_Gameplay.unity`, con il diver agganciato al sedile della capsula: partenza da schermo nero con la testa reclinata, dissolvenza in apertura, prima battuta di H.E.L.M. sullo schermo comunicazioni del casco ([Comms.md](Comms.md)), testa che si rialza ruotando su X attorno al collo, restituzione della visuale con il diver ancora seduto.
 - `Assets/_Project/Code/Prologue/SubtitleLine.cs`: ScriptableObject per singola battuta con testi e speaker localizzati tramite Unity Localization.
 - `Assets/_Project/Code/Prologue/SubtitlePanel.cs`: MonoBehaviour per visualizzazione UI a schermo delle battute localizzate.
 - `Assets/_Project/Code/Prologue/SubtitleTrack.cs`: TrackAsset Timeline custom per il binding con `SubtitlePanel` e la creazione del mixer.
@@ -90,14 +90,14 @@ flowchart TD
 - **Responsabilità e ciclo di vita**:
   - Esegue il rinvenimento del giocatore in `SCN_Gameplay.unity` con il diver seduto e agganciato al sedile della capsula schiantata. `[DefaultExecutionOrder(100)]`: scrive `PlayerCameraRoot` in `LateUpdate` dopo `DiverController` (0) e prima di `RotationalFollowThrough` (200), vedi [CameraFollowThrough.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/CameraFollowThrough.md).
   - Dal 2026-10-13 in `SCN_Gameplay` la posa da svenuto è scritta nei campi (`readPoseFromTransform` spento, `slumpPitch` 25.76, `slumpRoll` 13.57) e il Player in scena è dritto: inclinare tutto il diver per authorare la posa lasciava storta l'intera gerarchia in Editor. La modalità che legge la posa dalla scena resta disponibile. Con `readPoseFromTransform`, in `Awake()` la rotazione del diver si scompone rispetto al solo yaw: la componente su X diventa `slumpPitch` (testa reclinata), quella su Z `slumpRoll` (corpo inclinato con il sedile). Poi il diver torna a solo yaw, perché `DiverController` e `CharacterController` lavorano dritti. Siccome la posa authorata ruota il diver attorno ai piedi, raddrizzandolo il corpo viene anche spostato di `rotazione * (0, neckHeight, 0) - (0, neckHeight, 0)`: il collo resta dove è stato messo in scena e il primo frame in Play coincide con la vista dell'editor (senza questa correzione la testa scivolava di circa 35 cm a destra e 48 cm indietro).
-  - `Awake()`: risolve i riferimenti (`cameraTarget` da `DiverController.CameraTarget`, `fadeOverlay` da `FadeOverlay`, `subtitlePanel`), forza il nero, spegne il `CharacterController` (non entra nella capsula), imposta `LockMovement = true`, disabilita `DiverController` (niente visuale finché la testa non è su), poi legge e applica la posa.
+  - `Awake()`: risolve i riferimenti (`cameraTarget` da `DiverController.CameraTarget`, `fadeOverlay` da `FadeOverlay`, `comms` da `HelmetComms` in scena), forza il nero, spegne il `CharacterController` (non entra nella capsula), imposta `LockMovement = true`, disabilita `DiverController` (niente visuale finché la testa non è su), poi legge e applica la posa.
   - Posa della testa: rotazione `Euler(pitch, 0, roll)` attorno al perno del collo a `neckHeight`. La camera si sposta anche in posizione: `neck + rot * (0, eyeHeight - neckHeight, 0)`.
-  - `Update()`: dissolvenza dal nero (`SmoothStep`), battuta `wakeUpSubtitle` a `subtitleDelay` (cancellata dopo `subtitleDuration`), completamento quando sono finiti sia il sollevamento sia la dissolvenza.
+  - `Update()`: dissolvenza dal nero (`SmoothStep`), battuta `wakeUpSubtitle` mandata a `HelmetComms.Say` a `subtitleDelay` (durata e chiusura le decide lo schermo comunicazioni; dal 2026-11-24, prima `SubtitlePanel`), completamento quando sono finiti sia il sollevamento sia la dissolvenza.
   - `LateUpdate()`: solo l'asse X cambia. Il pitch va da `slumpPitch` a 0 secondo `liftCurve`, tra `liftDelay` e `liftDelay + liftDuration`; il roll resta `slumpRoll`.
   - `CompleteWakeUp()`: posa con pitch 0 e roll `slumpRoll`. Sul diver: `CameraBasePosition` = posizione corrente della camera, `ViewRoll = slumpRoll`, `enabled = true`, `SetViewPitch(0)`, `ResetMotion()`, `LockMovement = true`. Il diver resta seduto: visuale libera con il roll del sedile, locomozione bloccata, `CharacterController` spento. Lo porta fuori `HatchExit` (vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md)). Nasconde l'overlay e si disabilita.
   - `public void Skip()` (dal 2026-11-14): salta il risveglio se non è già finito: ferma le coroutine, overlay ad alpha 0 senza raycast, toglie il sottotitolo se era partito, si disabilita. Non tocca la posa del diver: la rimette chi chiama (`CheatMenu` con `DiverController.PlaceStanding`). In `SCN_Gameplay` il `FadeOverlay` è inattivo, quindi il nero oggi non si vede comunque.
 - **Campi Inspector**:
-  - `DiverController diver`, `Transform cameraTarget`, `CanvasGroup fadeOverlay`, `SubtitlePanel subtitlePanel` (tutti `null` → cercati in `Awake()`), `SubtitleLine wakeUpSubtitle` (`Subtitle_Beat_7.asset`).
+  - `DiverController diver`, `Transform cameraTarget`, `CanvasGroup fadeOverlay`, `HelmetComms comms` (tutti `null` → cercati in `Awake()`), `SubtitleLine wakeUpSubtitle` (in `SCN_Gameplay`: `Comms/Lines/HELM_WAKE_01.asset`; `onCompleted` chiama anche `Comms_Z0/Comms_Brief.Play`).
   - `bool readPoseFromTransform` (default: `true`): legge la posa dalla rotazione del diver in scena. Spento in `SCN_Gameplay` dal 2026-10-13.
   - `float slumpPitch` (default: `25`): testa reclinata in avanti su X (positivo = in basso). Sovrascritto se `readPoseFromTransform`.
   - `float slumpRoll` (default: `17`): inclinazione laterale sul sedile, resta anche da sveglio finché il diver è seduto. Sovrascritto se `readPoseFromTransform`.
@@ -105,7 +105,7 @@ flowchart TD
   - `float neckHeight` (default: `1.2`): altezza del perno del collo.
   - `float liftDelay` (default: `1.2`), `float liftDuration` (default: `2.6`): inizio e durata del sollevamento.
   - `AnimationCurve liftCurve` (default: chiavi (0,0), (0.4,0.34), (0.55,0.38), (1,1)): andamento del sollevamento, con una breve esitazione a metà.
-  - `float fadeDelay` (default: `0.4`), `float fadeDuration` (default: `2.0`), `float subtitleDelay` (default: `1.2`), `float subtitleDuration` (default: `5.0`).
+  - `float fadeDelay` (default: `0.4`), `float fadeDuration` (default: `2.0`), `float subtitleDelay` (default: `1.2`).
   - `UnityEvent onCompleted` (dal 2026-11-22): invocato alla fine di `CompleteWakeUp()`, non da `Skip()`. In `SCN_Gameplay` chiama `HelmetInstruments.ShowLightsNotice` sull'istanza `Helmet` del Player (avviso «[F] CYCLE» sul CRT, vedi `SuitFeedback.md`).
 - **API pubbliche**: nessuna.
 - **Riferimenti obbligatori**: `DiverController` in scena. Senza diver o `cameraTarget` la posa non si applica; senza overlay o pannello mancano dissolvenza o battuta, senza errori.
@@ -116,6 +116,7 @@ flowchart TD
 - **Campi Inspector**:
   - `LocalizedString speaker`: LocalizedString per il nome del parlante (es. BATHY, H.E.L.M., Ascensore).
   - `LocalizedString text`: LocalizedString per il corpo del testo della battuta.
+  - `AudioClip voice` (default `null`, dal 2026-11-24): voce della battuta, opzionale. La usa solo `HelmetComms` ([Comms.md](Comms.md)); la traccia Timeline del prologo la ignora.
 - **API pubbliche**:
   - `public LocalizedString speaker`
   - `public LocalizedString text`
@@ -123,6 +124,8 @@ flowchart TD
   - Se `text == null` o `text.IsEmpty`, `SubtitlePanel.Show()` rifiuta la battuta registrando un errore.
 
 ### SubtitlePanel
+> **Deprecato dal 2026-11-24.** Le battute in gioco passano dallo schermo comunicazioni del casco (`HelmetComms`, [Comms.md](Comms.md)). Il pannello resta finché il prologo di `SCN_Intro` e quello dentro `SCN_Gameplay` non sono migrati: non usarlo per battute nuove.
+
 - **Responsabilità e ciclo di vita**:
   - Componente UI MonoBehaviour agganciato all'overlay dei sottotitoli (`PrologueCanvas`).
   - `Awake()`: Valida la gerarchia UI (`view`, `speaker`, `body`). In caso di incongruenze disabilita il componente con `Debug.LogError`. Esegue `Clear()`.
@@ -142,6 +145,8 @@ flowchart TD
   - `view`, `speaker` e `body` devono essere non nulli; `view` non può coincidere con `gameObject` e sia `speaker` che `body` devono essere nodi figli di `view`.
 
 ### SubtitleTrack
+> **Deprecato dal 2026-11-24**, insieme a `SubtitlePanel`: la migrazione del prologo allo schermo comunicazioni è da fare.
+
 - **Responsabilità e ciclo di vita**:
   - `TrackAsset` custom derivato da Unity Timeline, marcato con `[TrackColor(0.2f, 0.8f, 1f)]`, `[TrackClipType(typeof(SubtitleClip))]` e `[TrackBindingType(typeof(SubtitlePanel))]`.
   - Istanziato all'interno di un PlayableAsset Timeline per legare clip di sottotitoli all'istanza di scena del `SubtitlePanel`.
@@ -205,6 +210,7 @@ Le note sotto sulla timeline intro descrivono la configurazione del 2026-09-13 e
 - Integrazione di eventi sonori FMOD o Unity AudioSource direttamente sui marker dei beat.
 
 ## Limiti e problemi noti
+- **Sottotitoli deprecati (2026-11-24)**: `SubtitlePanel` e `SubtitleTrack` restano solo per il prologo esistente; le battute nuove usano `HelmetComms`. `SubtitleLine` invece resta il dato delle battute per entrambi.
 - **Cinemachine Versioning**: Il progetto adotta Cinemachine 2.10.7 (`CinemachineTrack` e `CinemachineShot` nel namespace globale); vietato l'aggiornamento a Cinemachine 3.x.
 - **Pausa Director**: Durante `director.Pause()`, il cancello mantiene lo stato bloccato finché non viene invocato esplicitamente `director.Stop()`.
 

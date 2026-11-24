@@ -113,6 +113,12 @@ namespace Deeploration.Creatures
         /// <summary>A ogni cambio di livello d'allerta.</summary>
         public event Action<StealthAlert> OnAlertChanged;
 
+        /// <summary>
+        /// Come <see cref="OnAlertChanged"/> ma statico, per chi non può iscriversi a creature in pool:
+        /// (creatura, nuovo livello). Non si azzera da solo: chi si iscrive deve disiscriversi in OnDisable.
+        /// </summary>
+        public static event Action<CreatureStealth, StealthAlert> AnyAlertChanged;
+
         /// <summary>Prepara il driver alla creatura appena uscita dal pool.</summary>
         internal void Begin(Creature owner, CreatureManager creatureManager, Vector3 homePosition, float leash)
         {
@@ -364,6 +370,7 @@ namespace Deeploration.Creatures
             alert = next;
             leaving = false;
             OnAlertChanged?.Invoke(next);
+            AnyAlertChanged?.Invoke(this, next);
         }
 
         /// <summary>
