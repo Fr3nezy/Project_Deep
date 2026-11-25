@@ -13,7 +13,7 @@ La struttura si basa su definizioni dichiarative in ScriptableObject (`QuestProf
 
 ## Dipendenze e flusso dati
 - **Trigger e Interazioni**: `ItemSocket`, `SimpleInteractable`, `OxygenRefillStation` e `QuestObjectiveTrigger` chiamano `QuestManager.Instance.AdvanceObjective()`.
-- **UI HUD**: `SuitDebugOverlay` osserva `OnQuestStateChanged` per renderizzare l'elenco degli obiettivi spuntati.
+- **UI HUD**: nessuna dal 2026-11-25 (`SuitDebugOverlay` non mostra più la checklist: sistema missioni deprecato, Manu).
 - **Porte ed Eventi Ambientali**: `AirlockDoor` osserva `OnQuestCompleted` per sbloccare l'accesso al livello successivo.
 
 ```mermaid

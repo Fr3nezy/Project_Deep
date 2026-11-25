@@ -15,7 +15,7 @@ Oltre a guidare i feedback sensoriali (vignetta URP, respiro), lo stress impleme
 ## Dipendenze e flusso dati
 - **Sorgenti di Stress**: `StressSystem` scopre automaticamente tramite `GetComponentsInChildren<IStressSource>(true)` i moduli presenti (es. `LookStressSource`, `DarknessStressSource`) o accetta registrazioni a runtime.
 - **Ossigeno**: `StressSystem` implementa `IOxygenDrainSource` e viene interrogato da `OxygenSystem`.
-- **Feedback**: Notifica `OnStressChanged` (normalizzato 0-1) a `SuitDebugOverlay` per modulare la vignetta post-processing e i parametri vitali a schermo.
+- **Feedback**: `OnStressChanged` notifica lo stress normalizzato 0-1; `SuitDebugOverlay` dal 2026-11-25 legge `NormalizedStress` ogni frame per la vignetta e il testo di debug (F3).
 
 ```mermaid
 flowchart TD

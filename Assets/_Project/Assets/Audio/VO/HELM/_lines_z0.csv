@@ -3,9 +3,9 @@ HELM_WAKE_01,"Suit integrity, sixty-one percent. Primary systems offline."
 HELM_WAKE_02,"Emergency mode active. Technically, you are still operational."
 HELM_BRIEF_01,"Depth, two thousand meters. We landed several kilometers off the designated dock."
 HELM_BRIEF_02,"This area is an abandoned company complex. Environment, hostile."
-HELM_BRIEF_03,"Survival probability, zero point zero zero one percent. I rounded up."
+HELM_BRIEF_03,"Oxygen replenished. Survival probability, zero point zero zero two percent. It doubled."
 HELM_BRIEF_04,"Oxygen reserve is limited. Nearest company structure, a lock gate. South, down the canyon."
-HELM_FISH_01,Bioluminescent fauna ahead. Artificial light at this depth works like a dinner bell.
+HELM_FISH_01,"Suit lights online. Fauna ahead. At this depth, light gets noticed."
 HELM_FISH_02,Watch how they react to your light. Then decide how bright you want to be.
 HELM_O2_01,Oxygen station detected. No power.
 HELM_O2_02,Company stations run on standard energy cells. Find one. Plug it in.
@@ -17,3 +17,5 @@ HELM_CELL_02,It is also radioactive. Do not sleep next to it.
 HELM_POWER_01,Power restored. Stand close to the station to refill your oxygen.
 HELM_RED_03,The gate has an optical sensor. It is waiting for a specific light.
 HELM_GATE_01,"Optical sensor, accepted. Lock gate opening."
+HELM_LEVER_01,"The hatch is jammed. Use the emergency release, on your right."
+HELM_LEVER_02,"Emergency release, on your right. Grab it, and pull it up."

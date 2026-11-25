@@ -1,3 +1,5 @@
+using Deeploration.Comms;
+using Deeploration.Prologue;
 using TMPro;
 using UnityEngine;
 
@@ -7,7 +9,8 @@ namespace Deeploration.Player
     /// Strumenti del casco, in 3D: il modello (<c>Helmet.fbx</c>) ha il gauge dell'ossigeno con il quadrante della
     /// pressione, il CRT ambrato e due spie; questo componente ruota le lancette, accende le spie e scrive i testi del
     /// CRT (TextMeshPro, così font e traduzioni si cambiano qui e non nel modello). Legge OxygenSystem e
-    /// DiverFlashlight, non scrive su nessun sistema.
+    /// DiverFlashlight, non scrive su nessun sistema. Con powerUpLine gli strumenti restano spenti finché HelmetComms
+    /// non comincia quella battuta, poi si accendono a cascata: CRT, bussola, gauge.
     /// </summary>
     public sealed class HelmetInstruments : MonoBehaviour
     {
@@ -60,9 +63,20 @@ namespace Deeploration.Player
         [Tooltip("Avviso alla raccolta del modulo luce rossa.")]
         [SerializeField] private string redTitle = "RED MODULE ONLINE";
         [SerializeField] private string redKey = "[R] USE";
-        [Tooltip("Avviso della torcia, lanciato da ShowLightsNotice (fine del risveglio in capsula).")]
+        [Tooltip("Avviso della torcia, lanciato da ShowLightsNotice (in SCN_Gameplay all'uscita dalla capsula, HatchExit.onExited).")]
         [SerializeField] private string lightsTitle = "LIGHTS ONLINE";
         [SerializeField] private string lightsKey = "[F] CYCLE";
+        [Tooltip("Durata dell'avviso della torcia: più lunga degli altri, è il primo momento in cui le luci servono.")]
+        [SerializeField, Min(0.5f)] private float lightsNoticeSeconds = 8f;
+        [Tooltip("Battuta comms con cui compare l'avviso della torcia (in SCN_Gameplay HELM_FISH_01). Vuoto = solo da ShowLightsNotice.")]
+        [SerializeField] private SubtitleLine lightsNoticeLine;
+
+        [Header("Accensione")]
+        [Tooltip("Battuta comms con cui si accendono gli strumenti (in SCN_Gameplay HELM_BOOT_01, quella con la schermata di avvio). " +
+                 "Fino ad allora sono spenti. Vuoto = accesi da subito.")]
+        [SerializeField] private SubtitleLine powerUpLine;
+        [Tooltip("Durata dell'accensione a cascata: CRT, bussola, gauge. Circa apertura del pannello comms + caricamento (0.45 + 3 s).")]
+        [SerializeField, Min(0.5f)] private float powerUpSeconds = 3.5f;
 
         [Header("Luce rossa")]
         [Tooltip("Materiali delle fasce verde, arancione e rossa delle scale: con la torcia rossa diventano tre rossi " +
@@ -121,6 +135,13 @@ namespace Deeploration.Player
         private bool redWasUnlocked;
         private bool noticeRed;
         private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
+        // Accensione: -inf = acceso, +inf = spento in attesa di powerUpLine, altrimenti istante d'inizio.
+        private float powerStart = float.NegativeInfinity;
+        private bool powerSettled = true;
+        // Inizio e durata di ogni gruppo, in frazioni di powerUpSeconds: 0 CRT, 1 bussola, 2 gauge.
+        private static readonly Vector2[] PowerPhases = { new(0f, 0.45f), new(0.25f, 0.45f), new(0.45f, 0.55f) };
+        // Materiali emissivi fissi (schermo CRT, fasce, lancette, bussola del modello), spenti per indice durante l'accensione.
+        private readonly System.Collections.Generic.List<(Renderer renderer, int index, Color emission, int group)> powerSlots = new();
         // shortcut: lettere fisse in inglese, localizzare con la tabella quando serve
         private static readonly string[] CompassNames = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
         private readonly System.Collections.Generic.List<(TMP_Text text, float bearing)> compassMarks = new();
@@ -144,6 +165,12 @@ namespace Deeploration.Player
             if (oxygenNeedle != null) oxygenRest = oxygenNeedle.localRotation;
             if (pressureNeedle != null) pressureRest = pressureNeedle.localRotation;
             block = new MaterialPropertyBlock();
+            // In Awake, non in Start: un PowerOn da Start di altri script (CheatMenu con startOutside) deve vincere.
+            if (powerUpLine != null)
+            {
+                powerStart = float.PositiveInfinity;
+                powerSettled = false;
+            }
         }
 
         private void Start()
@@ -156,11 +183,29 @@ namespace Deeploration.Player
             if (noticeRoot != null) noticeRoot.SetActive(false);
         }
 
-        /// <summary>Mostra l'avviso della torcia (icona Full, «[F] CYCLE»).</summary>
-        public void ShowLightsNotice() => ShowNotice(modeIcons.Length > 0 ? modeIcons[0] : null, lightsTitle, lightsKey);
+        private void OnEnable() => HelmetComms.LineStarted += OnLineStarted;
+        private void OnDisable() => HelmetComms.LineStarted -= OnLineStarted;
 
-        /// <summary>Per noticeSeconds il CRT mostra solo icona, titolo e tasto, poi torna ai testi normali.</summary>
-        public void ShowNotice(Texture2D icon, string title, string key, bool red = false)
+        private void OnLineStarted(SubtitleLine line)
+        {
+            if (line == null) return;
+            if (line == powerUpLine) PowerOn(true);
+            if (line == lightsNoticeLine) ShowLightsNotice();
+        }
+
+        /// <summary>Accende gli strumenti: animated = a cascata in powerUpSeconds (solo se spenti), altrimenti subito (cheat, warp).</summary>
+        public void PowerOn(bool animated)
+        {
+            if (animated && powerStart != float.PositiveInfinity) return;
+            powerStart = animated ? Time.unscaledTime : float.NegativeInfinity;
+            powerSettled = false;
+        }
+
+        /// <summary>Mostra l'avviso della torcia (icona Full, «[F] CYCLE»).</summary>
+        public void ShowLightsNotice() => ShowNotice(modeIcons.Length > 0 ? modeIcons[0] : null, lightsTitle, lightsKey, false, lightsNoticeSeconds);
+
+        /// <summary>Per seconds (0 = noticeSeconds) il CRT mostra solo icona, titolo e tasto, poi torna ai testi normali.</summary>
+        public void ShowNotice(Texture2D icon, string title, string key, bool red = false, float seconds = 0f)
         {
             noticeRed = red;
             if (noticeRoot == null) return;
@@ -172,7 +217,7 @@ namespace Deeploration.Player
             }
             if (noticeTitle != null) noticeTitle.SetText(title);
             if (noticeKey != null) noticeKey.SetText(key);
-            noticeUntil = Time.unscaledTime + noticeSeconds;
+            noticeUntil = Time.unscaledTime + (seconds > 0f ? seconds : noticeSeconds);
             SetNotice(true);
         }
 
@@ -199,6 +244,9 @@ namespace Deeploration.Player
                 _ => 3
             };
             FlashlightMode mode = flashlight != null ? flashlight.CurrentMode : FlashlightMode.Full;
+            float elapsed = time - powerStart;
+            float crtU = PowerPhase(0, elapsed), compassU = PowerPhase(1, elapsed), gaugeU = PowerPhase(2, elapsed);
+            float crtGlow = Glow(crtU, time, 0f), compassGlow = Glow(compassU, time, 3.7f), gaugeGlow = Glow(gaugeU, time, 7.1f);
 
             if (flashlight != null && flashlight.RedUnlocked && !redWasUnlocked)
                 ShowNotice(modeIcons.Length > 2 ? modeIcons[2] : null, redTitle, redKey, true);
@@ -209,29 +257,92 @@ namespace Deeploration.Player
                 SetNotice(false);
             }
 
-            float blend = 1f - Mathf.Exp(-needleResponse * Time.deltaTime);
-            oxygenFraction = Mathf.Lerp(oxygenFraction, TargetOxygenFraction(), blend);
-            pressureFraction = Mathf.Lerp(pressureFraction, PressureFraction(depth), blend);
+            bool gaugeOn = gaugeU >= 1f;
+            if (gaugeOn)
+            {
+                float blend = 1f - Mathf.Exp(-needleResponse * Time.deltaTime);
+                oxygenFraction = Mathf.Lerp(oxygenFraction, TargetOxygenFraction(), blend);
+                pressureFraction = Mathf.Lerp(pressureFraction, PressureFraction(depth), blend);
+            }
+            else
+            {
+                // Autotest all'accensione: fondo scala e ritorno al valore.
+                oxygenFraction = SelfTest(gaugeU, TargetOxygenFraction());
+                pressureFraction = SelfTest(gaugeU, PressureFraction(depth));
+            }
             // Nelle fasce d'allarme la lancetta trema.
-            RotateNeedle(oxygenNeedle, oxygenRest, oxygenFraction, oxygenBand >= 2 ? Mathf.Sin(time * 30f) * 1.2f : 0f);
-            RotateNeedle(pressureNeedle, pressureRest, pressureFraction, pressureBand >= 2 ? Mathf.Sin(time * 25f) * 1.8f : 0f);
+            RotateNeedle(oxygenNeedle, oxygenRest, oxygenFraction, gaugeOn && oxygenBand >= 2 ? Mathf.Sin(time * 30f) * 1.2f : 0f);
+            RotateNeedle(pressureNeedle, pressureRest, pressureFraction, gaugeOn && pressureBand >= 2 ? Mathf.Sin(time * 25f) * 1.8f : 0f);
 
-            SetLamp(oxygenLamp, oxygenBand, mode, time);
-            SetLamp(pressureLamp, pressureBand, mode, time);
-            UpdateCrt(depth, pressureBand, mode, time);
-            UpdateScales(mode);
-            UpdateCompass(mode);
+            if (gaugeOn)
+            {
+                SetLamp(oxygenLamp, oxygenBand, mode, time);
+                SetLamp(pressureLamp, pressureBand, mode, time);
+            }
+            else
+            {
+                // Prova spie: accese per un tratto dell'autotest.
+                float test = gaugeU > 0.1f && gaugeU < 0.5f ? lampIntensity : 0f;
+                WriteEmission(oxygenLamp, LampYellow * test);
+                WriteEmission(pressureLamp, LampYellow * test);
+            }
+            UpdateCrt(depth, pressureBand, mode, time, crtU, crtGlow);
+            UpdateCompass(mode, compassU, compassGlow);
+            UpdatePowerSlots(elapsed, crtGlow, compassGlow, gaugeGlow);
+            if (powerSettled) UpdateScales(mode);
+        }
+
+        private float PowerPhase(int group, float elapsed) =>
+            Mathf.Clamp01((elapsed - PowerPhases[group].x * powerUpSeconds) / (PowerPhases[group].y * powerUpSeconds));
+
+        // Accensione da tubo: sale sfarfallando, poi resta fissa.
+        private static float Glow(float u, float time, float seed) =>
+            u <= 0f ? 0f : u >= 1f ? 1f : u * (Mathf.PerlinNoise(time * 30f, seed) > 0.35f ? 1f : 0.15f);
+
+        private static float SelfTest(float u, float target) =>
+            u < 0.5f ? Mathf.SmoothStep(0f, 1f, u * 2f) : Mathf.SmoothStep(1f, target, (u - 0.5f) * 2f);
+
+        private void UpdatePowerSlots(float elapsed, float crtGlow, float compassGlow, float gaugeGlow)
+        {
+            if (powerSettled) return;
+            if (elapsed >= powerUpSeconds)
+            {
+                // Blocchi per indice tolti: tornano il materiale e, con la torcia rossa, UpdateScales.
+                foreach (var (r, index, _, _) in powerSlots) r.SetPropertyBlock(null, index);
+                powerSettled = true;
+                scaleMode = null;
+                return;
+            }
+            foreach (var (r, index, emission, group) in powerSlots)
+            {
+                block.Clear();
+                block.SetColor(EmissionColorId, emission * (group == 0 ? crtGlow : group == 1 ? compassGlow : gaugeGlow));
+                r.SetPropertyBlock(block, index);
+            }
         }
 
         private void CollectScaleSlots()
         {
+            // Renderer già scritti per renderer dal codice: un blocco per indice coprirebbe il loro.
+            var driven = new System.Collections.Generic.HashSet<Renderer> { compassStrip, oxygenLamp, pressureLamp, lightIcon, noticeIcon };
+            if (lightBars != null) driven.UnionWith(lightBars);
+            Material compassMaterial = compassStrip != null ? compassStrip.sharedMaterial : null;
             foreach (var r in GetComponentsInChildren<Renderer>(true))
             {
                 var mats = r.sharedMaterials;
+                // Lo schermo comms ha la sua schermata di avvio.
+                bool powered = !driven.Contains(r) && r.GetComponentInParent<HelmetComms>(true) == null;
+                bool needle = (oxygenNeedle != null && r.transform.IsChildOf(oxygenNeedle)) ||
+                              (pressureNeedle != null && r.transform.IsChildOf(pressureNeedle));
                 for (int i = 0; i < mats.Length; i++)
                 {
                     int band = mats[i] == null ? -1 : mats[i] == greenScale ? 0 : mats[i] == orangeScale ? 1 : mats[i] == redScale ? 2 : -1;
                     if (band >= 0) scaleSlots.Add((r, i, band));
+                    if (!powered || mats[i] == null || !mats[i].IsKeywordEnabled("_EMISSION") || !mats[i].HasProperty(EmissionColorId)) continue;
+                    Color emission = mats[i].GetColor(EmissionColorId);
+                    if (emission.maxColorComponent < 0.001f) continue;
+                    int group = band >= 0 || needle ? 2 : mats[i] == compassMaterial ? 1 : 0;
+                    powerSlots.Add((r, i, emission, group));
                 }
             }
         }
@@ -288,22 +399,23 @@ namespace Deeploration.Player
 
         // Nastro: lettere e tacche scorrono sull'arco secondo lo scarto dalla rotta (destra = più a est),
         // e sfumano verso i bordi della finestra. Sulla mesh +X locale è la destra di chi guarda, +Z l'alto.
-        private void UpdateCompass(FlashlightMode mode)
+        private void UpdateCompass(FlashlightMode mode, float powerU, float power)
         {
             if (compassStrip == null) return;
             Color ink = mode == FlashlightMode.Red ? EmergencyRed : Amber;
-            Color glow = ink * 0.12f;
+            Color glow = ink * (0.12f * power);
             WriteEmission(compassStrip, glow);
             if (compassMarks.Count == 0) return;
 
-            float heading = headingSource != null ? headingSource.eulerAngles.y : 0f;
+            // All'accensione il nastro fa un giro di taratura e si ferma sulla rotta.
+            float heading = (headingSource != null ? headingSource.eulerAngles.y : 0f) + (1f - Mathf.SmoothStep(0f, 1f, powerU)) * 360f;
             Transform strip = compassStrip.transform;
             foreach (var (mark, bearing) in compassMarks)
             {
                 float off = Mathf.DeltaAngle(heading, bearing);
                 float fade = 1f - Mathf.Abs(off) / compassWindowHalf;
-                mark.enabled = fade > 0f;
-                if (fade <= 0f) continue;
+                mark.enabled = fade > 0f && power > 0f;
+                if (!mark.enabled) continue;
 
                 float angle = off / compassWindowHalf * compassArcHalf * Mathf.Deg2Rad;
                 var outward = new Vector3(Mathf.Sin(angle), -Mathf.Cos(angle), 0f);
@@ -313,7 +425,7 @@ namespace Deeploration.Player
                     strip.TransformPoint(compassCenter + outward * compassRadius),
                     Quaternion.LookRotation(worldOut, strip.TransformDirection(Vector3.forward)));
                 Color c = ink;
-                c.a = fade;
+                c.a = fade * power;
                 mark.color = c;
             }
         }
@@ -345,11 +457,12 @@ namespace Deeploration.Player
             WriteEmission(lamp, color * (on * lampIntensity));
         }
 
-        private void UpdateCrt(float depth, int pressureBand, FlashlightMode mode, float time)
+        private void UpdateCrt(float depth, int pressureBand, FlashlightMode mode, float time, float powerU, float power)
         {
             Color ink = mode == FlashlightMode.Red ? EmergencyRed : Amber;
+            ink.a = power;
             Color dim = ink * 0.55f;
-            dim.a = 1f;
+            dim.a = power;
 
             if (depthLabel != null) depthLabel.color = dim;
             if (lightLabel != null) lightLabel.color = dim;
@@ -370,7 +483,8 @@ namespace Deeploration.Player
 
             if (depthValue != null)
             {
-                int meters = Mathf.RoundToInt(depth);
+                // All'accensione il numero conta da 0000 alla quota.
+                int meters = Mathf.RoundToInt(depth * Mathf.SmoothStep(0f, 1f, powerU));
                 if (meters != shownDepth)
                 {
                     shownDepth = meters;
@@ -378,7 +492,7 @@ namespace Deeploration.Player
                 }
                 // Oltre il limite dello scafo il numero lampeggia in rosso.
                 Color depthColor = pressureBand == 3 ? LampRed * (Mathf.Sin(time * 6f) > 0f ? 1f : 0.4f) : ink;
-                depthColor.a = 1f;
+                depthColor.a = power;
                 depthValue.color = depthColor;
             }
 
@@ -402,7 +516,7 @@ namespace Deeploration.Player
 
             int lit = mode == FlashlightMode.Full ? 3 : 1;
             for (int i = 0; i < lightBars.Length; i++)
-                WriteEmission(lightBars[i], ink * ((i < lit ? 1f : 0.12f) * barIntensity));
+                WriteEmission(lightBars[i], ink * ((i < lit ? 1f : 0.12f) * barIntensity * power));
         }
 
         private void WriteEmission(Renderer target, Color color)

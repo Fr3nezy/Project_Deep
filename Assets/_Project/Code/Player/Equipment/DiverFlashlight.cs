@@ -28,6 +28,8 @@ namespace Deeploration.Player
 
         [Header("Parametri Modalità")]
         [SerializeField] private FlashlightMode initialMode = FlashlightMode.Full;
+        [Tooltip("Falso = fascio spento finché qualcuno non chiama PowerBeam (es. uscita dalla capsula). F e R cambiano modo ma il fascio resta spento.")]
+        [SerializeField] private bool beamPowered = true;
         [SerializeField] private KeyCode toggleKey = KeyCode.F;
         [SerializeField] private KeyCode redKey = KeyCode.R;
 
@@ -86,6 +88,7 @@ namespace Deeploration.Player
 
         /// <summary>Luce del fascio (può essere null). Posizione e direzione servono agli stimoli delle creature.</summary>
         public Light SpotLight => spotLight;
+        public bool BeamPowered => beamPowered;
 
         public event Action<FlashlightMode> OnModeChanged;
 
@@ -199,6 +202,13 @@ namespace Deeploration.Player
             SetMode(nextMode);
         }
 
+        /// <summary>Accende il fascio (uscita dalla capsula, teletrasporti del menu cheat).</summary>
+        public void PowerBeam()
+        {
+            beamPowered = true;
+            ApplyLight();
+        }
+
         /// <summary>Sblocca la luce rossa (raccolta del modulo nella Z0).</summary>
         public void UnlockRed()
         {
@@ -232,7 +242,7 @@ namespace Deeploration.Player
 
             bool red = currentMode == FlashlightMode.Red;
             // Senza modulo (risveglio in capsula) il rosso è la sola spia d'emergenza: fascio spento, la fotocellula non scatta.
-            spotLight.enabled = !red || redUnlocked;
+            spotLight.enabled = beamPowered && (!red || redUnlocked);
             spotLight.color = red ? redColor : beamColor;
             spotLight.intensity = red ? redIntensity : currentMode == FlashlightMode.Full ? fullIntensity : lowIntensity;
             spotLight.range = red ? redRange : currentMode == FlashlightMode.Full ? fullRange : lowRange;

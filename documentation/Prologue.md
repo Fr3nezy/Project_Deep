@@ -1,5 +1,5 @@
 # Prologue
-Ultima verifica: 2026-11-24
+Ultima verifica: 2026-11-25
 
 ## Scopo e confini
 Fornisce i componenti C#, le estensioni Timeline e l'infrastruttura della Wave 1 per la sequenza cinematica introduttiva di *Deeplonauts*: regia a telecamera dedicata (Cinemachine 2.10.7), sottotitoli localizzati su traccia custom, blocco e sblocco sincronizzato della fisica/input del player (`CinematicControlGate`) e transizione al portello dell'ascensore in scena unica `SCN_Gameplay.unity`.
@@ -106,7 +106,7 @@ flowchart TD
   - `float liftDelay` (default: `1.2`), `float liftDuration` (default: `2.6`): inizio e durata del sollevamento.
   - `AnimationCurve liftCurve` (default: chiavi (0,0), (0.4,0.34), (0.55,0.38), (1,1)): andamento del sollevamento, con una breve esitazione a metà.
   - `float fadeDelay` (default: `0.4`), `float fadeDuration` (default: `2.0`), `float subtitleDelay` (default: `1.2`).
-  - `UnityEvent onCompleted` (dal 2026-11-22): invocato alla fine di `CompleteWakeUp()`, non da `Skip()`. In `SCN_Gameplay` chiama `HelmetInstruments.ShowLightsNotice` sull'istanza `Helmet` del Player (avviso «[F] CYCLE» sul CRT, vedi `SuitFeedback.md`).
+  - `UnityEvent onCompleted` (dal 2026-11-22): invocato alla fine di `CompleteWakeUp()`, non da `Skip()`. In `SCN_Gameplay` chiama `Comms_Brief` `CommsTrigger.Play`; fino al 2026-11-25 chiamava anche `HelmetInstruments.ShowLightsNotice`, ora legato all'inizio di `HELM_FISH_01` (vedi `SuitFeedback.md`).
 - **API pubbliche**: nessuna.
 - **Riferimenti obbligatori**: `DiverController` in scena. Senza diver o `cameraTarget` la posa non si applica; senza overlay o pannello mancano dissolvenza o battuta, senza errori.
 
@@ -210,6 +210,7 @@ Le note sotto sulla timeline intro descrivono la configurazione del 2026-09-13 e
 - Integrazione di eventi sonori FMOD o Unity AudioSource direttamente sui marker dei beat.
 
 ## Limiti e problemi noti
+- Dal 2026-11-25 `PrologueCanvas/FadeOverlay` in `SCN_Gameplay` non ha più il figlio `TitleText` («Deeplonauts» sul nero del risveglio), tolto su richiesta di Manu: resta la dissolvenza pura, senza canvas aggiuntivi. `PrologueWave1Builder` lo ricrea se rilanciato: va tolto di nuovo a mano.
 - **Sottotitoli deprecati (2026-11-24)**: `SubtitlePanel` e `SubtitleTrack` restano solo per il prologo esistente; le battute nuove usano `HelmetComms`. `SubtitleLine` invece resta il dato delle battute per entrambi.
 - **Cinemachine Versioning**: Il progetto adotta Cinemachine 2.10.7 (`CinemachineTrack` e `CinemachineShot` nel namespace globale); vietato l'aggiornamento a Cinemachine 3.x.
 - **Pausa Director**: Durante `director.Pause()`, il cancello mantiene lo stato bloccato finché non viene invocato esplicitamente `director.Stop()`.

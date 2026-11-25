@@ -136,7 +136,7 @@ namespace Deeploration.Creatures
             {
                 Transform lamp = flashlight.SpotLight.transform;
                 float halfAngle = flashlight.SpotLight.spotAngle * 0.5f;
-                if (flashlight.CurrentMode != FlashlightMode.Red)
+                if (flashlight.CurrentMode != FlashlightMode.Red && flashlight.BeamPowered)
                 {
                     bool full = flashlight.CurrentMode == FlashlightMode.Full;
                     float reach = full ? fullLightReach : lowLightReach;
@@ -145,7 +145,7 @@ namespace Deeploration.Creatures
                 }
 
                 // Flash: passaggio a Full da un'altra modalità (la luce che si accende di colpo).
-                if (flashlight.CurrentMode == FlashlightMode.Full && Time.time - flashTime < flashDuration)
+                if (flashlight.CurrentMode == FlashlightMode.Full && flashlight.BeamPowered && Time.time - flashTime < flashDuration)
                     output.Add(CreatureStimulus.Beam(lamp.position, lamp.forward, fullLightReach, halfAngle,
                         fullLightReach * flashHaloFraction, StimulusCategory.Flash, true));
             }

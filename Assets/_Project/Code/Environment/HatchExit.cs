@@ -59,6 +59,12 @@ namespace Deeploration.Environment
         public UnityEvent onExitStarted = new UnityEvent();
         public UnityEvent onExited = new UnityEvent();
 
+        [Header("Uscita automatica")]
+        [Tooltip("Falso = il tasto E non fa uscire; l'uscita parte solo da ExitDiverAfterDelay (es. dalla leva di emergenza).")]
+        [SerializeField] private bool interactWithKey = true;
+        [Tooltip("Attesa fra la chiamata di ExitDiverAfterDelay e l'uscita (s).")]
+        [SerializeField, Min(0f)] private float autoExitDelay = 2f;
+
         private Transform diver;
         private CharacterController controller;
         private DiverController diverController;
@@ -75,12 +81,23 @@ namespace Deeploration.Environment
         /// <summary>Altezza degli occhi del diver in piedi, la stessa che usa l'uscita.</summary>
         public float EyeHeight => eyeHeight;
 
-        public bool CanInteract(GameObject user) =>
-            !used && hatch != null && hatch.IsOpen && !hatch.IsMoving && passPoint != null && exitPoint != null;
+        public bool CanInteract(GameObject user) => interactWithKey && Ready;
+
+        private bool Ready => !used && hatch != null && hatch.IsOpen && !hatch.IsMoving && passPoint != null && exitPoint != null;
+
+        /// <summary>Fa uscire il diver da solo dopo autoExitDelay (collegato a HatchDoor.onOpened o alla leva).</summary>
+        public void ExitDiverAfterDelay() => Invoke(nameof(ExitDiver), autoExitDelay);
+
+        private void ExitDiver()
+        {
+            DiverController diverInScene = FindFirstObjectByType<DiverController>();
+            if (diverInScene != null) Interact(diverInScene.gameObject);
+            else Debug.LogWarning("[HatchExit] Nessun DiverController in scena: uscita automatica saltata.", this);
+        }
 
         public void Interact(GameObject user)
         {
-            if (!CanInteract(user)) return;
+            if (!Ready) return;
 
             used = true;
             diver = user.transform;

@@ -46,6 +46,8 @@ namespace Deeploration.Interaction
         private DiverController diver;
         private Vector3 localAnchor;
         private float holdDistance;
+        // Leve e cerniere (oggetti con Joint): presa sul punto afferrato, niente distanza minima né abbassamento, sennò tira contro il pannello.
+        private bool jointed;
 
         public Grabbable Held => held;
 
@@ -55,7 +57,7 @@ namespace Deeploration.Interaction
             get
             {
                 Transform view = playerCamera.transform;
-                float drop = Mathf.Min(holdDistance * Mathf.Tan(holdDropAngle * Mathf.Deg2Rad), holdDropMax);
+                float drop = jointed ? 0f : Mathf.Min(holdDistance * Mathf.Tan(holdDropAngle * Mathf.Deg2Rad), holdDropMax);
                 return view.position + view.forward * holdDistance - view.up * drop;
             }
         }
@@ -97,7 +99,8 @@ namespace Deeploration.Interaction
             held = target;
             held.IsHeld = true;
             localAnchor = held.transform.InverseTransformPoint(hit.point);
-            holdDistance = Mathf.Max(hit.distance, minHoldDistance);
+            jointed = held.GetComponent<Joint>() != null;
+            holdDistance = jointed ? hit.distance : Mathf.Max(hit.distance, minHoldDistance);
             if (diver != null) diver.SpeedMultiplier = 1f / (1f + held.Body.mass / massForHalfSpeed);
             return true;
         }

@@ -16,6 +16,8 @@ namespace Deeploration.Environment
         [Tooltip("Spenta, la stazione non ricarica finché qualcuno non chiama PowerOn (per esempio una cella inserita).")]
         [SerializeField] private bool startsPowered = true;
         public UnityEvent onPowered = new UnityEvent();
+        [Tooltip("Ogni volta che il diver si aggancia alla stazione accesa (inizio ricarica).")]
+        public UnityEvent onDocked = new UnityEvent();
 
         [Header("Checkpoint")]
         [Tooltip("Punto di respawn registrato su DiverRespawn quando il diver entra a stazione accesa. Vuoto = questo transform.")]
@@ -92,6 +94,7 @@ namespace Deeploration.Environment
 
             if (stationBeaconLight != null)
                 stationBeaconLight.color = activeColor;
+            onDocked?.Invoke();
         }
 
         private void OnTriggerStay(Collider other)

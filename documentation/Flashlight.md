@@ -20,7 +20,7 @@ Oltre alla funzione visiva essenziale per orientarsi nell'abisso oceanico, la to
 - **Creature**: `DiverStimulusSource` legge `CurrentMode` e `SpotLight` (posizione, direzione, `spotAngle`) e ne fa lo stimolo di luce per le creature; in `Red` nessuno stimolo. Vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md).
 - **Fotocellula**: `Photocell` (chiusa 1) scatta quando `CurrentMode` è `Red` e il fascio acceso la colpisce (`IsLitByRedBeam`). Vedi [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md).
 - **Modulo luce rossa**: in `SCN_Gameplay` `Chiusa1_Puzzle/RedLightModule` (prefab `Prefabs/Puzzle/RedLightModule.prefab`, ex `FlashModule`, stesso GUID; il modello è ancora `FlashModuleVisual`; prompt «Monta il modulo luce rossa») chiama `UnlockRed` e si spegne.
-- **Overlay UI**: Notifica il cambio modalità tramite l'evento `OnModeChanged` a `SuitDebugOverlay`.
+- **Overlay UI**: `OnModeChanged` lo ascoltano `HelmetInstruments` e gli altri feedback del casco (`SuitDebugOverlay` non mostra più la torcia dal 2026-11-25).
 
 ```mermaid
 flowchart TD
@@ -29,7 +29,6 @@ flowchart TD
     Flashlight --> Emergency[emergencyLight: solo in Red]
     Flashlight -->|CurrentMode, SpotLight| Stimuli[DiverStimulusSource]
     Flashlight -->|CurrentRelief| Darkness[DarknessStressSource]
-    Flashlight -.->|OnModeChanged| Overlay[SuitDebugOverlay]
 ```
 
 ## Componenti
@@ -46,6 +45,7 @@ flowchart TD
   - `Light spotLight` (default: `null`): Riferimento alla sorgente luminosa.
   - `Light emergencyLight` (default: `null`): Spia rossa d'emergenza, accesa solo in `Red`. Opzionale: se manca, `Red` spegne soltanto il fascio.
   - `FlashlightMode initialMode` (default: `FlashlightMode.Full`): Modalità attiva all'avvio.
+  - `bool beamPowered` (default: `true`, dal 2026-11-25): falso = fascio spento (`spotLight.enabled` falso) finché qualcuno non chiama `PowerBeam()`; F e R cambiano modo ma il fascio resta spento. In `SCN_Gameplay` è falso sul `PlayerCapsule` (override di scena, il prefab resta `true`): in capsula niente fascio, c'è la luce ambra `CabinLight_Amber`; `HatchExit.onExited` → `PowerBeam`, e `CheatMenu.WarpTo` lo chiama a ogni teletrasporto.
   - `KeyCode toggleKey` (default: `KeyCode.F`): Tasto impiegato nel ramo legacy manager.
   - `KeyCode redKey` (default: `KeyCode.R`): Tasto della modalità rossa nel ramo legacy.
   - **Modulo luce rossa**:
@@ -88,7 +88,8 @@ flowchart TD
   ```
   - `OnModeChanged`: Invocato a ogni chiamata a `SetMode(mode)`, anche qualora la modalità richiesta coincida con quella già attiva.
   - `CycleMode()`: dal 2026-11-10 `Full → Low → Full`; da `Red` va a `Full` (prima `Full → Low → Red → Full`).
-  - `SetMode(FlashlightMode mode)`: Imposta la modalità, applica `enabled`, `color`, `intensity` e `range` alla `Light` (se presente), accende `emergencyLight` solo in `Red`, assegna `currentRelief` e invoca `OnModeChanged`.
+  - `void PowerBeam()` (dal 2026-11-25): `beamPowered = true` e riapplica la luce. `bool BeamPowered { get; }`.
+  - `SetMode(FlashlightMode mode)`: Imposta la modalità, applica `enabled` (falso anche se `beamPowered` è falso), `color`, `intensity` e `range` alla `Light` (se presente), accende `emergencyLight` solo in `Red`, assegna `currentRelief` e invoca `OnModeChanged`.
 - **Riferimenti obbligatori e comportamento se mancanti**:
   - `spotLight`: Se non assegnato, viene ricercato in `Awake()` tramite `GetComponentInChildren<Light>(true)`. Se non è presente alcun componente `Light`, il sistema opera comunque a livello logico aggiornando `CurrentMode` e `CurrentRelief` senza generare errori o bloccare l'esecuzione.
 

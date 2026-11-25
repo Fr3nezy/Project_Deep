@@ -48,7 +48,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16936309088256
-    m_Localized: 'Survival probability: 0.001%. I rounded up.'
+    m_Localized: 'Oxygen replenished. Survival probability: 0.002%. It doubled.'
     m_Metadata:
       m_Items: []
   - m_Id: 16936615272448
@@ -57,8 +57,7 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16936921456640
-    m_Localized: Bioluminescent fauna ahead. Artificial light at this depth works
-      like a dinner bell.
+    m_Localized: Suit lights online. Fauna ahead. At this depth, light gets noticed.
     m_Metadata:
       m_Items: []
   - m_Id: 16937194086400
@@ -118,6 +117,14 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 134047069102084
     m_Localized: 'Optical sensor: accepted. Lock gate opening.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 329795454885888
+    m_Localized: The hatch is jammed. Use the emergency release, on your right.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 329796419575808
+    m_Localized: Emergency release, on your right. Grab it and pull it up.
     m_Metadata:
       m_Items: []
   references:

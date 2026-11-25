@@ -63,7 +63,7 @@ namespace Deeploration.Prologue
         [SerializeField, Tooltip("Ritardo prima della comparsa della battuta di emergenza.")]
         private float subtitleDelay = 1.2f;
 
-        [SerializeField, Tooltip("A fine risveglio (non con Skip). In SCN_Gameplay: HelmetInstruments.ShowLightsNotice.")]
+        [SerializeField, Tooltip("A fine risveglio (non con Skip). In SCN_Gameplay: Comms_Brief CommsTrigger.Play.")]
         private UnityEvent onCompleted = new UnityEvent();
 
         private CharacterController controller;

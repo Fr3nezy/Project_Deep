@@ -40,6 +40,7 @@ namespace Deeploration.DevTools
         private StarterAssetsInputs input;
         private PlayerWakeUpSequence wakeUp;
         private HatchExit hatchExit;
+        private HelmetInstruments instruments;
         private readonly List<DevWarpPoint> points = new List<DevWarpPoint>();
 
         private bool open;
@@ -65,6 +66,7 @@ namespace Deeploration.DevTools
             }
             wakeUp = FindAnyObjectByType<PlayerWakeUpSequence>();
             hatchExit = FindAnyObjectByType<HatchExit>();
+            instruments = FindAnyObjectByType<HelmetInstruments>();
 
             points.AddRange(FindObjectsByType<DevWarpPoint>(FindObjectsSortMode.None));
             points.Sort((a, b) => a.Order != b.Order ? a.Order.CompareTo(b.Order) : string.CompareOrdinal(a.Label, b.Label));
@@ -128,6 +130,11 @@ namespace Deeploration.DevTools
 
             // shortcut: un'uscita dal portello in corso continua a muovere il diver; non si teletrasporta durante quei 2.5 s.
             diver.PlaceStanding(position, point.transform.eulerAngles.y, hatchExit != null ? hatchExit.EyeHeight : fallbackEyeHeight);
+
+            // Fuori dalla capsula il fascio va acceso anche senza passare dal portello.
+            if (flashlight != null) flashlight.PowerBeam();
+            // Saltando il risveglio la battuta di avvio può non arrivare: strumenti accesi subito.
+            if (instruments != null) instruments.PowerOn(false);
 
             // Senza checkpoint il respawn riporterebbe il diver sul sedile della capsula, dove non si muove.
             if (respawn != null) respawn.SetCheckpoint(point.transform);

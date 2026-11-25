@@ -92,6 +92,7 @@ Assets/_Project/Code/
 | `Assets/_Project/Code/Interaction/IInteractable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/Grabbable.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/GrabSocket.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
+| `Assets/_Project/Code/Interaction/LeverSwitch.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/ItemPickup.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/ItemSocket.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |
 | `Assets/_Project/Code/Interaction/PlayerHands.cs` | Interaction | [Interaction.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Interaction.md) |

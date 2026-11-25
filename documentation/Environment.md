@@ -122,7 +122,8 @@ flowchart TD
 ### HatchExit
 - **Responsabilità e ciclo di vita**:
   - Implementa `IInteractable`. Richiede un `Collider` (in scena un `BoxCollider` trigger sull'apertura). L'uscita è un salto scriptato in tre fasi, non un verbo del giocatore (il salto libero resta all'Hydropack, vedi [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md)).
-  - `CanInteract(user)`: vero solo una volta, se `hatch.IsOpen && !hatch.IsMoving` e `passPoint`/`exitPoint` sono assegnati.
+  - `CanInteract(user)`: vero solo una volta, se `interactWithKey` (dal 2026-11-25), `hatch.IsOpen && !hatch.IsMoving` e `passPoint`/`exitPoint` sono assegnati. `Interact` controlla le stesse condizioni tranne `interactWithKey`.
+  - `ExitDiverAfterDelay()` (dal 2026-11-25): dopo `autoExitDelay` cerca il `DiverController` in scena e chiama `Interact` su di lui (warning se manca). In `SCN_Gameplay` collegato a `HatchDoor.onOpened`.
   - `Interact(user)`: memorizza il transform dell'utente, legge `DiverController.CameraTarget`, disabilita `DiverController` e `CharacterController`. Calcola il punto di atterraggio: con `snapExitToGround` un raycast da 1 m sopra `exitPoint` verso il basso (5 m, `groundMask`, trigger ignorati) trova il suolo, e la quota viene alzata di `height / 2 - center.y + skinWidth` del `CharacterController`, cioè dove il controller lascerebbe il pivot; senza colpo resta `exitPoint`. Salva yaw, pitch, `DiverController.ViewRoll` e posizione della camera di partenza, poi invoca `onExitStarted`.
   - `Update()`, in tre fasi:
     1. **Raccolta** (`crouchDuration`): il diver resta fermo, ruota metà dello yaw verso l'uscita, la testa scende di `crouchDepth` e lo sguardo va verso `passPoint` più `crouchPitch`.
@@ -136,6 +137,8 @@ flowchart TD
   - `Transform exitPoint` (default: `null`): Punto di uscita sul fondale (vedi `snapExitToGround`).
   - `float eyeHeight` (default: `1.5f`, dal 2026-11-23; prima `1.375f`): Altezza occhi rispetto ai piedi; deve corrispondere a `PlayerCameraRoot` (1.5 nel `Player.prefab`). Alzata dopo il playtest blind: la camera era troppo bassa. La posa da seduto del risveglio resta a `PlayerWakeUpSequence.eyeHeight` 1.375.
   - `string promptText` (default: `"Esci"`).
+  - `bool interactWithKey` (default: `true`, dal 2026-11-25): falso = `CanInteract` restituisce sempre falso e il tasto E non fa uscire; in `SCN_Gameplay` è falso (uscita dalla leva di emergenza).
+  - `float autoExitDelay` (default: `2` s, dal 2026-11-25): attesa di `ExitDiverAfterDelay`.
   - `bool snapExitToGround` (default: `true`), `LayerMask groundMask` (default: `~0`): Atterraggio sul suolo sotto `exitPoint`.
   - Raccolta: `float crouchDuration` (`0.45`), `float crouchDepth` (`0.15` m), `float crouchPitch` (`10`°).
   - Salto: `float jumpDuration` (`1.4`), `AnimationCurve jumpCurve` (default: da (0,0) con tangente 2.4 a (1,1) con tangente 0.2 in ingresso e 0 in uscita), `float arcHeight` (`0.35` m), `float pathLookWeight` (`0.6`, 0–1), `float flightRoll` (`3`°).
@@ -149,7 +152,7 @@ flowchart TD
 - **Responsabilità e ciclo di vita**:
   - Richiede un `Collider` con `isTrigger = true`.
   - `Awake()`: stato acceso da `startsPowered`; `respawnPoint` vuoto = se stesso; luce del beacon in `standbyColor`, spenta se la stazione è spenta.
-  - `OnTriggerEnter(Collider other)`: Cerca `OxygenSystem`; se la stazione è accesa "aggancia" il diver: notifica `questObjectiveId` a `QuestManager.Instance` una volta (saltato se l'id è vuoto, dal 2026-11-10), registra `respawnPoint` su `DiverRespawn`, ripara il vetro del casco (`HelmetDamage.ResetDamage()` sull'unico `HelmetDamage` in scena, dal 2026-11-23) e porta la luce ad `activeColor`.
+  - `OnTriggerEnter(Collider other)`: Cerca `OxygenSystem`; se la stazione è accesa "aggancia" il diver: notifica `questObjectiveId` a `QuestManager.Instance` una volta (saltato se l'id è vuoto, dal 2026-11-10), registra `respawnPoint` su `DiverRespawn`, ripara il vetro del casco (`HelmetDamage.ResetDamage()` sull'unico `HelmetDamage` in scena, dal 2026-11-23) e porta la luce ad `activeColor`, poi invoca `onDocked` (dal 2026-11-25; a ogni aggancio, anche da `PowerOn` col diver già dentro).
   - `PowerOn()`: accende stazione e beacon, invoca `onPowered`; se il diver è già dentro lo aggancia subito.
   - `OnTriggerStay(Collider other)`: se accesa chiama `playerOxygen.Refill(Time.deltaTime)`.
   - `OnTriggerExit(Collider other)`: Ripristina la luce in `standbyColor` e azzera il riferimento al player.
@@ -157,6 +160,7 @@ flowchart TD
   - `float refillRatePerSecond` (default: `10f`): Parametro locale non usato (la velocità effettiva è `OxygenProfile.refillRate`).
   - `string questObjectiveId` (default: `"o2_beacon"`; vuoto = nessuna notifica).
   - `bool startsPowered` (default: `true`), `UnityEvent onPowered`.
+  - `UnityEvent onDocked` (dal 2026-11-25): a ogni aggancio del diver alla stazione accesa. In `SCN_Gameplay` la stazione O₂ della chiusa 1 lo collega a `Comms_Refill.Play` (battuta `HELM_BRIEF_03`, una volta sola).
   - `Transform respawnPoint` (default: vuoto = se stesso): checkpoint registrato su `DiverRespawn`.
 - **API pubbliche**: `bool IsPowered { get; }`, `void PowerOn()`, `void PowerOff()` (dal 2026-11-23: stazione spenta, beacon in `standbyColor` e spento; non ricarica più, il checkpoint già registrato resta; in scena da `GrabSocket.onUnsocketed`).
   - `Light stationBeaconLight`: Faro di segnalazione della colonnina. Deve restare **senza ombre**. Il 2026-11-11 `SafeBeaconLight` in `O2Station.prefab` aveva ombre Soft ed era l'unica luce aggiuntiva della scena con ombre. Si accende con `PowerOn`, cioè quando la cella si aggancia. In quel momento URP attivava le ombre delle luci aggiuntive: compilava le varianti shader dei materiali in vista e renderizzava 6 facce di shadow map. È la causa più probabile dello scatto all'inserimento della cella. Ora le ombre sono `None`. Lo scatto non è stato rimisurato in gioco: in editor, con la finestra non a fuoco, il player loop non gira.

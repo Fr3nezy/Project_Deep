@@ -1,5 +1,5 @@
 # Dev Tools
-Ultima verifica: 2026-11-14
+Ultima verifica: 2026-11-25
 
 ## Scopo e confini
 Strumenti per i test e le demo:
@@ -27,7 +27,9 @@ Non coperti:
   1. `PlayerWakeUpSequence.Skip()` (vedi [Prologue.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Prologue.md)).
   2. Raycast in basso da 2 m sopra il marker, sul layer `Seafloor`, con la correzione del pivot di `HatchExit`.
   3. `DiverController.PlaceStanding(punto, yaw del marker, HatchExit.EyeHeight)` (vedi [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md)).
-  4. `DiverRespawn.SetCheckpoint(marker)`.
+  4. `DiverFlashlight.PowerBeam()` (dal 2026-11-25: fuori dalla capsula il fascio è acceso anche senza passare dal portello, vedi [Flashlight.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Flashlight.md)).
+  5. `HelmetInstruments.PowerOn(false)` (dal 2026-11-25: strumenti del casco accesi subito, vedi [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md)).
+  6. `DiverRespawn.SetCheckpoint(marker)`.
 - I cheat dell'ossigeno scrivono `OxygenSystem.Invulnerable` e `OxygenSystem.InfiniteOxygen` (vedi [Oxygen.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Oxygen.md)). Con l'invulnerabilità `DiverBiteReceiver.ReceiveBite` esce subito (vedi [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md)). Nessun'altra fonte di danno: la mina passa da `SetNormalized(0)`, che con l'invulnerabilità viene ignorato.
 - La luce rossa si sblocca con `DiverFlashlight.UnlockRed()` (fino al 2026-11-21 era il flash, `UnlockFlash`).
 
@@ -49,7 +51,7 @@ Non coperti:
 - **API pubbliche:**
   - `bool IsOpen { get; }`.
   - `void SetOpen(bool value)`: a menu aperto `StarterAssetsInputs.cursorLocked` e `cursorInputForLook` sono falsi, `look` è azzerato e il cursore libero e visibile. Alla chiusura cursore bloccato e input del look riattivato.
-  - `void WarpTo(DevWarpPoint point)`: diver in piedi sul marker, posato sul fondale se il raycast colpisce, altrimenti alla quota del marker. Il marker diventa il checkpoint del respawn.
+  - `void WarpTo(DevWarpPoint point)`: diver in piedi sul marker, posato sul fondale se il raycast colpisce, altrimenti alla quota del marker. Il marker diventa il checkpoint del respawn. Accende il fascio (`DiverFlashlight.PowerBeam`) e, dal 2026-11-25, gli strumenti del casco (`HelmetInstruments.PowerOn(false)`), che altrimenti aspetterebbero la battuta di avvio saltata con il risveglio.
   - `void SetStartPoint(DevWarpPoint point)` (solo Editor): imposta la partenza e attiva `startOutside`, con Undo.
 - **Riferimenti mancanti:**
   - Senza `DiverController` dà un warning e il menu non ha effetto.

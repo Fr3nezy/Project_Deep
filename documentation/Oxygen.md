@@ -16,7 +16,7 @@ Il sistema è completamente disaccoppiato dalle singole sorgenti tramite l'inter
 ## Dipendenze e flusso dati
 - **Sorgenti di consumo**: Registra automaticamente o via codice ogni componente che implementa `IOxygenDrainSource` (nello specifico: `DiverController` per il moto e `StressSystem` per il panico).
 - **Ricarica**: Interagisce con le stazioni ambientali come `OxygenRefillStation` tramite `Refill(float deltaTime)`.
-- **UI & Feedback**: Notifica la variazione normalizzata a `SuitDebugOverlay` via `OnOxygenChanged`.
+- **UI & Feedback**: `OnOxygenChanged` notifica la variazione normalizzata; `SuitDebugOverlay` dal 2026-11-25 legge `NormalizedOxygen` ogni frame (testo di debug F3).
 
 ```mermaid
 flowchart TD

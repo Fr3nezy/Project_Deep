@@ -48,6 +48,15 @@ namespace Deeploration.Comms
         [Tooltip("Il pannello resta aperto questi secondi dopo un messaggio: se ne arriva un altro non si richiude e riapre.")]
         [SerializeField, Min(0f)] private float lingerSeconds = 3f;
 
+        [Header("Avvio (battute con intro)")]
+        [Tooltip("Schermata di avvio (logo THALADYNE + barra) mostrata durante il jingle di una battuta con intro, al posto dei testi. Vuoto = niente schermata.")]
+        [SerializeField] private GameObject bootRoot;
+        [Tooltip("Testo della barra di caricamento finta, figlio di bootRoot.")]
+        [SerializeField] private TMP_Text bootProgress;
+        [Tooltip("Durata del caricamento finto: la voce parte al 100%. Mai meno del jingle.")]
+        [SerializeField, Min(0f)] private float bootSeconds = 3f;
+        [SerializeField, Min(4)] private int bootBarCells = 20;
+
         [Header("Audio")]
         [Tooltip("Sorgente 2D della voce e del tick. Vuota = aggiunta da sola.")]
         [SerializeField] private AudioSource voiceSource;
@@ -82,10 +91,13 @@ namespace Deeploration.Comms
         private float typedChars, typeRate, holdUntil, nextAllowed, lingerUntil, pauseUntil;
         private int totalChars, shownChars, turnedPage;
         private bool wasOpen, voicePending, introPending;
-        private float introUntil;
+        private float introUntil, introStart;
+        private bool Booting => bootRoot != null && current != null && Time.unscaledTime < introUntil;
 
         /// <summary>Una battuta comincia sullo schermo (non quando entra in coda). Usato da HelmetMarkerTarget.</summary>
         public static event System.Action<SubtitleLine> LineStarted;
+        /// <summary>Una battuta ha finito voce e lettura (non quando viene interrotta). Usato da LeverSwitch.</summary>
+        public static event System.Action<SubtitleLine> LineFinished;
 
         /// <summary>Vero mentre un messaggio è sullo schermo o in coda.</summary>
         public bool IsBusy => current != null || queue.Count > 0;
@@ -160,9 +172,21 @@ namespace Deeploration.Comms
             {
                 introPending = false;
                 voiceSource.PlayOneShot(current.Line.intro);
-                introUntil = now + current.Line.intro.length;
+                introStart = now;
+                introUntil = now + Mathf.Max(current.Line.intro.length, bootRoot != null ? bootSeconds : 0f);
             }
-            if (now < introUntil) return;
+            if (now < introUntil)
+            {
+                if (bootProgress != null)
+                {
+                    // A scatti di 5%, più lento all'inizio: caricamento finto da sistema operativo.
+                    float done = Mathf.Pow(Mathf.InverseLerp(introStart, introUntil, now), 1.6f);
+                    int percent = Mathf.Min(100, Mathf.FloorToInt(done * 20f) * 5);
+                    int cells = Mathf.RoundToInt(percent / 100f * bootBarCells);
+                    bootProgress.SetText($"[{new string('#', cells)}{new string('.', bootBarCells - cells)}] {percent}%");
+                }
+                return;
+            }
 
             // La voce parte a pannello aperto, insieme alla prima parola, e non sopra il bip.
             if (voicePending)
@@ -208,7 +232,9 @@ namespace Deeploration.Comms
 
             if (now < holdUntil || voiceSource.isPlaying) return;
             lastShown[current.Line] = now;
+            SubtitleLine finished = current.Line;
             current = null;
+            LineFinished?.Invoke(finished);
             nextAllowed = now + gapSeconds;
             lingerUntil = now + lingerSeconds;
         }
@@ -256,7 +282,8 @@ namespace Deeploration.Comms
             holdUntil = totalChars == 0 ? Time.unscaledTime + minHoldSeconds : float.MaxValue;
             typeRate = charsPerSecond;
             introPending = message.Line.intro != null;
-            introUntil = 0f;
+            // Con intro la schermata di avvio copre i testi già all'apertura del pannello, fino a fine caricamento.
+            introUntil = introPending ? float.MaxValue : 0f;
             voicePending = message.Line.voice != null;
             if (voicePending)
             {
@@ -284,8 +311,10 @@ namespace Deeploration.Comms
             // Testo solo a pannello tutto aperto: lo shader TMP usa uno ZTest globale che la UI può mettere ad Always,
             // e mentre il pannello scende dietro il bordo del casco il testo resterebbe disegnato sopra.
             bool visible = wantOpen && openness >= 1f;
-            if (speakerText != null) speakerText.enabled = visible;
-            if (bodyText != null) bodyText.enabled = visible;
+            bool booting = Booting;
+            if (bootRoot != null && bootRoot.activeSelf != (visible && booting)) bootRoot.SetActive(visible && booting);
+            if (speakerText != null) speakerText.enabled = visible && !booting;
+            if (bodyText != null) bodyText.enabled = visible && !booting;
         }
 
         private void ApplyInk()
@@ -293,6 +322,7 @@ namespace Deeploration.Comms
             Color ink = flashlight != null && flashlight.CurrentMode == FlashlightMode.Red ? EmergencyRed : Amber;
             if (speakerText != null) speakerText.color = ink;
             if (bodyText != null) bodyText.color = ink;
+            if (bootProgress != null) bootProgress.color = ink;
         }
 
         // Click secco da telescrivente: 12 ms di rumore con inviluppo esponenziale.

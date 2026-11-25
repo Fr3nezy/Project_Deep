@@ -3,9 +3,9 @@ HELM_WAKE_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HEL
 HELM_WAKE_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_WAKE_02.wav,4.80,helm,en,scafo,robosoft3,"Emergency mode active. Technically, you are still operational."
 HELM_BRIEF_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_BRIEF_01.wav,5.92,helm,en,scafo,robosoft3,"Depth, two thousand meters. We landed several kilometers off the designated dock."
 HELM_BRIEF_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_BRIEF_02.wav,5.18,helm,en,scafo,robosoft3,"This area is an abandoned company complex. Environment, hostile."
-HELM_BRIEF_03,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_BRIEF_03.wav,5.55,helm,en,scafo,robosoft3,"Survival probability, zero point zero zero one percent. I rounded up."
+HELM_BRIEF_03,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_BRIEF_03.wav,6.96,helm,en,scafo,robosoft3,"Oxygen replenished. Survival probability, zero point zero zero two percent. It doubled."
 HELM_BRIEF_04,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_BRIEF_04.wav,7.04,helm,en,scafo,robosoft3,"Oxygen reserve is limited. Nearest company structure, a lock gate. South, down the canyon."
-HELM_FISH_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_FISH_01.wav,5.79,helm,en,scafo,robosoft3,Bioluminescent fauna ahead. Artificial light at this depth works like a dinner bell.
+HELM_FISH_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_FISH_01.wav,5.59,helm,en,scafo,robosoft3,"Suit lights online. Fauna ahead. At this depth, light gets noticed."
 HELM_FISH_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_FISH_02.wav,5.06,helm,en,scafo,robosoft3,Watch how they react to your light. Then decide how bright you want to be.
 HELM_O2_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_01.wav,3.52,helm,en,scafo,robosoft3,Oxygen station detected. No power.
 HELM_O2_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_02.wav,5.58,helm,en,scafo,robosoft3,Company stations run on standard energy cells. Find one. Plug it in.
@@ -20,3 +20,5 @@ HELM_CELL_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HEL
 HELM_POWER_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_POWER_01.wav,4.88,helm,en,scafo,robosoft3,Power restored. Stand close to the station to refill your oxygen.
 HELM_RED_03,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_RED_03.wav,4.96,helm,en,scafo,robosoft3,The gate has an optical sensor. It is waiting for a specific light.
 HELM_GATE_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_GATE_01.wav,4.35,helm,en,scafo,robosoft3,"Optical sensor, accepted. Lock gate opening."
+HELM_LEVER_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_LEVER_01.wav,4.38,helm,en,scafo,robosoft3,"The hatch is jammed. Use the emergency release, on your right."
+HELM_LEVER_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_LEVER_02.wav,4.56,helm,en,scafo,robosoft3,"Emergency release, on your right. Grab it, and pull it up."

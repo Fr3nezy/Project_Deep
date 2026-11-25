@@ -49,7 +49,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16936309088256
-    m_Localized: "Probabilit\xE0 di sopravvivenza: 0,001%. Ho arrotondato per eccesso."
+    m_Localized: "Ossigeno ricaricato. Probabilit\xE0 di sopravvivenza: 0,002%. \xC8
+      raddoppiata."
     m_Metadata:
       m_Items: []
   - m_Id: 16936615272448
@@ -58,8 +59,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 16936921456640
-    m_Localized: "Fauna bioluminescente davanti. A questa profondit\xE0 la luce artificiale
-      \xE8 un richiamo per la cena."
+    m_Localized: "Luci della tuta attive. Fauna in vista. A questa profondit\xE0,
+      la luce si fa notare."
     m_Metadata:
       m_Items: []
   - m_Id: 16937194086400
@@ -123,6 +124,15 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 134047069102084
     m_Localized: 'Sensore ottico: accettato. Apertura della chiusa.'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 329795454885888
+    m_Localized: "Il portello \xE8 bloccato. Usa lo sblocco di emergenza, alla tua
+      destra."
+    m_Metadata:
+      m_Items: []
+  - m_Id: 329796419575808
+    m_Localized: Sblocco di emergenza, alla tua destra. Afferralo e tiralo su.
     m_Metadata:
       m_Items: []
   references:
