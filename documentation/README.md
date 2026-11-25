@@ -12,6 +12,7 @@ La codebase è strutturata in aree funzionali ad alta coesione e basso accoppiam
 
 ```
 Assets/_Project/Code/
+├── Audio/                     # Effetti sonori one-shot (SfxCue) e suoni del diver legati a eventi di codice
 ├── Comms/                     # Schermo comunicazioni del casco (pannello a cerniera, coda con priorità) e trigger delle battute
 ├── Creatures/                 # Fauna: profili di specie, creatura con FSM e moto cinematico, manager con pool e LOD, nidi, stimoli del sub, banco GPU
 │   └── Debug/                 # Sonda di benchmark del costo per frame
@@ -34,11 +35,15 @@ Assets/_Project/Code/
 
 ---
 
-## 2. Catalogo Completo degli Script (92 / 92)
+## 2. Catalogo Completo degli Script (104 / 104)
 
 | Script C# (Percorso) | Sistema | Documentazione di Riferimento |
 |---|---|---|
+| `Assets/_Project/Code/Audio/PlayerSfx.cs` | Audio | [Audio.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Audio.md) |
+| `Assets/_Project/Code/Audio/SfxCue.cs` | Audio | [Audio.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Audio.md) |
 | `Assets/_Project/Code/Comms/CommsTrigger.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
+| `Assets/_Project/Code/Comms/CommsHint.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
+| `Assets/_Project/Code/Comms/OxygenComms.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
 | `Assets/_Project/Code/Comms/FaunaCommsCue.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
 | `Assets/_Project/Code/Comms/HelmetComms.cs` | Comms | [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md) |
 | `Assets/_Project/Code/Creatures/Creature.cs` | Creatures | [Creatures.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Creatures.md) |

@@ -78,12 +78,14 @@ namespace Deeploration.Comms
             Vector3 from = cam.transform.position;
             Vector3 to = gazeTarget.position - from;
             if (Vector3.Angle(cam.transform.forward, to) > gazeAngle) return false;
-            RaycastHit[] hits = Physics.RaycastAll(from, to.normalized, to.magnitude + 0.5f, ~0, QueryTriggerInteraction.Ignore);
+            RaycastHit[] hits = Physics.RaycastAll(from, to.normalized, to.magnitude + 0.5f, ~0, QueryTriggerInteraction.Collide);
             float nearest = float.PositiveInfinity;
             bool hitTarget = false;
             foreach (RaycastHit hit in hits)
             {
                 if (hit.collider.GetComponentInParent<CharacterController>() != null) continue;
+                // I trigger contano solo se sono del bersaglio (il modulo rosso ha solo un trigger); gli altri volumi non coprono la vista
+                if (hit.collider.isTrigger && !hit.collider.transform.IsChildOf(gazeTarget)) continue;
                 if (hit.distance >= nearest) continue;
                 nearest = hit.distance;
                 hitTarget = hit.collider.transform.IsChildOf(gazeTarget);

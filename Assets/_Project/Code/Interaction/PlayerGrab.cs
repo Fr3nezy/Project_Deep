@@ -51,6 +51,9 @@ namespace Deeploration.Interaction
 
         public Grabbable Held => held;
 
+        /// <summary>Appena preso un Grabbable (suono della presa).</summary>
+        public event System.Action<Grabbable> OnGrabbed;
+
         /// <summary>Punto a holdDistance sulla linea di vista, abbassato di holdDropAngle (al massimo holdDropMax metri), verso cui la presa tira l'oggetto tenuto.</summary>
         public Vector3 HoldTarget
         {
@@ -102,6 +105,7 @@ namespace Deeploration.Interaction
             jointed = held.GetComponent<Joint>() != null;
             holdDistance = jointed ? hit.distance : Mathf.Max(hit.distance, minHoldDistance);
             if (diver != null) diver.SpeedMultiplier = 1f / (1f + held.Body.mass / massForHalfSpeed);
+            OnGrabbed?.Invoke(held);
             return true;
         }
 

@@ -135,6 +135,35 @@ MonoBehaviour:
     m_Localized: Sblocco di emergenza, alla tua destra. Afferralo e tiralo su.
     m_Metadata:
       m_Items: []
+  - m_Id: 358456761507840
+    m_Localized: Modulo luce rossa. Compatibile con la lampada della tuta. Montalo.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361536873816064
+    m_Localized: Fonte luminosa nelle vicinanze. Sembra un dispositivo Thaladyne.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361537242914816
+    m_Localized: Sensore ottico, spettro rosso. Passa alla luce rossa e puntala sul
+      sensore.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365289916063744
+    m_Localized: Ossigeno al cinquanta per cento.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290222247936
+    m_Localized: Ossigeno al venticinque per cento. Cerca una stazione di ricarica.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290469711872
+    m_Localized: Trenta secondi di ossigeno rimasti.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290725564416
+    m_Localized: Attenzione. Ossigeno critico. Dieci secondi.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

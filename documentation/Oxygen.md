@@ -36,7 +36,7 @@ flowchart TD
   - `Update()`: Calcola la somma di tutti i drain attivi + `profile.baseDrainPerSecond`. Se il diver non è in ricarica, decrementa `currentOxygen` per `Time.deltaTime` e verifica le transizioni di `OxygenLevel`.
 - **Campi Inspector**:
   - `OxygenProfile profile`: Configurazione dei valori di O₂.
-  - `float startNormalized` (range 0-1, default `1`): frazione del serbatoio all'avvio. In `SCN_Gameplay` l'istanza del Player ha `0.52` (decisione del 2026-11-09).
+  - `float startNormalized` (range 0-1, default `1`): frazione del serbatoio all'avvio. In `SCN_Gameplay` l'istanza del Player ha `1` dal 2026-11-25 (playtest di Manu: «troppo poco ossigeno all'inizio»; con 0.52, decisione del 2026-11-09, l'avviso «50%» di `OxygenComms` sarebbe partito in capsula).
   - `float currentOxygen` (debug sola lettura): Quantità attuale di litri/unità O₂.
   - `float currentDrainPerSecond` (debug sola lettura): Consumo istantaneo totale al secondo.
   - `OxygenLevel currentLevel` (debug sola lettura): Livello di rischio corrente.
@@ -77,11 +77,11 @@ flowchart TD
 - **Limiti**: nessuna dissolvenza né suono; durante l'attesa il diver si muove ancora; non ripristina oggetti, porte o creature. Verificato in Play il 2026-11-10 da codice: ossigeno a 0 a z −100, dopo 2 s diver sul `RespawnPoint` della stazione O₂ 1, a terra, ossigeno 1.0.
 
 ### OxygenBlackout *(2026-11-22)*
-- **Responsabilità e ciclo di vita**: sul `PlayerCapsule` accanto a `OxygenSystem` (`RequireComponent`). Richiesta di Manu dopo il playtest del 2026-11-22: a ossigeno basso l'unico feedback era il tremolio della lancetta. In `Awake` crea un `Volume` globale figlio (`OxygenBlackoutVolume`, peso 0) con profilo runtime: `Vignette` (intensità 1, nera, `vignetteSmoothness`) e `ColorAdjustments.colorFilter`. In `Update` calcola il buio bersaglio: 1 se `Level == Depleted`, altrimenti `lowOxygenDarkness × InverseLerp(startNormalized, 0, NormalizedOxygen)`; `Darkness` lo insegue a velocità lineare (`1/blackoutSeconds` scurendo, `1/recoverSeconds` schiarendo). Peso del Volume = `Darkness`, filtro colore = bianco→nero per `Darkness²`: il buio totale cresce circa come d³ e diventa nero pieno solo a d = 1. Il respawn (`DiverRespawn`, 2 s dopo lo zero) avviene a schermo nero; con il serbatoio ricaricato lo schermo torna in `recoverSeconds`. Profilo distrutto in `OnDestroy`.
-- **Campi Inspector**: `startNormalized` (float 0.01-1, default 0.25: soglia Critical del profilo di default), `lowOxygenDarkness` (0-1, 0.8), `blackoutSeconds` (≥0.05, 1.5; deve restare sotto `DiverRespawn.respawnDelay`), `recoverSeconds` (≥0.05, 1.5), `vignetteSmoothness` (0.01-1, 0.6), `volumePriority` (110, sopra la vignetta del morso a 100), `volumeLayer` (0-31, 0, deve stare nella Volume Mask della camera).
+- **Responsabilità e ciclo di vita**: sul `PlayerCapsule` accanto a `OxygenSystem` (`RequireComponent`). Richiesta di Manu dopo il playtest del 2026-11-22: a ossigeno basso l'unico feedback era il tremolio della lancetta. In `Awake` crea un `Volume` globale figlio (`OxygenBlackoutVolume`, peso 0) con profilo runtime: `Vignette` (intensità `vignetteIntensity`, nera, `vignetteSmoothness`) e `ColorAdjustments.colorFilter`. In `Update` calcola il buio bersaglio: 1 se `Level == Depleted`, altrimenti `lowOxygenDarkness × InverseLerp(startNormalized, 0, NormalizedOxygen)`; `Darkness` lo insegue a velocità lineare (`1/blackoutSeconds` scurendo, `1/recoverSeconds` schiarendo). Peso del Volume = `Darkness`, filtro colore = bianco→nero per `Darkness²`: il buio totale cresce circa come d³ e diventa nero pieno solo a d = 1. Il respawn (`DiverRespawn`, 2 s dopo lo zero) avviene a schermo nero; con il serbatoio ricaricato lo schermo torna in `recoverSeconds`. Profilo distrutto in `OnDestroy`.
+- **Campi Inspector**: `startNormalized` (float 0.01-1, default 0.25: soglia Critical del profilo di default), `lowOxygenDarkness` (0-1, 0.8), `blackoutSeconds` (≥0.05, 1.5; deve restare sotto `DiverRespawn.respawnDelay`), `recoverSeconds` (≥0.05, 1.5), `vignetteSmoothness` (0.01-1, 0.6), `vignetteIntensity` (0-1, 0.5; dal 2026-11-25, prima fissa a 1: playtest di Manu, vignetta troppo forte), `volumePriority` (110, sopra la vignetta del morso a 100), `volumeLayer` (0-31, 0, deve stare nella Volume Mask della camera).
 - **API pubbliche**: `float Darkness { get; }` (0 = niente, 1 = nero pieno).
 - **Riferimenti**: `OxygenSystem` sullo stesso GameObject, obbligatorio.
-- **Limiti**: con peso > 0 la sua vignetta (intensità 1) prevale su quelle della scena e del morso, mescolata per peso. Lo stato di morte con «riprova» è pianificato, non implementato: per ora si torna all'ultimo checkpoint. Nessun suono di soffocamento.
+- **Limiti**: con peso > 0 la sua vignetta (intensità `vignetteIntensity`) prevale su quelle della scena e del morso, mescolata per peso. Lo stato di morte con «riprova» è pianificato, non implementato: per ora si torna all'ultimo checkpoint. Nessun suono di soffocamento.
 - **Verifica**: Play del 2026-11-22 da codice: O₂ a 0.1 → `Darkness` sale verso 0.48; O₂ a 0 → `Darkness` +0.27 in 0.41 s (lineare, nero pieno a 1.5 s), respawn a 2 s con O₂ 0.99 e `Darkness` tornato a 0. Resa a schermo non ancora vista.
 
 ### VFX_BreathBubbles *(2026-11-22)*
@@ -115,10 +115,11 @@ flowchart TD
 - Se il diver entra in una stazione di ricarica (`OxygenRefillStation`), questa chiama `Refill(Time.deltaTime)` in `OnTriggerStay()`. La stazione ha un proprio parametro serializzato `refillRatePerSecond` che attualmente non viene usato, in quanto la velocità effettiva è governata da `OxygenProfile.refillRate`.
 
 ## Configurazione in `SCN_Gameplay` (2026-11-10)
-- Istanza del Player: `startNormalized` 0.52, `DiverRespawn` con i default. Dalla capsula alla stazione O₂ 1 (circa 90 m) si arriva al 24% circa al buio e al 37% circa con la torcia (stima dai consumi, non misurata camminando).
+- Istanza del Player: `startNormalized` 1 (dal 2026-11-25, prima 0.52), `DiverRespawn` con i default. Con 0.52 dalla capsula alla stazione O₂ 1 (circa 90 m) si arrivava al 24% circa al buio e al 37% circa con la torcia (stima dai consumi, non misurata camminando); ora si arriva sopra il 70%. `OxygenBlackout` in scena: `vignetteIntensity` 0.5, `lowOxygenDarkness` 0.6 (dal 2026-11-25, prima 0.8), altri ai default.
 
 ## Sistemi collegati
 - [PlayerMovement.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/PlayerMovement.md)
 - [Stress.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Stress.md)
 - [Environment.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Environment.md)
 - [SuitFeedback.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/SuitFeedback.md)
+- [Comms.md](file:///Z:/_PROJECTS/Unity/Project_Deep/documentation/Comms.md): `OxygenComms`, avvisi vocali di H.E.L.M. a 50%, 25%, 30 e 10 secondi rimasti (dal 2026-11-25).

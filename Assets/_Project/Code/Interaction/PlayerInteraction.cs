@@ -54,6 +54,9 @@ namespace Deeploration.Interaction
                 foundInteractable = hit.collider.GetComponentInParent<IInteractable>() ?? hit.collider.GetComponent<IInteractable>();
             }
 
+            // Un interattivo spento (portello bloccato, leva già usata) non è un bersaglio: niente anello nel mirino
+            if (foundInteractable != null && !foundInteractable.CanInteract(gameObject)) foundInteractable = null;
+
             if (foundInteractable != currentTarget)
             {
                 currentTarget = foundInteractable;

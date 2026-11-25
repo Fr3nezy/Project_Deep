@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a22370fbf5a36394d88085f934cbaf09, type: 3}
+  m_Name: HELM_RED_04
+  m_EditorClassIdentifier: Assembly-CSharp::Deeploration.Prologue.SubtitleLine
+  speaker:
+    m_TableReference:
+      m_TableCollectionName: GUID:589d40514a6cca14ba52d5bc263a867b
+    m_TableEntryReference:
+      m_KeyId: 0
+      m_Key: SPK_HELM
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  text:
+    m_TableReference:
+      m_TableCollectionName: GUID:589d40514a6cca14ba52d5bc263a867b
+    m_TableEntryReference:
+      m_KeyId: 0
+      m_Key: HELM_RED_04
+    m_FallbackState: 0
+    m_WaitForCompletion: 0
+    m_LocalVariables: []
+  voice: {fileID: 8300000, guid: 5489412439fa15943997458a912db252, type: 3}
+  intro: {fileID: 0}
+  references:
+    version: 2
+    RefIds: []

@@ -19,3 +19,6 @@ HELM_RED_03,The gate has an optical sensor. It is waiting for a specific light.
 HELM_GATE_01,"Optical sensor, accepted. Lock gate opening."
 HELM_LEVER_01,"The hatch is jammed. Use the emergency release, on your right."
 HELM_LEVER_02,"Emergency release, on your right. Grab it, and pull it up."
+HELM_MODULE_01,"Red light module. Compatible with your suit lamp. Install it."
+HELM_MODULE_02,"Light source nearby. It looks like a Thaladyne device."
+HELM_RED_04,"Optical sensor, red spectrum. Switch to red light, and aim it at the sensor."

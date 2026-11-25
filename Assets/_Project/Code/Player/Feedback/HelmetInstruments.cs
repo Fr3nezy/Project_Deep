@@ -70,6 +70,10 @@ namespace Deeploration.Player
         [SerializeField, Min(0.5f)] private float lightsNoticeSeconds = 8f;
         [Tooltip("Battuta comms con cui compare l'avviso della torcia (in SCN_Gameplay HELM_FISH_01). Vuoto = solo da ShowLightsNotice.")]
         [SerializeField] private SubtitleLine lightsNoticeLine;
+        [Tooltip("Avviso del tasto E sul modulo luce rossa, all'inizio di useNoticeLine (in SCN_Gameplay HELM_MODULE_01). Vuoto = mai.")]
+        [SerializeField] private SubtitleLine useNoticeLine;
+        [SerializeField] private string useTitle = "RED MODULE";
+        [SerializeField] private string useKey = "[E] INSTALL";
 
         [Header("Accensione")]
         [Tooltip("Battuta comms con cui si accendono gli strumenti (in SCN_Gameplay HELM_BOOT_01, quella con la schermata di avvio). " +
@@ -191,6 +195,8 @@ namespace Deeploration.Player
             if (line == null) return;
             if (line == powerUpLine) PowerOn(true);
             if (line == lightsNoticeLine) ShowLightsNotice();
+            // Battuta arrivata in ritardo dalla coda a modulo già montato: niente [E] dopo «RED MODULE ONLINE»
+            if (line == useNoticeLine && !(flashlight != null && flashlight.RedUnlocked)) ShowNotice(modeIcons.Length > 2 ? modeIcons[2] : null, useTitle, useKey, true, lightsNoticeSeconds);
         }
 
         /// <summary>Accende gli strumenti: animated = a cascata in powerUpSeconds (solo se spenti), altrimenti subito (cheat, warp).</summary>

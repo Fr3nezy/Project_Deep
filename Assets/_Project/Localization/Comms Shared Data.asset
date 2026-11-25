@@ -119,6 +119,34 @@ MonoBehaviour:
     m_Key: HELM_LEVER_02
     m_Metadata:
       m_Items: []
+  - m_Id: 358456761507840
+    m_Key: HELM_MODULE_01
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361536873816064
+    m_Key: HELM_MODULE_02
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361537242914816
+    m_Key: HELM_RED_04
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365289916063744
+    m_Key: HELM_O2_50
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290222247936
+    m_Key: HELM_O2_25
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290469711872
+    m_Key: HELM_O2_30S
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290725564416
+    m_Key: HELM_O2_10S
+    m_Metadata:
+      m_Items: []
   m_Metadata:
     m_Items: []
   m_KeyGenerator:

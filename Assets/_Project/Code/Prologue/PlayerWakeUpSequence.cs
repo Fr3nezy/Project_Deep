@@ -60,16 +60,16 @@ namespace Deeploration.Prologue
         [SerializeField, Tooltip("Durata della dissolvenza da nero.")]
         private float fadeDuration = 2.0f;
 
-        [SerializeField, Tooltip("Ritardo prima della comparsa della battuta di emergenza.")]
-        private float subtitleDelay = 1.2f;
+        [SerializeField, Tooltip("Attesa fra la testa rialzata e la battuta di avvio (in SCN_Gameplay HELM_BOOT_01, che accende gli strumenti). " +
+                                 "Prima ci si sveglia, poi parte la tuta.")]
+        private float bootDelay = 3f;
 
-        [SerializeField, Tooltip("A fine risveglio (non con Skip). In SCN_Gameplay: Comms_Brief CommsTrigger.Play.")]
+        [SerializeField, Tooltip("Dopo la battuta di avvio (non con Skip). In SCN_Gameplay: Comms_Brief CommsTrigger.Play.")]
         private UnityEvent onCompleted = new UnityEvent();
 
         private CharacterController controller;
         private float timer;
         private bool sequenceCompleted;
-        private bool subtitleTriggered;
 
         private void Awake()
         {
@@ -134,14 +134,7 @@ namespace Deeploration.Prologue
                 fadeOverlay.alpha = 1.0f - Mathf.SmoothStep(0f, 1f, fadeProgress);
             }
 
-            // 2. Battuta diagnostica riavvio tuta (Beat 7)
-            if (!subtitleTriggered && timer >= subtitleDelay)
-            {
-                subtitleTriggered = true;
-                if (comms != null && wakeUpSubtitle != null) comms.Say(wakeUpSubtitle);
-            }
-
-            // 3. Completamento sequenza
+            // 2. Completamento sequenza
             float endTime = Mathf.Max(liftDelay + liftDuration, fadeDelay + fadeDuration);
             if (timer >= endTime)
             {
@@ -193,6 +186,14 @@ namespace Deeploration.Prologue
             }
 
             enabled = false;
+            StartCoroutine(BootAfterDelay()); // le coroutine continuano anche col componente disabilitato
+        }
+
+        /// <summary>Battuta di avvio (strumenti a cascata) dopo bootDelay, poi il briefing: così non lo precede.</summary>
+        private IEnumerator BootAfterDelay()
+        {
+            yield return new WaitForSeconds(bootDelay);
+            if (comms != null && wakeUpSubtitle != null) comms.Say(wakeUpSubtitle);
             onCompleted.Invoke();
         }
 
@@ -202,9 +203,9 @@ namespace Deeploration.Prologue
         /// </summary>
         public void Skip()
         {
+            StopAllCoroutines(); // anche dopo il risveglio: ferma la battuta di avvio ancora in attesa
             if (sequenceCompleted) return;
             sequenceCompleted = true;
-            StopAllCoroutines();
 
             if (fadeOverlay != null)
             {

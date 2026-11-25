@@ -1,0 +1,5 @@
+id,text
+HELM_O2_50,"Oxygen at fifty percent."
+HELM_O2_25,"Oxygen at twenty-five percent. Locate a refill station."
+HELM_O2_30S,"Thirty seconds of oxygen remaining."
+HELM_O2_10S,"Warning. Oxygen critical. Ten seconds."

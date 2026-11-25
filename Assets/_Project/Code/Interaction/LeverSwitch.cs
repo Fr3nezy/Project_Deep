@@ -21,6 +21,10 @@ namespace Deeploration.Interaction
         [Tooltip("Sbloccata e mai toccata per questi secondi dalla fine dell'ultima battuta di HelmetComms: lancia onReminder (per esempio una battuta di H.E.L.M.) e riconta. 0 = mai.")]
         [SerializeField, Min(0f)] private float reminderSeconds = 12f;
         public UnityEvent onReminder = new UnityEvent();
+        [Tooltip("Ogni tickDegrees di corsa (sbloccata, prima dello scatto) lancia onTick: lo scatto del cricchetto. 0 = mai.")]
+        [SerializeField, Min(0f)] private float tickDegrees = 12f;
+        public UnityEvent onTick = new UnityEvent();
+        private int lastTick;
 
         private HingeJoint hinge;
         private Rigidbody body;
@@ -73,7 +77,13 @@ namespace Deeploration.Interaction
             }
             // NaN (stato fisico rotto) fallirebbe il confronto e farebbe scattare la leva da ferma: visto nel playtest 2026-11-25.
             float angle = hinge.angle;
-            if (float.IsNaN(angle) || Mathf.Abs(angle) < triggerAngle) return;
+            if (float.IsNaN(angle)) return;
+            if (tickDegrees > 0f)
+            {
+                int tick = Mathf.FloorToInt(Mathf.Abs(angle) / tickDegrees);
+                if (tick != lastTick) { lastTick = tick; onTick?.Invoke(); }
+            }
+            if (Mathf.Abs(angle) < triggerAngle) return;
             Pulled = true;
             body.isKinematic = true;
             onPulled?.Invoke();

@@ -127,6 +127,35 @@ MonoBehaviour:
     m_Localized: Emergency release, on your right. Grab it and pull it up.
     m_Metadata:
       m_Items: []
+  - m_Id: 358456761507840
+    m_Localized: Red light module. Compatible with your suit lamp. Install it.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361536873816064
+    m_Localized: Light source nearby. It looks like a Thaladyne device.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 361537242914816
+    m_Localized: Optical sensor, red spectrum. Switch to red light, and aim it at
+      the sensor.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365289916063744
+    m_Localized: Oxygen at fifty percent.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290222247936
+    m_Localized: Oxygen at twenty-five percent. Locate a refill station.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290469711872
+    m_Localized: Thirty seconds of oxygen remaining.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 365290725564416
+    m_Localized: Warning. Oxygen critical. Ten seconds.
+    m_Metadata:
+      m_Items: []
   references:
     version: 2
     RefIds: []

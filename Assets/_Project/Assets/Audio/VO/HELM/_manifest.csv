@@ -22,3 +22,10 @@ HELM_RED_03,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM
 HELM_GATE_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_GATE_01.wav,4.35,helm,en,scafo,robosoft3,"Optical sensor, accepted. Lock gate opening."
 HELM_LEVER_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_LEVER_01.wav,4.38,helm,en,scafo,robosoft3,"The hatch is jammed. Use the emergency release, on your right."
 HELM_LEVER_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_LEVER_02.wav,4.56,helm,en,scafo,robosoft3,"Emergency release, on your right. Grab it, and pull it up."
+HELM_MODULE_01,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_MODULE_01.wav,4.94,helm,en,scafo,robosoft3,Red light module. Compatible with your suit lamp. Install it.
+HELM_MODULE_02,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_MODULE_02.wav,4.14,helm,en,scafo,robosoft3,Light source nearby. It looks like a Thaladyne device.
+HELM_RED_04,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_RED_04.wav,5.99,helm,en,scafo,robosoft3,"Optical sensor, red spectrum. Switch to red light, and aim it at the sensor."
+HELM_O2_50,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_50.wav,2.58,helm,en,scafo,robosoft3,Oxygen at fifty percent.
+HELM_O2_25,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_25.wav,4.65,helm,en,scafo,robosoft3,Oxygen at twenty-five percent. Locate a refill station.
+HELM_O2_30S,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_30S.wav,2.94,helm,en,scafo,robosoft3,Thirty seconds of oxygen remaining.
+HELM_O2_10S,Z:/_PROJECTS/Unity/Project_Deep/Assets/_Project/Assets/Audio/VO/HELM\HELM_O2_10S.wav,4.13,helm,en,scafo,robosoft3,Warning. Oxygen critical. Ten seconds.

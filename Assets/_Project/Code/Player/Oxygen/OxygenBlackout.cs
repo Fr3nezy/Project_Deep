@@ -27,6 +27,10 @@ namespace Deeploration.Player
 
         [SerializeField, Range(0.01f, 1f)] private float vignetteSmoothness = 0.6f;
 
+        // Playtest 2026-11-25: a 1 la vignetta copriva troppo; il nero pieno a ossigeno finito lo dà il filtro colore.
+        [Tooltip("Intensità della vignetta a buio pieno (scalata dal buio attuale)")]
+        [SerializeField, Range(0f, 1f)] private float vignetteIntensity = 0.5f;
+
         [Tooltip("Priorità del Volume: sopra la vignetta del morso (100)")]
         [SerializeField] private float volumePriority = 110f;
 
@@ -53,7 +57,7 @@ namespace Deeploration.Player
             volume.weight = 0f;
             runtimeProfile = ScriptableObject.CreateInstance<VolumeProfile>();
             Vignette vignette = runtimeProfile.Add<Vignette>(true);
-            vignette.intensity.Override(1f);
+            vignette.intensity.Override(vignetteIntensity);
             vignette.color.Override(Color.black);
             vignette.smoothness.Override(vignetteSmoothness);
             colorAdjustments = runtimeProfile.Add<ColorAdjustments>(false);
