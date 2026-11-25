@@ -28293,6 +28293,7 @@ MonoBehaviour:
   magnetUprightFrequency: 6
   magnetReleaseDistance: 1.2
   magnetStuckTime: 1
+  magnetFunnelSlope: 1
   statusLight: {fileID: 264641416}
   emptyColor: {r: 1, g: 0, b: 0, a: 1}
   filledColor: {r: 0, g: 1, b: 0, a: 1}
@@ -40810,6 +40811,7 @@ MonoBehaviour:
   magnetUprightFrequency: 6
   magnetReleaseDistance: 1.2
   magnetStuckTime: 1
+  magnetFunnelSlope: 1
   statusLight: {fileID: 613495784}
   emptyColor: {r: 1, g: 0, b: 0, a: 1}
   filledColor: {r: 0, g: 1, b: 0, a: 1}
@@ -41360,6 +41362,7 @@ MonoBehaviour:
   magnetUprightFrequency: 6
   magnetReleaseDistance: 1.2
   magnetStuckTime: 1
+  magnetFunnelSlope: 1
   statusLight: {fileID: 981190380}
   emptyColor: {r: 1, g: 0, b: 0, a: 1}
   filledColor: {r: 0, g: 1, b: 0, a: 1}
@@ -275949,6 +275952,14 @@ PrefabInstance:
       value: 0.6
       objectReference: {fileID: 0}
     - target: {fileID: 8194844412188602940, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: grab
+      value: 
+      objectReference: {fileID: 2854084060834512326}
+    - target: {fileID: 8194844412188602940, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
+      propertyPath: grabIcon
+      value: 
+      objectReference: {fileID: 2800000, guid: b0ccf273aff4468a9179ca03ce3c18cb, type: 3}
+    - target: {fileID: 8194844412188602940, guid: 6333618f8dcc96f4a82c502c62a5c693, type: 3}
       propertyPath: powerUpLine
       value: 
       objectReference: {fileID: 11400000, guid: dc0ed1eb65d22dc4dbcf1099d76d36c8, type: 2}
@@ -276113,7 +276124,11 @@ MonoBehaviour:
   playerCamera: {fileID: 0}
   grabKey: 323
   grabDistance: 3
-  minHoldDistance: 1.5
+  carryDistance: 1.5
+  pitchLimit: 20
+  groundClearance: 0.25
+  targetSmoothTime: 0.2
+  yawFrequency: 4
   breakDistance: 2.5
   holdDropAngle: 16.5
   holdDropMax: 0.45

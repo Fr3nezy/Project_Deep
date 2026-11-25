@@ -1,5 +1,6 @@
 using Deeploration.Player;
 using UnityEngine;
+using UnityEngine.Serialization;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -19,8 +20,17 @@ namespace Deeploration.Interaction
 
         [Tooltip("Distanza massima dalla camera per afferrare (m).")]
         [SerializeField, Min(0.5f)] private float grabDistance = 3f;
-        [Tooltip("Distanza minima a cui l'oggetto viene tenuto (m).")]
-        [SerializeField, Min(0.3f)] private float minHoldDistance = 1.5f;
+        // Presa prevedibile (playtest 2026-11-25): distanza fissa, pitch limitato, sopra il fondale, bersaglio smussato, rotazione agganciata allo sguardo.
+        [Tooltip("Distanza a cui l'oggetto viene portato, qualunque sia la distanza di presa (m). Non vale per leve e cerniere.")]
+        [SerializeField, Min(0.3f), FormerlySerializedAs("minHoldDistance")] private float carryDistance = 1.5f;
+        [Tooltip("Quanto lo sguardo in alto o in basso sposta l'oggetto (gradi di pitch, oltre non conta).")]
+        [SerializeField, Range(0f, 89f)] private float pitchLimit = 20f;
+        [Tooltip("Spazio minimo fra il fondo dell'oggetto e la superficie sotto il bersaglio (m).")]
+        [SerializeField, Min(0f)] private float groundClearance = 0.25f;
+        [Tooltip("Ritardo con cui il bersaglio segue lo sguardo (s): peso senza rimbalzi. 0 = immediato.")]
+        [SerializeField, Min(0f)] private float targetSmoothTime = 0.2f;
+        [Tooltip("Molla che tiene fissa la rotazione attorno alla verticale rispetto allo sguardo (rad/s). Solo KeepUpright, 0 = libera.")]
+        [SerializeField, Min(0f)] private float yawFrequency = 4f;
         [Tooltip("Oltre questa distanza fra punto afferrato e bersaglio la presa si stacca (m).")]
         [SerializeField, Min(0.5f)] private float breakDistance = 2.5f;
         // L'oggetto davanti al crosshair copriva la visuale (playtest 2026-11-23): lo si porta basso, come a mani basse.
@@ -48,20 +58,40 @@ namespace Deeploration.Interaction
         private float holdDistance;
         // Leve e cerniere (oggetti con Joint): presa sul punto afferrato, niente distanza minima né abbassamento, sennò tira contro il pannello.
         private bool jointed;
+        // Dal punto afferrato al fondo dei collider, misurato alla presa: per tenere l'oggetto sopra il fondale.
+        private float anchorHeight;
+        private float yawOffset;
+        private Vector3 smoothTarget, smoothVelocity;
 
         public Grabbable Held => held;
+
+        /// <summary>
+        /// 0..1, scritto ogni passo fisico dal magnete di <see cref="GrabSocket"/> che sta attirando l'oggetto tenuto:
+        /// la forza della presa scala di (1 − valore), così vicino allo snap comanda il magnete. Si azzera dopo l'uso.
+        /// </summary>
+        public float MagnetYield { get; set; }
 
         /// <summary>Appena preso un Grabbable (suono della presa).</summary>
         public event System.Action<Grabbable> OnGrabbed;
 
-        /// <summary>Punto a holdDistance sulla linea di vista, abbassato di holdDropAngle (al massimo holdDropMax metri), verso cui la presa tira l'oggetto tenuto.</summary>
+        /// <summary>
+        /// Punto verso cui la presa tira l'oggetto tenuto: a holdDistance lungo lo yaw del diver e il pitch della camera
+        /// limitato a pitchLimit, abbassato di holdDropAngle (al massimo holdDropMax metri), mai sotto la superficie
+        /// sottostante. Per leve e cerniere: sulla linea di vista a holdDistance.
+        /// </summary>
         public Vector3 HoldTarget
         {
             get
             {
                 Transform view = playerCamera.transform;
-                float drop = jointed ? 0f : Mathf.Min(holdDistance * Mathf.Tan(holdDropAngle * Mathf.Deg2Rad), holdDropMax);
-                return view.position + view.forward * holdDistance - view.up * drop;
+                if (jointed) return view.position + view.forward * holdDistance;
+                float pitch = Mathf.Asin(Mathf.Clamp(view.forward.y, -1f, 1f)) * Mathf.Rad2Deg;
+                Quaternion aim = Quaternion.Euler(-Mathf.Clamp(pitch, -pitchLimit, pitchLimit), transform.eulerAngles.y, 0f);
+                float drop = Mathf.Min(holdDistance * Mathf.Tan(holdDropAngle * Mathf.Deg2Rad), holdDropMax);
+                Vector3 target = view.position + aim * new Vector3(0f, -drop, holdDistance);
+                float floor = SurfaceBelow(target, view.position.y);
+                target.y = Mathf.Max(target.y, floor + anchorHeight + groundClearance);
+                return target;
             }
         }
 
@@ -101,9 +131,27 @@ namespace Deeploration.Interaction
 
             held = target;
             held.IsHeld = true;
-            localAnchor = held.transform.InverseTransformPoint(hit.point);
             jointed = held.GetComponent<Joint>() != null;
-            holdDistance = jointed ? hit.distance : Mathf.Max(hit.distance, minHoldDistance);
+            holdDistance = jointed ? hit.distance : carryDistance;
+            bool any = false;
+            Bounds bounds = default;
+            foreach (Collider c in held.GetComponentsInChildren<Collider>())
+            {
+                if (c.isTrigger) continue;
+                if (any) bounds.Encapsulate(c.bounds); else { bounds = c.bounds; any = true; }
+            }
+            // KeepUpright: si porta sempre dal centro della faccia alta, così l'altezza non dipende da dove lo si è afferrato.
+            Vector3 grip = hit.point;
+            if (held.KeepsUpright && any)
+            {
+                Vector3 center = held.Body.worldCenterOfMass;
+                grip = new Vector3(center.x, bounds.max.y, center.z);
+            }
+            localAnchor = held.transform.InverseTransformPoint(grip);
+            anchorHeight = any ? Mathf.Max(0f, grip.y - bounds.min.y) : 0f;
+            yawOffset = Mathf.DeltaAngle(transform.eulerAngles.y, held.Body.rotation.eulerAngles.y);
+            smoothTarget = grip;
+            smoothVelocity = Vector3.zero;
             if (diver != null) diver.SpeedMultiplier = 1f / (1f + held.Body.mass / massForHalfSpeed);
             OnGrabbed?.Invoke(held);
             return true;
@@ -126,10 +174,26 @@ namespace Deeploration.Interaction
             return null;
         }
 
+        // Superficie più alta sotto point, cercata dall'altezza della camera in giù; -inf se non ce n'è fino a sotto l'oggetto.
+        private float SurfaceBelow(Vector3 point, float fromY)
+        {
+            float best = float.NegativeInfinity;
+            Vector3 origin = new Vector3(point.x, fromY, point.z);
+            float length = fromY - point.y + anchorHeight + groundClearance;
+            if (length <= 0f) return best;
+            foreach (RaycastHit hit in Physics.RaycastAll(origin, Vector3.down, length, ~0, QueryTriggerInteraction.Ignore))
+            {
+                if ((held != null && hit.rigidbody == held.Body) || hit.collider.transform.IsChildOf(transform)) continue;
+                best = Mathf.Max(best, hit.point.y);
+            }
+            return best;
+        }
+
         public void Release()
         {
             if (held != null) held.IsHeld = false;
             held = null;
+            MagnetYield = 0f;
             if (diver != null) diver.SpeedMultiplier = 1f;
         }
 
@@ -140,20 +204,36 @@ namespace Deeploration.Interaction
 
             Rigidbody body = held.Body;
             Vector3 anchor = held.transform.TransformPoint(localAnchor);
-            Vector3 delta = HoldTarget - anchor;
-            if (delta.magnitude > breakDistance) { Release(); return; }
-
-            Vector3 desired = Vector3.ClampMagnitude(delta * followStrength, maxFollowSpeed);
+            Vector3 goal = HoldTarget;
+            Vector3 feedForward = Vector3.zero;
+            if (jointed) smoothTarget = goal;
+            else
+            {
+                smoothTarget = Vector3.SmoothDamp(smoothTarget, goal, ref smoothVelocity, targetSmoothTime, Mathf.Infinity, Time.fixedDeltaTime);
+                feedForward = smoothVelocity;
+            }
+            // Dal bersaglio smussato: un giro rapido della visuale non stacca la presa, un oggetto bloccato sì.
+            if ((smoothTarget - anchor).magnitude > breakDistance) { Release(); return; }
+            // Insegue il bersaglio smussato con la sua velocità più una correzione: la forza satura solo negli urti.
+            Vector3 desired = Vector3.ClampMagnitude((smoothTarget - anchor) * followStrength + feedForward, maxFollowSpeed);
+            float forceLimit = maxForce * (1f - Mathf.Clamp01(MagnetYield));
+            MagnetYield = 0f;
             // KeepUpright: forza nel baricentro, così la presa non fa ruotare l'oggetto (lo tiene dritto Grabbable).
             if (held.KeepsUpright)
             {
                 Vector3 force = (desired - body.linearVelocity) * body.mass / Time.fixedDeltaTime;
-                body.AddForce(Vector3.ClampMagnitude(force, maxForce));
+                body.AddForce(Vector3.ClampMagnitude(force, forceLimit));
+                if (yawFrequency > 0f)
+                {
+                    // Molla a smorzamento critico attorno alla verticale: l'oggetto mostra sempre lo stesso lato.
+                    float error = Mathf.DeltaAngle(body.rotation.eulerAngles.y, transform.eulerAngles.y + yawOffset) * Mathf.Deg2Rad;
+                    body.AddTorque(Vector3.up * (error * yawFrequency * yawFrequency - body.angularVelocity.y * 2f * yawFrequency), ForceMode.Acceleration);
+                }
             }
             else
             {
                 Vector3 force = (desired - body.GetPointVelocity(anchor)) * body.mass / Time.fixedDeltaTime;
-                body.AddForceAtPosition(Vector3.ClampMagnitude(force, maxForce), anchor);
+                body.AddForceAtPosition(Vector3.ClampMagnitude(force, forceLimit), anchor);
             }
         }
     }

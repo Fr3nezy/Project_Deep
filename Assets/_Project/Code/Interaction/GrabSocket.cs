@@ -37,7 +37,7 @@ namespace Deeploration.Interaction
         [SerializeField, Min(0f)] private float magnetFollow = 3f;
         [Tooltip("Velocità massima con cui il magnete porta l'oggetto, in m/s. Sotto maxSpeed l'oggetto può poggiarsi.")]
         [SerializeField, Min(0f)] private float magnetMaxSpeed = 0.3f;
-        [Tooltip("Forza massima al centro, in N; cala a 0 sul bordo del raggio. Sopra PlayerGrab.maxForce il magnete vince vicino allo slot.")]
+        [Tooltip("Forza massima al centro, in N; cala a 0 sul bordo del raggio. La presa di PlayerGrab cede in proporzione al peso del magnete.")]
         [SerializeField, Min(0f)] private float magnetMaxForce = 900f;
         [Tooltip("Rigidità della molla che raddrizza l'oggetto sull'alto di snapPoint (rad/s), al centro.")]
         [SerializeField, Min(0f)] private float magnetUprightFrequency = 6f;
@@ -45,6 +45,9 @@ namespace Deeploration.Interaction
         [SerializeField, Min(0f)] private float magnetReleaseDistance = 1.2f;
         [Tooltip("Secondi di oggetto fermo e non allineato dentro il raggio prima che il magnete molli (incastro); molla per altrettanti secondi.")]
         [SerializeField, Min(0f)] private float magnetStuckTime = 1f;
+        // Playtest 2026-11-25: tirata dritta, il fondo della cella sbatteva sul bordo della presa (Inlet ~16 cm sopra il fondale).
+        [Tooltip("Imbuto: il magnete punta sopra snapPoint di tanti metri per metro di scarto orizzontale, poi scende man mano che l'oggetto si centra. 0 = dritto.")]
+        [SerializeField, Min(0f)] private float magnetFunnelSlope = 1f;
 
         [Header("Feedback")]
         [SerializeField] private Light statusLight;
@@ -150,7 +153,10 @@ namespace Deeploration.Interaction
             }
 
             float weight = 1f - distance / magnetRadius;
-            Vector3 desired = Vector3.ClampMagnitude(delta * magnetFollow, magnetMaxSpeed);
+            playerGrab.MagnetYield = Mathf.Max(playerGrab.MagnetYield, weight);
+            float horizontal = Vector3.ProjectOnPlane(delta, snapPoint.up).magnitude;
+            Vector3 aim = delta + snapPoint.up * (horizontal * magnetFunnelSlope);
+            Vector3 desired = Vector3.ClampMagnitude(aim * magnetFollow, magnetMaxSpeed);
             Vector3 force = (desired - body.linearVelocity) * body.mass / Time.fixedDeltaTime;
             body.AddForce(Vector3.ClampMagnitude(force, magnetMaxForce * weight));
             item.AlignUp(snapPoint.up, magnetUprightFrequency * weight);

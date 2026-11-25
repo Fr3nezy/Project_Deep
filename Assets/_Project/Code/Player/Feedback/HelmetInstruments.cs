@@ -1,4 +1,5 @@
 using Deeploration.Comms;
+using Deeploration.Interaction;
 using Deeploration.Prologue;
 using TMPro;
 using UnityEngine;
@@ -75,6 +76,15 @@ namespace Deeploration.Player
         [SerializeField] private string useTitle = "RED MODULE";
         [SerializeField] private string useKey = "[E] INSTALL";
 
+        // Playtest 2026-11-25: due compagni non capivano come si prende la cella.
+        [Header("Avviso presa")]
+        [Tooltip("Finché il mirino è su un oggetto da trascinare e la mano è vuota, il CRT mostra icona, titolo e tasto della presa. " +
+                 "Un avviso a tempo (ShowNotice) ha la precedenza. Vuoto = auto-trovato.")]
+        [SerializeField] private PlayerGrab grab;
+        [SerializeField] private Texture2D grabIcon;
+        [SerializeField] private string grabTitle = "GRAB";
+        [SerializeField] private string grabKey = "[LMB] HOLD";
+
         [Header("Accensione")]
         [Tooltip("Battuta comms con cui si accendono gli strumenti (in SCN_Gameplay HELM_BOOT_01, quella con la schermata di avvio). " +
                  "Fino ad allora sono spenti. Vuoto = accesi da subito.")]
@@ -138,6 +148,7 @@ namespace Deeploration.Player
         private float noticeUntil = -1f;
         private bool redWasUnlocked;
         private bool noticeRed;
+        private bool hintShown;
         private readonly System.Collections.Generic.List<(Renderer renderer, int index, int band)> scaleSlots = new();
         // Accensione: -inf = acceso, +inf = spento in attesa di powerUpLine, altrimenti istante d'inizio.
         private float powerStart = float.NegativeInfinity;
@@ -165,6 +176,7 @@ namespace Deeploration.Player
             BuildCompassLetters();
             if (oxygen == null) oxygen = FindFirstObjectByType<OxygenSystem>();
             if (flashlight == null) flashlight = FindFirstObjectByType<DiverFlashlight>();
+            if (grab == null) grab = FindFirstObjectByType<PlayerGrab>();
             if (depthSource == null && oxygen != null) depthSource = oxygen.transform;
             if (oxygenNeedle != null) oxygenRest = oxygenNeedle.localRotation;
             if (pressureNeedle != null) pressureRest = pressureNeedle.localRotation;
@@ -215,6 +227,13 @@ namespace Deeploration.Player
         {
             noticeRed = red;
             if (noticeRoot == null) return;
+            FillNotice(icon, title, key);
+            noticeUntil = Time.unscaledTime + (seconds > 0f ? seconds : noticeSeconds);
+            SetNotice(true);
+        }
+
+        private void FillNotice(Texture2D icon, string title, string key)
+        {
             if (noticeIcon != null && icon != null)
             {
                 noticeIcon.GetPropertyBlock(block);
@@ -223,8 +242,6 @@ namespace Deeploration.Player
             }
             if (noticeTitle != null) noticeTitle.SetText(title);
             if (noticeKey != null) noticeKey.SetText(key);
-            noticeUntil = Time.unscaledTime + (seconds > 0f ? seconds : noticeSeconds);
-            SetNotice(true);
         }
 
         private void SetNotice(bool on)
@@ -262,6 +279,7 @@ namespace Deeploration.Player
                 noticeUntil = -1f;
                 SetNotice(false);
             }
+            UpdateGrabHint(crtU);
 
             bool gaugeOn = gaugeU >= 1f;
             if (gaugeOn)
@@ -463,6 +481,22 @@ namespace Deeploration.Player
             WriteEmission(lamp, color * (on * lampIntensity));
         }
 
+        // Avviso della presa: resta finché il mirino è su un Grabbable libero e la mano è vuota, a CRT acceso.
+        private void UpdateGrabHint(float crtU)
+        {
+            bool hint = noticeRoot != null && grab != null && noticeUntil < 0f && crtU >= 1f &&
+                        grab.Held == null && grab.FindTarget(out _) != null;
+            if (hint == hintShown) return;
+            hintShown = hint;
+            if (hint)
+            {
+                noticeRed = false;
+                FillNotice(grabIcon, grabTitle, grabKey);
+            }
+            // Un avviso a tempo appena partito ha già acceso la schermata: non va spenta.
+            if (noticeUntil < 0f) SetNotice(hint);
+        }
+
         private void UpdateCrt(float depth, int pressureBand, FlashlightMode mode, float time, float powerU, float power)
         {
             Color ink = mode == FlashlightMode.Red ? EmergencyRed : Amber;
@@ -473,7 +507,7 @@ namespace Deeploration.Player
             if (depthLabel != null) depthLabel.color = dim;
             if (lightLabel != null) lightLabel.color = dim;
             if (lightValue != null) lightValue.color = ink;
-            if (noticeUntil >= 0f)
+            if (noticeUntil >= 0f || hintShown)
             {
                 // L'avviso del modulo rosso è rosso anche con la torcia in Full.
                 Color noticeInk = noticeRed ? EmergencyRed : ink;
